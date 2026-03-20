@@ -1,0 +1,58 @@
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 mb-0">Recent Jobs</h2>
+      <a class="small text-decoration-none" href="{% url 'videos:list' %}">View content</a>
+    </div>
+    {% if recent_jobs %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Job Type</th>
+              <th>Related</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Message</th>
+              <th>Timestamps</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in recent_jobs %}
+              <tr>
+                <td>{{ job.get_job_type_display }}</td>
+                <td class="small text-muted">{{ job.related_object_label|default:"-" }}</td>
+                <td>
+                  <span class="badge {% if job.status == 'failed' %}text-bg-danger{% elif job.status == 'success' %}text-bg-success{% elif job.status == 'processing' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">
+                    {{ job.get_status_display }}
+                  </span>
+                </td>
+                <td style="min-width: 140px;">
+                  <div class="progress" role="progressbar" aria-label="Job progress" aria-valuenow="{{ job.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width: {{ job.progress_percent }}%">{{ job.progress_percent }}%</div>
+                  </div>
+                </td>
+                <td class="small">
+                  {{ job.message|default:job.error_message|default:"-" }}
+                </td>
+                <td class="small text-muted">
+                  <div>Created {{ job.created_at|date:"Y-m-d H:i" }}</div>
+                  <div>Started {{ job.started_at|date:"Y-m-d H:i"|default:"-" }}</div>
+                  <div>Finished {{ job.finished_at|date:"Y-m-d H:i"|default:"-" }}</div>
+                </td>
+                <td class="text-end">
+                  {% if job.retry_placeholder %}
+                    <button class="btn btn-sm btn-outline-danger" type="button" disabled>Retry</button>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No recent background jobs.</p>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,198 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}Edit Thumbnail{% endblock %}
+
+{% block extra_css %}
+<style>
+.thumb-shell{
+  width:min(94vw, 1080px);
+  margin:0 auto;
+  padding:2.8rem 1.25rem 3.5rem;
+}
+.thumb-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.2rem;
+}
+.thumb-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.thumb-title{
+  margin:.2rem 0 .35rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.5rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.thumb-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.thumb-back{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:120px;
+  padding:.78rem 1rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  color:var(--text);
+  text-decoration:none;
+  font-size:.84rem;
+  font-weight:600;
+}
+.thumb-layout{
+  display:grid;
+  grid-template-columns:minmax(0,420px) minmax(0,1fr);
+  gap:1rem;
+}
+.thumb-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1.15rem;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.thumb-preview{
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:16px;
+  overflow:hidden;
+  background:rgba(255,255,255,.03);
+}
+.thumb-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.thumb-section-title{
+  margin:0 0 .35rem;
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text);
+}
+.thumb-help{
+  margin:0 0 .85rem;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.thumb-label{
+  display:block;
+  margin-bottom:.45rem;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.thumb-card input[type="text"],
+.thumb-card input[type="file"],
+.thumb-card .form-control{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font:inherit;
+  outline:none;
+  box-shadow:none;
+}
+.thumb-card input:focus,
+.thumb-card .form-control:focus{
+  border-color:var(--acc);
+  background:var(--s2);
+  color:var(--text);
+  box-shadow:none;
+}
+.thumb-error{
+  margin-top:.45rem;
+  color:#fca5a5;
+  font-size:.78rem;
+}
+.thumb-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+  margin-top:1rem;
+}
+.thumb-primary,
+.thumb-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:130px;
+  padding:.8rem 1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.86rem;
+  font-weight:600;
+  border:1px solid var(--border);
+}
+.thumb-primary{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.thumb-secondary{
+  background:transparent;
+  color:var(--text);
+}
+@media (max-width:900px){
+  .thumb-layout{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .thumb-shell{width:100%;padding:2rem .8rem 2.8rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="thumb-shell">
+  <div class="thumb-hero">
+    <div>
+      <div class="thumb-kicker">Admin</div>
+      <h1 class="thumb-title">Edit Thumbnail</h1>
+      <p class="thumb-desc">{{ asset.name }} 썸네일을 수정합니다.</p>
+    </div>
+    <a class="thumb-back" href="{% url 'thumbnail_admin:list' %}">목록으로</a>
+  </div>
+
+  <div class="thumb-layout">
+    <div class="thumb-card">
+      <div class="thumb-preview">
+        <img src="{{ asset.image.url }}" alt="{{ asset.name }}">
+      </div>
+    </div>
+    <div class="thumb-card">
+      <h2 class="thumb-section-title">Thumbnail Meta</h2>
+      <p class="thumb-help">이름을 바꾸거나 새 이미지를 업로드해서 기존 썸네일을 교체할 수 있습니다.</p>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom:1rem">
+          <label class="thumb-label" for="{{ form.name.id_for_label }}">이름</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+          <div class="thumb-error">{{ form.name.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div style="margin-bottom:1rem">
+          <label class="thumb-label" for="{{ form.image.id_for_label }}">이미지 교체</label>
+          {{ form.image }}
+          {% if form.image.errors %}
+          <div class="thumb-error">{{ form.image.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="thumb-actions">
+          <button type="submit" class="thumb-primary">저장</button>
+          <a href="{% url 'thumbnail_admin:list' %}" class="thumb-secondary">취소</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

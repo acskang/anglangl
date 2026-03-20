@@ -1,0 +1,294 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Background Job History{% endblock %}
+
+{% block extra_css %}
+<style>
+.job-shell{
+  width:min(94vw, 1180px);
+  margin:0 auto;
+  padding:2.7rem 1.25rem 3.5rem;
+}
+.job-hero{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.2rem;
+}
+.job-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.job-title{
+  margin:.25rem 0 .4rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.2rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.job-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.job-back{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:170px;
+  padding:.82rem 1.1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.88rem;
+  font-weight:600;
+  border:1px solid var(--border);
+  color:var(--text);
+  background:transparent;
+}
+.job-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1.15rem 1.2rem;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.job-meta{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:1rem;
+  align-items:end;
+  margin-bottom:1rem;
+}
+.job-meta-title{
+  color:var(--text);
+  font-size:1.02rem;
+  font-weight:600;
+  word-break:break-word;
+}
+.job-meta-sub{
+  margin-top:.28rem;
+  color:var(--muted);
+  font-size:.8rem;
+}
+.job-table-wrap{
+  overflow:auto;
+}
+.job-table{
+  width:100%;
+  min-width:920px;
+  border-collapse:collapse;
+}
+.job-table th,
+.job-table td{
+  padding:.82rem .75rem;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  text-align:left;
+  vertical-align:top;
+  font-size:.83rem;
+}
+.job-table th{
+  color:var(--muted);
+  font-size:.72rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.job-table tr:last-child td{
+  border-bottom:none;
+}
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.26rem .62rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  font-size:.74rem;
+}
+.status-chip.pending,
+.status-chip.queued,
+.status-chip.processing{
+  color:#93c5fd;
+  border-color:#1e3a5f;
+}
+.status-chip.success{
+  color:#86efac;
+  border-color:#14532d;
+}
+.status-chip.failed{
+  color:#fca5a5;
+  border-color:#7f1d1d;
+}
+.job-error{
+  color:#fca5a5;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.job-empty{
+  padding:2rem 1rem !important;
+  color:var(--muted);
+  text-align:center;
+}
+.job-stale{
+  margin-top:.8rem;
+  color:#fbbf24;
+  font-size:.8rem;
+}
+@media (max-width: 720px){
+  .job-shell{
+    padding:1.25rem .8rem 2.6rem;
+  }
+  .job-meta{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="job-shell">
+  <div class="job-hero">
+    <div>
+      <div class="job-kicker">Admin</div>
+      <h1 class="job-title">Background Job History</h1>
+      <p class="job-desc">마스터 비디오 다운로드 작업 이력을 시간순으로 확인합니다.</p>
+    </div>
+    <a href="{% url 'videos:detail' master_video.id %}" class="job-back">Back to Master Video</a>
+  </div>
+
+  <div class="job-card" id="masterVideoJobHistory" data-status-url="{% url 'videos:job-status' master_video.id %}">
+    <div class="job-meta">
+      <div>
+        <div class="job-meta-title">{{ master_video.title }}</div>
+        <div class="job-meta-sub">
+          {% if master_video.youtube_video_id %}{{ master_video.youtube_video_id }}{% else %}Local video{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="job-table-wrap">
+      <table class="job-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Message</th>
+            <th>Error</th>
+            <th>Created</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="jobHistoryBody">
+          {% for job in jobs %}
+          <tr{% if forloop.first %} id="latestJobRow"{% endif %}>
+            <td{% if forloop.first %} id="jobIdCell"{% endif %}>{{ job.id }}</td>
+            <td>{% if forloop.first %}<span class="status-chip {{ job.status }}" id="jobStatusCell">{{ job.get_status_display }}</span>{% else %}<span class="status-chip {{ job.status }}">{{ job.get_status_display }}</span>{% endif %}</td>
+            <td{% if forloop.first %} id="jobProgressCell"{% endif %}>{{ job.progress_percent }}%</td>
+            <td{% if forloop.first %} id="jobMessageCell"{% endif %}>{{ job.message|default:'-' }}</td>
+            <td class="job-error"{% if forloop.first %} id="jobErrorCell"{% endif %}>{{ job.error_message|default:'-' }}</td>
+            <td{% if forloop.first %} id="jobCreatedCell"{% endif %}>{{ job.created_at|date:'Y-m-d H:i:s' }}</td>
+            <td{% if forloop.first %} id="jobStartedCell"{% endif %}>{{ job.started_at|date:'Y-m-d H:i:s'|default:'-' }}</td>
+            <td{% if forloop.first %} id="jobFinishedCell"{% endif %}>{{ job.finished_at|date:'Y-m-d H:i:s'|default:'-' }}</td>
+            <td{% if forloop.first %} id="jobUpdatedCell"{% endif %}>{{ job.updated_at|date:'Y-m-d H:i:s' }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="job-empty">No background jobs yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="job-stale" id="jobStaleNotice" hidden>진행률이 갱신되지 않았습니다. worker 로그와 `updated_at`을 함께 확인하세요.</div>
+  </div>
+</div>
+<script>
+  (function () {
+    const root = document.getElementById("masterVideoJobHistory");
+    if (!root) return;
+
+    const statusUrl = root.dataset.statusUrl;
+    const latestRow = document.getElementById("latestJobRow");
+    if (!latestRow) return;
+
+    const jobIdCell = document.getElementById("jobIdCell");
+    const jobStatusCell = document.getElementById("jobStatusCell");
+    const jobProgressCell = document.getElementById("jobProgressCell");
+    const jobMessageCell = document.getElementById("jobMessageCell");
+    const jobErrorCell = document.getElementById("jobErrorCell");
+    const jobCreatedCell = document.getElementById("jobCreatedCell");
+    const jobStartedCell = document.getElementById("jobStartedCell");
+    const jobFinishedCell = document.getElementById("jobFinishedCell");
+    const jobUpdatedCell = document.getElementById("jobUpdatedCell");
+    const staleNotice = document.getElementById("jobStaleNotice");
+    let pollTimer = null;
+
+    function formatDate(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mi = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+    }
+
+    function stopPollingIfDone(status) {
+      if (status === "success" || status === "failed" || status === "canceled") {
+        if (pollTimer) {
+          window.clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      }
+    }
+
+    async function refreshLatestJob() {
+      try {
+        const response = await fetch(statusUrl, {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
+        });
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        if (!payload.ok || !payload.job) return;
+
+        const job = payload.job;
+        jobIdCell.textContent = String(job.id);
+        jobStatusCell.textContent = job.status_label;
+        jobStatusCell.className = "status-chip " + job.status;
+        jobProgressCell.textContent = `${job.progress_percent}%`;
+        jobMessageCell.textContent = job.message || "-";
+        jobErrorCell.textContent = job.error_message || "-";
+        jobCreatedCell.textContent = formatDate(job.created_at);
+        jobStartedCell.textContent = formatDate(job.started_at);
+        jobFinishedCell.textContent = formatDate(job.finished_at);
+        jobUpdatedCell.textContent = formatDate(job.updated_at);
+
+        if (job.status === "processing" && job.updated_at) {
+          const updatedAt = new Date(job.updated_at);
+          staleNotice.hidden = Number.isNaN(updatedAt.getTime()) || ((Date.now() - updatedAt.getTime()) < 15000);
+        } else {
+          staleNotice.hidden = true;
+        }
+
+        stopPollingIfDone(job.status);
+      } catch (_error) {
+      }
+    }
+
+    pollTimer = window.setInterval(refreshLatestJob, 2000);
+    refreshLatestJob();
+  })();
+</script>
+{% endblock %}

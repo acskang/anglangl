@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a> <span>/</span> Chapters
+</div>
+
+<div class="glass-panel" style="padding: 40px;">
+    <h2 class="mb-20">YouTube 챕터 다운로드</h2>
+    <p class="text-muted mb-30">
+        영상에 등록된 챕터 목록을 불러온 뒤, 원하는 구간만 선택해 개별 파일로 저장합니다. 결과물은 <code>media/chapters</code> 폴더에 저장됩니다.
+    </p>
+
+    <form method="post" class="form-stack">
+        {% csrf_token %}
+        <div class="input-row">
+            {{ form.url.as_widget(attrs={'class': 'glass-input', 'placeholder': 'Paste YouTube URL...'}) }}
+            <button type="submit" name="action" value="fetch" class="glass-btn primary">
+                <i class="fas fa-list"></i> 챕터 불러오기
+            </button>
+        </div>
+        {% if form.url.help_text %}
+            <div class="form-hint">{{ form.url.help_text }}</div>
+        {% endif %}
+        {% for error in form.url.errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+    </form>
+</div>
+
+{% if chapters %}
+<div class="glass-panel" style="padding: 30px;">
+    <form method="post" id="chapterDownloadForm" class="form-stack">
+        {% csrf_token %}
+        <input type="hidden" name="url" value="{{ url_value }}">
+        <input type="hidden" name="action" id="chapterAction" value="">
+        <input type="hidden" name="delete_single" id="deleteSingle" value="">
+
+        <div>
+            <div style="font-weight: 600;">불러온 챕터 ({{ chapters|length }}개)</div>
+            {% if video_title %}
+                <div class="text-muted" style="margin-top: 6px;">영상 제목: {{ video_title }}</div>
+            {% endif %}
+            <div class="text-muted" style="margin-top: 6px;">URL: {{ url_value }}</div>
+        </div>
+
+        <div class="chapter-grid">
+            {% for chapter in chapters %}
+                <label class="glass-panel chapter-item">
+                    <div class="chapter-meta">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="chapters" value="{{ chapter.idx }}" id="chapter{{ chapter.idx }}" {% if chapter.idx in selected_indices or chapter.idx in existing_success_indices %}checked{% endif %}>
+                            <span class="badge">#{{ chapter.idx }}</span>
+                            <strong>{{ chapter.title }}</strong>
+                            {% if chapter.idx in existing_success_indices %}
+                                <span class="badge success">이미 저장됨</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted">{{ chapter.start_hms }} - {{ chapter.end_hms }}</div>
+                    </div>
+                    <div class="chapter-actions">
+                        {% if chapter.idx in existing_success_indices %}
+                            <button type="button" class="glass-btn single-delete" data-delete="{{ chapter.idx }}" onclick="event.stopPropagation();">
+                                삭제
+                            </button>
+                        {% endif %}
+                    </div>
+                </label>
+            {% endfor %}
+        </div>
+
+        <div class="chapter-actions" style="justify-content: space-between;">
+            <div class="text-muted">
+                저장 경로: {{ media_root }}/chapters
+                <div id="downloadStatus" class="form-hint" style="display:none;">다운로드 중입니다... 시간이 조금 걸릴 수 있습니다.</div>
+            </div>
+            <div class="chapter-actions">
+                <button type="button" data-action="delete" class="glass-btn" id="deleteButton">선택 삭제</button>
+                <button type="button" data-action="download" class="glass-btn primary" id="downloadButton">선택한 챕터 다운로드</button>
+            </div>
+        </div>
+
+        {% if download_results.success or download_results.failed %}
+        <div class="glass-panel status-panel">
+            <div style="font-weight: 600;">처리 결과</div>
+            {% if download_results.success %}
+                <div class="status-list">
+                    {% for item in download_results.success %}
+                        <div class="status-item">
+                            #{{ item.index }} {{ item.title }}
+                            {% if item.path %}
+                                {% if item.skipped %}
+                                    <span class="text-muted">(이미 저장됨)</span>
+                                {% else %}
+                                    <span class="text-muted">(파일 준비 완료)</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if download_results.failed %}
+                <div class="status-list">
+                    {% for item in download_results.failed %}
+                        <div class="status-item">#{{ item.index }} {{ item.title }} — {{ item.error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endif %}
+
+<script>
+  const downloadForm = document.getElementById("chapterDownloadForm");
+  const downloadBtn = document.getElementById("downloadButton");
+  const statusEl = document.getElementById("downloadStatus");
+  const actionField = document.getElementById("chapterAction");
+  const deleteSingleField = document.getElementById("deleteSingle");
+
+  function submitWithAction(action, deleteSingle = "") {
+    if (!downloadForm || !actionField || !deleteSingleField) return;
+    actionField.value = action;
+    deleteSingleField.value = deleteSingle;
+    if (action === "download" && downloadBtn && statusEl) {
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = "다운로드 중...";
+      statusEl.style.display = "block";
+    }
+    downloadForm.submit();
+  }
+
+  document.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action || "";
+      submitWithAction(action);
+    });
+  });
+
+  document.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const target = e.currentTarget;
+      const idx = target.dataset.delete || "";
+      submitWithAction("delete", idx);
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-2">My Master Videos</div>
+        <div class="display-6 mb-0">{{ stats.master_video_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-2">My Clips</div>
+        <div class="display-6 mb-0">{{ stats.clip_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-2">Recent 7-Day Study</div>
+        <div class="display-6 mb-0">{{ stats.recent_study_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card shadow-sm h-100 border-warning-subtle">
+      <div class="card-body">
+        <div class="text-muted small mb-2">Active Jobs</div>
+        <div class="display-6 mb-0">{{ stats.active_job_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card shadow-sm h-100 border-danger-subtle">
+      <div class="card-body">
+        <div class="text-muted small mb-2">Failed Jobs</div>
+        <div class="display-6 mb-0">{{ stats.failed_job_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>

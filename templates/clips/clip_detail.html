@@ -1,0 +1,915 @@
+{% extends 'dramaNlearn/base.html' %}
+{% load clip_extras %}
+
+{% block title %}{{ clip.title|default:"Clip Detail" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.detail-shell{
+  width:min(94vw, 1180px);
+  margin:0 auto;
+  padding:2.7rem 1.25rem 3.5rem;
+}
+.detail-hero{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.detail-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.detail-title{
+  margin:.25rem 0 .45rem;
+  font-size:16pt;
+  font-weight:700;
+  letter-spacing:0;
+  color:var(--text);
+}
+.detail-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.detail-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.btn-primary-dark,
+.btn-secondary-dark,
+.btn-danger-dark,
+.btn-warn-dark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:138px;
+  padding:.82rem 1.1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.88rem;
+  font-weight:600;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.btn-primary-dark{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.btn-secondary-dark{
+  background:transparent;
+  color:var(--text);
+}
+.btn-danger-dark{
+  background:#7f1d1d;
+  border-color:#7f1d1d;
+  color:#fff;
+}
+.btn-warn-dark{
+  background:#7c2d12;
+  border-color:#7c2d12;
+  color:#fed7aa;
+}
+.detail-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:.9rem;
+  margin-bottom:1rem;
+}
+.stat-card,
+.detail-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.stat-card{
+  padding:1rem 1.05rem;
+}
+.stat-label{
+  color:var(--muted);
+  font-size:.76rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.stat-value{
+  margin-top:.3rem;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:600;
+}
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.26rem .62rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  font-size:.76rem;
+}
+.status-chip.ready{color:#86efac;border-color:#14532d}
+.status-chip.processing,
+.status-chip.queued{color:#93c5fd;border-color:#1e3a5f}
+.status-chip.failed{color:#fca5a5;border-color:#7f1d1d}
+.player-card{
+  padding:1rem;
+  margin-bottom:1rem;
+}
+.player-layout{
+  display:grid;
+  grid-template-columns:528px minmax(0, 1fr);
+  gap:1rem;
+  align-items:start;
+  width:100%;
+}
+.player-frame{
+  position:relative;
+  width:100%;
+  max-width:528px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  background:#000;
+}
+.player-frame video{
+  width:100%;
+  display:block;
+}
+.karaoke-overlay{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:18px;
+  display:flex;
+  justify-content:center;
+  pointer-events:none;
+  padding:0 1rem;
+}
+.karaoke-line{
+  max-width:88%;
+  padding:.52rem .75rem;
+  border-radius:12px;
+  background:rgba(5,5,10,.62);
+  color:#f5f5fb;
+  font-size:1.02rem;
+  font-weight:600;
+  line-height:1.55;
+  text-align:center;
+  text-shadow:0 1px 10px rgba(0,0,0,.55);
+}
+.karaoke-word{
+  color:#f5f5fb;
+  transition:color .12s ease;
+}
+.karaoke-word.active{
+  color:#facc15;
+}
+.player-tools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+  align-items:center;
+  margin-top:.85rem;
+}
+.subtitle-panel{
+  width:100%;
+  min-height:100%;
+  padding:1rem;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.05);
+  background:rgba(255,255,255,.02);
+  display:grid;
+  grid-template-rows:auto minmax(0, 1fr);
+  gap:.9rem;
+  align-self:stretch;
+}
+.subtitle-card{
+  width:100%;
+  padding:.95rem;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.05);
+  background:rgba(255,255,255,.02);
+}
+.subtitle-title{
+  margin:0 0 .65rem;
+  color:var(--text);
+  font-size:.96rem;
+  font-weight:600;
+}
+.subtitle-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  margin-bottom:.65rem;
+}
+.subtitle-head .subtitle-title{
+  margin:0;
+}
+.subtitle-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.46rem .74rem;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.76rem;
+  font-weight:600;
+  text-decoration:none;
+  cursor:pointer;
+}
+.subtitle-btn:hover{
+  border-color:var(--acc);
+}
+.option-block{
+  display:grid;
+  gap:.8rem;
+}
+.option-row{
+  display:grid;
+  gap:.4rem;
+}
+.option-label{
+  color:var(--muted);
+  font-size:.74rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.option-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.45rem;
+}
+.option-chips input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.option-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  padding:.48rem .72rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.78rem;
+  font-weight:600;
+  cursor:pointer;
+}
+.option-chips input:checked + .option-chip{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.subtitle-submit{
+  width:100%;
+  margin-top:.1rem;
+}
+.subtitle-progress{
+  display:none;
+  margin-top:.75rem;
+}
+.subtitle-progress.open{
+  display:block;
+}
+.subtitle-progress-text{
+  color:var(--muted);
+  font-size:.78rem;
+  margin-bottom:.35rem;
+}
+.subtitle-progress-bar{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.05);
+  overflow:hidden;
+}
+.subtitle-progress-fill{
+  width:0;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--acc), #ff7a59);
+  transition:width .25s ease;
+}
+.subtitle-body{
+  max-height:290px;
+  overflow:auto;
+  color:#d7d7e6;
+  font-size:.92rem;
+  line-height:1.75;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.subtitle-body.karaoke{
+  white-space:normal;
+}
+.subtitle-editor{
+  width:100%;
+  min-height:130px;
+  padding:.82rem .95rem;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:#d7d7e6;
+  font:inherit;
+  line-height:1.7;
+  resize:vertical;
+  outline:none;
+}
+.subtitle-editor:focus{
+  border-color:var(--acc);
+}
+.subtitle-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:.7rem;
+}
+.subtitle-empty{
+  color:var(--muted);
+  font-size:.84rem;
+}
+.tool-group{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.tool-label{
+  color:var(--muted);
+  font-size:.76rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-right:.1rem;
+}
+.tool-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  padding:.52rem .78rem;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.8rem;
+  font-weight:600;
+  cursor:pointer;
+}
+.tool-btn.active{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.detail-content{
+  display:grid;
+  grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr);
+  gap:1rem;
+}
+.detail-card{
+  padding:1.2rem;
+}
+.section-title{
+  margin:0 0 .95rem;
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text);
+}
+.detail-list{
+  display:grid;
+  grid-template-columns:150px minmax(0, 1fr);
+  gap:.7rem 1rem;
+  margin:0;
+}
+.detail-list dt{
+  color:var(--muted);
+  font-size:.8rem;
+}
+.detail-list dd{
+  margin:0;
+  color:var(--text);
+  font-size:.9rem;
+  word-break:break-word;
+}
+.detail-link{
+  color:#f8a5b4;
+  text-decoration:none;
+}
+.detail-link:hover{
+  color:#ffd2da;
+}
+.note-block{
+  padding:1rem;
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05);
+}
+.note-error{
+  color:#fca5a5;
+  white-space:pre-wrap;
+}
+.meta-form{
+  display:grid;
+  gap:.9rem;
+}
+.meta-form label{
+  display:block;
+  margin-bottom:.4rem;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.meta-form .form-control{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font:inherit;
+  outline:none;
+  box-shadow:none;
+}
+.meta-form .form-control:focus{
+  border-color:var(--acc);
+  background:var(--s2);
+  color:var(--text);
+  box-shadow:none;
+}
+.form-error{
+  margin-top:.35rem;
+  color:#fca5a5;
+  font-size:.78rem;
+}
+@media (max-width: 980px){
+  .detail-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+  .detail-content{
+    grid-template-columns:1fr;
+  }
+  .player-layout{
+    grid-template-columns:1fr;
+  }
+}
+@media (max-width: 640px){
+  .detail-shell{
+    padding:1.2rem .8rem 2.4rem;
+  }
+  .detail-grid{
+    grid-template-columns:1fr;
+  }
+  .detail-list{
+    grid-template-columns:1fr;
+    gap:.35rem;
+  }
+  .player-frame{
+    border-radius:12px;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-shell">
+  {% if clip.file_status == 'ready' and clip.clip_file %}
+  <div class="detail-card player-card">
+    <div class="player-layout">
+      <div>
+        <div class="player-frame">
+          <video id="clipDetailPlayer" controls preload="metadata">
+            {% if playback_type == 'file' %}
+            <source src="{{ playback_url }}" type="video/mp4">
+            {% endif %}
+            Your browser does not support HTML5 video.
+          </video>
+          <div class="karaoke-overlay" id="karaokeOverlay" hidden>
+            <div class="karaoke-line" id="karaokeLine"></div>
+          </div>
+        </div>
+        <div class="player-tools">
+          <div class="tool-group">
+            <span class="tool-label">Loop</span>
+            <button type="button" class="tool-btn" id="loopToggleBtn">비활성</button>
+          </div>
+          <div class="tool-group">
+            <span class="tool-label">Speed</span>
+            <button type="button" class="tool-btn speed-btn" data-speed="0.5">0.5x</button>
+            <button type="button" class="tool-btn speed-btn" data-speed="0.75">0.75x</button>
+            <button type="button" class="tool-btn speed-btn active" data-speed="1">1.0x</button>
+            <button type="button" class="tool-btn speed-btn" data-speed="1.25">1.25x</button>
+            <button type="button" class="tool-btn speed-btn" data-speed="1.5">1.5x</button>
+          </div>
+        </div>
+      </div>
+      <div class="subtitle-panel">
+        <div class="subtitle-card">
+          <div class="subtitle-head">
+            <h3 class="subtitle-title">Make Subtitle</h3>
+          </div>
+          {% if can_manage %}
+          <form method="post" action="{% url 'clips:subtitle-extract' clip.id %}" id="subtitleExtractForm">
+            {% csrf_token %}
+            <div class="option-block">
+              <div class="option-row">
+                <div class="option-label">Model</div>
+                <div class="option-chips">
+                  <label>
+                    <input type="radio" name="whisper_model" value="tiny">
+                    <span class="option-chip">tiny</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="whisper_model" value="base" checked>
+                    <span class="option-chip">base</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="whisper_model" value="small">
+                    <span class="option-chip">small</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="whisper_model" value="medium">
+                    <span class="option-chip">medium</span>
+                  </label>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-label">Language</div>
+                <div class="option-chips">
+                  <label>
+                    <input type="radio" name="whisper_language" value="en" checked>
+                    <span class="option-chip">English</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="whisper_language" value="auto">
+                    <span class="option-chip">Auto</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="whisper_language" value="ko">
+                    <span class="option-chip">Korean</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="subtitle-btn subtitle-submit">Extract</button>
+            <div class="subtitle-progress" id="subtitleProgress">
+              <div class="subtitle-progress-text" id="subtitleProgressText">Whisper 준비 중...</div>
+              <div class="subtitle-progress-bar">
+                <div class="subtitle-progress-fill" id="subtitleProgressFill"></div>
+              </div>
+            </div>
+          </form>
+          {% else %}
+          <div class="subtitle-empty">소유자만 자막을 추출할 수 있습니다.</div>
+          {% endif %}
+        </div>
+        <div class="subtitle-card">
+          <h3 class="subtitle-title">Subtitle</h3>
+          {% if can_manage and subtitle_preview %}
+          <form method="post" action="{% url 'clips:subtitle-save' clip.id %}">
+            {% csrf_token %}
+            <textarea class="subtitle-editor" name="subtitle_text">{{ subtitle_preview }}</textarea>
+            <div class="subtitle-actions">
+              <button type="submit" class="subtitle-btn">Save</button>
+            </div>
+          </form>
+          {% elif clip.subtitle %}
+          <div class="subtitle-body karaoke" id="subtitleKaraokeBody">{{ clip.subtitle }}</div>
+          {% else %}
+          <div class="subtitle-empty">None</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="detail-hero">
+    <div>
+      <div class="detail-kicker">Clip</div>
+      <h1 class="detail-title">{{ clip.title|default:"Untitled Clip" }}</h1>
+      <p class="detail-desc">클립 메타데이터, 소스 정보, 처리 상태를 한 화면에서 확인합니다.</p>
+    </div>
+    <div class="detail-actions">
+      {% if can_manage %}
+      <a href="{% url 'workers:clip-job-history' clip.id %}" class="btn-secondary-dark">Job History</a>
+      {% endif %}
+      <a href="{% url 'clips:list' %}" class="btn-secondary-dark">Back to Clips</a>
+      {% if can_manage %}
+      <a href="{% url 'clips:edit' clip.id %}" class="btn-primary-dark">Edit</a>
+      <a href="{% url 'clips:delete' clip.id %}" class="btn-danger-dark">Delete</a>
+      {% if clip.file_status == 'failed' %}
+      <form method="post" action="{% url 'clips:retry' clip.id %}">
+        {% csrf_token %}
+        <button class="btn-warn-dark" type="submit">Retry Processing</button>
+      </form>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="stat-card">
+      <div class="stat-label">Status</div>
+      <div class="stat-value">
+        <span class="status-chip {{ clip.file_status }}">{{ clip.get_file_status_display }}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Range</div>
+      <div class="stat-value">{{ clip.start_time_seconds|hhmmss }} - {{ clip.end_time_seconds|hhmmss }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Duration</div>
+      <div class="stat-value">{{ clip.duration_seconds|hhmmss }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Owner</div>
+      <div class="stat-value">{% if clip.owner %}@{{ clip.owner.username }}{% else %}-{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="detail-content">
+    <div class="detail-card">
+      <h2 class="section-title">Clip Info</h2>
+      <dl class="detail-list">
+        <dt>Title</dt><dd>{{ clip.title|default:"-" }}</dd>
+        <dt>Description</dt><dd style="white-space:pre-wrap">{{ clip.description|default:"-" }}</dd>
+        <dt>Source Type</dt><dd>{{ clip.get_source_type_display }}</dd>
+        <dt>Visibility</dt><dd>{% if clip.is_public %}Public{% else %}Private{% endif %}</dd>
+        <dt>Created At</dt><dd>{{ clip.created_at|date:'Y-m-d H:i:s' }}</dd>
+        <dt>Last Updated</dt><dd>{{ clip.updated_at|date:'Y-m-d H:i:s' }}</dd>
+        {% if clip.source_type == 'extracted' %}
+        <dt>Master Video</dt>
+        <dd>
+          {% if clip.master_video %}
+            <a class="detail-link" href="{% url 'videos:detail' clip.master_video.id %}">{{ clip.master_video.title }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+        {% else %}
+        <dt>Original Filename</dt><dd>{{ clip.original_filename|default:'-' }}</dd>
+        <dt>Upload Batch</dt>
+        <dd>
+          {% if clip.upload_batch %}
+            {% if can_manage %}
+            <a class="detail-link" href="{% url 'clips:batch-detail' clip.upload_batch.id %}">{{ clip.upload_batch.title }}</a>
+            {% else %}
+            {{ clip.upload_batch.title }}
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div style="display:grid;gap:1rem">
+      <div class="detail-card">
+        <h2 class="section-title">Process Note</h2>
+        <div class="note-block">
+          {% if clip.file_error_message %}
+          <div class="note-error">{{ clip.file_error_message }}</div>
+          {% else %}
+          <div style="color:var(--muted);font-size:.84rem">현재 기록된 오류 메시지가 없습니다.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if can_manage and metadata_form %}
+      <div class="detail-card">
+        <h2 class="section-title">Quick Edit</h2>
+        <form class="meta-form" method="post" action="{% url 'clips:metadata-update' clip.id %}">
+          {% csrf_token %}
+          <div>
+            <label for="{{ metadata_form.title.id_for_label }}">Title</label>
+            {{ metadata_form.title }}
+            {% if metadata_form.title.errors %}<div class="form-error">{{ metadata_form.title.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <div>
+            <label for="{{ metadata_form.description.id_for_label }}">Description</label>
+            {{ metadata_form.description }}
+            {% if metadata_form.description.errors %}<div class="form-error">{{ metadata_form.description.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <div>
+            <button type="submit" class="btn-primary-dark">Save</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<script>
+  const CLIP_PLAYBACK_URL = "{{ playback_url|escapejs }}";
+  const CLIP_PLAYBACK_TYPE = "{{ playback_type }}";
+  const CLIP_SUBTITLE_TIMING = {{ subtitle_timing_json|safe }};
+
+  (function () {
+    const player = document.getElementById("clipDetailPlayer");
+    if (!player) return;
+
+    if (CLIP_PLAYBACK_TYPE === "hls" && CLIP_PLAYBACK_URL) {
+      if (window.Hls && Hls.isSupported()) {
+        const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: true });
+        hls.loadSource(CLIP_PLAYBACK_URL);
+        hls.attachMedia(player);
+      } else if (player.canPlayType("application/vnd.apple.mpegurl")) {
+        player.src = CLIP_PLAYBACK_URL;
+      }
+    }
+
+    player.volume = 0.1;
+    const loopToggleBtn = document.getElementById("loopToggleBtn");
+    const speedButtons = Array.from(document.querySelectorAll(".speed-btn"));
+
+    function syncLoopButton() {
+      if (!loopToggleBtn) return;
+      loopToggleBtn.textContent = player.loop ? "활성" : "비활성";
+      loopToggleBtn.classList.toggle("active", player.loop);
+    }
+
+    function syncSpeedButtons(currentRate) {
+      speedButtons.forEach(function (button) {
+        const rate = Number(button.getAttribute("data-speed"));
+        button.classList.toggle("active", rate === currentRate);
+      });
+    }
+
+    if (loopToggleBtn) {
+      loopToggleBtn.addEventListener("click", function () {
+        player.loop = !player.loop;
+        syncLoopButton();
+      });
+    }
+
+    const karaokeOverlay = document.getElementById("karaokeOverlay");
+    const karaokeLine = document.getElementById("karaokeLine");
+    const subtitleKaraokeBody = document.getElementById("subtitleKaraokeBody");
+    const flatKaraokeWords = Array.isArray(CLIP_SUBTITLE_TIMING)
+      ? CLIP_SUBTITLE_TIMING.reduce(function (acc, segment) {
+          return acc.concat(Array.isArray(segment.words) ? segment.words : []);
+        }, [])
+      : [];
+
+    function buildKaraokeHtml(words, currentTime) {
+      if (!words.length) {
+        return "";
+      }
+      return words.map(function (word) {
+        let cls = "karaoke-word";
+        if (currentTime >= word.start && currentTime < word.end) {
+          cls += " active";
+        }
+        return '<span class="' + cls + '">' + escapeHtml(word.word) + '</span>';
+      }).join(" ");
+    }
+
+    function renderKaraoke(words, currentTime) {
+      if (!words.length) {
+        return;
+      }
+      const html = buildKaraokeHtml(words, currentTime);
+      if (karaokeOverlay && karaokeLine) {
+        karaokeLine.innerHTML = html;
+        karaokeOverlay.hidden = false;
+      }
+      if (subtitleKaraokeBody) {
+        subtitleKaraokeBody.innerHTML = html;
+      }
+    }
+
+    function findActiveSegment(currentTime) {
+      return (CLIP_SUBTITLE_TIMING || []).find(function (segment) {
+        return currentTime >= Number(segment.start || 0) && currentTime <= Number(segment.end || 0);
+      }) || null;
+    }
+
+    function syncKaraoke() {
+      if (!karaokeOverlay || !karaokeLine || !Array.isArray(CLIP_SUBTITLE_TIMING) || !CLIP_SUBTITLE_TIMING.length) {
+        return;
+      }
+      const currentTime = player.currentTime || 0;
+      const activeSegment = findActiveSegment(currentTime);
+      if (!activeSegment || !Array.isArray(activeSegment.words) || !activeSegment.words.length) {
+        if (karaokeOverlay && karaokeLine) {
+          karaokeOverlay.hidden = true;
+          karaokeLine.innerHTML = "";
+        }
+        if (subtitleKaraokeBody) {
+          subtitleKaraokeBody.innerHTML = buildKaraokeHtml(flatKaraokeWords, -1);
+        }
+        return;
+      }
+      renderKaraoke(activeSegment.words, currentTime);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    speedButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        const rate = Number(button.getAttribute("data-speed")) || 1;
+        player.playbackRate = rate;
+        syncSpeedButtons(rate);
+      });
+    });
+
+    player.addEventListener("timeupdate", syncKaraoke);
+    player.addEventListener("seeked", syncKaraoke);
+    player.addEventListener("pause", syncKaraoke);
+    player.addEventListener("ended", function () {
+      if (karaokeOverlay && karaokeLine) {
+        karaokeOverlay.hidden = true;
+        karaokeLine.innerHTML = "";
+      }
+      syncKaraoke();
+    });
+
+    syncLoopButton();
+    syncSpeedButtons(1);
+    syncKaraoke();
+  })();
+
+  (function () {
+    const form = document.getElementById("subtitleExtractForm");
+    if (!form) return;
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const progressWrap = document.getElementById("subtitleProgress");
+    const progressText = document.getElementById("subtitleProgressText");
+    const progressFill = document.getElementById("subtitleProgressFill");
+    const progressSteps = [
+      { percent: 12, text: "Whisper 준비 중..." },
+      { percent: 34, text: "오디오 분석 중..." },
+      { percent: 58, text: "자막 추출 중..." },
+      { percent: 78, text: "텍스트 정리 중..." },
+      { percent: 92, text: "결과 마무리 중..." }
+    ];
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(form);
+      let stepIndex = 0;
+      let timerId = null;
+
+      submitButton.disabled = true;
+      progressWrap.classList.add("open");
+      progressText.textContent = progressSteps[0].text;
+      progressFill.style.width = progressSteps[0].percent + "%";
+
+      timerId = window.setInterval(function () {
+        stepIndex = Math.min(stepIndex + 1, progressSteps.length - 1);
+        progressText.textContent = progressSteps[stepIndex].text;
+        progressFill.style.width = progressSteps[stepIndex].percent + "%";
+      }, 1400);
+
+      fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        credentials: "same-origin"
+      }).then(function (response) {
+        if (!response.ok) {
+          throw new Error("request failed");
+        }
+        progressText.textContent = "완료 처리 중...";
+        progressFill.style.width = "100%";
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 250);
+      }).catch(function () {
+        progressText.textContent = "추출 중 오류가 발생했습니다.";
+        progressFill.style.width = "100%";
+        submitButton.disabled = false;
+      }).finally(function () {
+        if (timerId) {
+          window.clearInterval(timerId);
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}

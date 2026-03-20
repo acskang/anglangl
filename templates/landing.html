@@ -1,0 +1,778 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}앙글앙글 | anglangl{% endblock %}
+
+{% block content %}
+<style>
+  :root{
+    --ang-bg:#0b0b0f;
+    --ang-bg-soft:#101117;
+    --ang-surface:#12131b;
+    --ang-surface-2:#171923;
+    --ang-border:rgba(255,255,255,.10);
+    --ang-border-strong:rgba(132,204,22,.18);
+    --ang-text:#ffffff;
+    --ang-muted:#a1a1aa;
+    --ang-purple:#7c3aed;
+    --ang-purple-soft:#a78bfa;
+    --ang-green:#84cc16;
+    --ang-green-soft:#d9f99d;
+    --ang-shadow:0 20px 80px rgba(0,0,0,.45);
+    --ang-radius-xl:28px;
+    --ang-radius-2xl:36px;
+  }
+
+  .landing-v2{
+    position:relative;
+    overflow:hidden;
+    margin-inline:calc(50% - 50vw);
+    padding:0 0 4rem;
+    background:
+      radial-gradient(circle at 8% 10%, rgba(124,58,237,.24), transparent 24%),
+      radial-gradient(circle at 92% 12%, rgba(132,204,22,.18), transparent 20%),
+      radial-gradient(circle at 52% 100%, rgba(124,58,237,.12), transparent 26%),
+      linear-gradient(180deg, #090a10 0%, #0b0b0f 42%, #0d0f15 100%);
+  }
+
+  .landing-v2::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size:32px 32px;
+    mask-image:linear-gradient(180deg, rgba(0,0,0,.32), transparent 88%);
+    pointer-events:none;
+  }
+
+  .landing-wrap{
+    position:relative;
+    z-index:1;
+    width:min(1200px, calc(100vw - 2rem));
+    margin:0 auto;
+  }
+
+  .landing-section{
+    padding:4.25rem 0;
+  }
+
+  .landing-hero{
+    padding:3rem 0 1.5rem;
+  }
+
+  .landing-grid{
+    display:grid;
+    grid-template-columns:minmax(0, 1.08fr) minmax(0, .92fr);
+    gap:3rem;
+    align-items:center;
+  }
+
+  .landing-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:.65rem;
+    padding:.5rem 1rem;
+    border:1px solid rgba(132,204,22,.28);
+    border-radius:999px;
+    background:rgba(132,204,22,.10);
+    color:#b9f36b;
+    font-size:.88rem;
+    font-weight:600;
+  }
+
+  .landing-badge-dot{
+    width:.55rem;
+    height:.55rem;
+    border-radius:50%;
+    background:var(--ang-green);
+    box-shadow:0 0 0 6px rgba(132,204,22,.12);
+  }
+
+  .landing-title{
+    margin:1.25rem 0 0;
+    color:var(--ang-text);
+    font-size:clamp(2.7rem, 5.5vw, 5rem);
+    line-height:1.02;
+    letter-spacing:-.05em;
+    font-weight:900;
+  }
+
+  .landing-title-highlight{
+    display:block;
+    background:linear-gradient(90deg, var(--ang-purple-soft) 0%, #ffffff 48%, var(--ang-green) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .landing-copy{
+    max-width:44rem;
+    margin:1.5rem 0 0;
+    color:#c4c4d1;
+    font-size:1.1rem;
+    line-height:1.9;
+  }
+
+  .landing-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.9rem;
+    margin-top:2rem;
+  }
+
+  .landing-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:3.45rem;
+    padding:.9rem 1.5rem;
+    border-radius:18px;
+    border:1px solid transparent;
+    text-decoration:none;
+    font-weight:700;
+    transition:transform .18s ease, border-color .18s ease, background-color .18s ease, color .18s ease, opacity .18s ease;
+  }
+
+  .landing-btn:hover{
+    transform:translateY(-1px);
+  }
+
+  .landing-btn-primary{
+    background:#ffffff;
+    color:#05070d;
+  }
+
+  .landing-btn-primary:hover{
+    color:#05070d;
+    background:#f4f4f5;
+  }
+
+  .landing-btn-secondary{
+    border-color:rgba(255,255,255,.15);
+    background:rgba(255,255,255,.05);
+    color:#ffffff;
+  }
+
+  .landing-btn-secondary:hover{
+    color:#ffffff;
+    border-color:rgba(124,58,237,.50);
+    background:rgba(255,255,255,.09);
+  }
+
+  .landing-stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:1rem;
+    margin-top:2.5rem;
+  }
+
+  .landing-stat-card,
+  .landing-card,
+  .landing-feature-card,
+  .landing-share-box,
+  .landing-community-card,
+  .landing-workspace-shell{
+    border:1px solid var(--ang-border);
+    background:rgba(255,255,255,.05);
+    box-shadow:var(--ang-shadow);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+
+  .landing-stat-card{
+    border-radius:22px;
+    padding:1rem 1.05rem;
+  }
+
+  .landing-stat-title{
+    color:#ffffff;
+    font-size:.98rem;
+    font-weight:700;
+  }
+
+  .landing-stat-copy{
+    margin:.35rem 0 0;
+    color:var(--ang-muted);
+    font-size:.88rem;
+    line-height:1.65;
+  }
+
+  .landing-workspace-shell{
+    position:relative;
+    border-radius:32px;
+    padding:1.15rem;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  }
+
+  .landing-workspace-shell::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:32px;
+    background:linear-gradient(135deg, rgba(124,58,237,.28), transparent 40%, rgba(132,204,22,.20));
+    z-index:-1;
+    filter:blur(16px);
+    opacity:.9;
+  }
+
+  .landing-workspace{
+    border-radius:28px;
+    border:1px solid rgba(255,255,255,.08);
+    background:#111117;
+    padding:1.35rem;
+  }
+
+  .landing-brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    margin-bottom:1.25rem;
+  }
+
+  .landing-brand-stack{
+    display:flex;
+    align-items:center;
+    gap:1rem;
+  }
+
+  .landing-brand-logo{
+    width:74px;
+    height:74px;
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,.10);
+    background-color:#0c0d12;
+    background-image:url("{% static 'img/angl-logo-sheet.png' %}");
+    background-repeat:no-repeat;
+    background-size:222px 148px;
+    background-position:0 0;
+    box-shadow:0 0 30px rgba(124,58,237,.22);
+  }
+
+  .landing-brand-kicker{
+    color:#9ca3af;
+    font-size:.86rem;
+  }
+
+  .landing-brand-title{
+    color:#ffffff;
+    font-size:1.35rem;
+    font-weight:800;
+    letter-spacing:-.02em;
+  }
+
+  .landing-pill{
+    border-radius:999px;
+    background:rgba(109,40,217,.20);
+    color:#c4b5fd;
+    padding:.45rem .8rem;
+    font-size:.78rem;
+    font-weight:700;
+  }
+
+  .landing-input-card,
+  .landing-output-card,
+  .landing-share-card{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:22px;
+    background:rgba(255,255,255,.04);
+    padding:1rem;
+  }
+
+  .landing-input-box{
+    margin-top:.65rem;
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;
+    background:rgba(255,255,255,.05);
+    padding:.95rem 1rem;
+    color:#d4d4d8;
+    font-size:.92rem;
+    line-height:1.7;
+  }
+
+  .landing-output-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:.85rem;
+    margin-top:.95rem;
+  }
+
+  .landing-output-card{
+    padding:1rem;
+  }
+
+  .landing-output-head{
+    display:flex;
+    align-items:center;
+    gap:.55rem;
+    color:#ffffff;
+    font-weight:700;
+  }
+
+  .landing-output-dot{
+    width:.65rem;
+    height:.65rem;
+    border-radius:50%;
+    background:var(--ang-green);
+  }
+
+  .landing-output-copy{
+    margin-top:.55rem;
+    color:var(--ang-muted);
+    font-size:.88rem;
+    line-height:1.7;
+  }
+
+  .landing-share-card{
+    margin-top:.95rem;
+    border-color:rgba(132,204,22,.20);
+    background:rgba(132,204,22,.10);
+  }
+
+  .landing-share-title{
+    color:var(--ang-green-soft);
+    font-size:.9rem;
+    font-weight:700;
+  }
+
+  .landing-share-copy{
+    margin:.35rem 0 0;
+    color:#d4d4d8;
+    font-size:.9rem;
+    line-height:1.75;
+  }
+
+  .landing-section-head{
+    max-width:40rem;
+    margin-bottom:2.4rem;
+  }
+
+  .landing-section-label{
+    color:var(--ang-green);
+    font-size:.82rem;
+    font-weight:800;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+  }
+
+  .landing-section-title{
+    margin:.7rem 0 0;
+    color:#ffffff;
+    font-size:clamp(2rem, 4vw, 3rem);
+    line-height:1.12;
+    letter-spacing:-.04em;
+    font-weight:900;
+  }
+
+  .landing-section-copy{
+    margin:.95rem 0 0;
+    color:var(--ang-muted);
+    font-size:1rem;
+    line-height:1.85;
+  }
+
+  .landing-card-grid-3{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:1.2rem;
+  }
+
+  .landing-card-grid-2{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:1.2rem;
+  }
+
+  .landing-card,
+  .landing-feature-card,
+  .landing-community-card{
+    border-radius:28px;
+    padding:1.6rem;
+  }
+
+  .landing-card-icon{
+    width:48px;
+    height:48px;
+    border-radius:16px;
+    background:linear-gradient(135deg, #6d28d9, #84cc16);
+    box-shadow:0 10px 30px rgba(124,58,237,.22);
+  }
+
+  .landing-card-title,
+  .landing-feature-title,
+  .landing-community-title{
+    margin:1rem 0 0;
+    color:#ffffff;
+    font-size:1.22rem;
+    font-weight:800;
+    letter-spacing:-.02em;
+  }
+
+  .landing-card-copy,
+  .landing-feature-copy,
+  .landing-community-copy{
+    margin:.8rem 0 0;
+    color:var(--ang-muted);
+    line-height:1.85;
+  }
+
+  .landing-feature-card{
+    background:#101015;
+  }
+
+  .landing-feature-chip{
+    display:inline-flex;
+    padding:.35rem .7rem;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.05);
+    color:#d4d4d8;
+    font-size:.72rem;
+    font-weight:600;
+    text-transform:lowercase;
+  }
+
+  .landing-share-box{
+    border-radius:36px;
+    padding:2rem;
+    background:
+      linear-gradient(90deg, rgba(109,40,217,.20) 0%, rgba(255,255,255,.05) 50%, rgba(132,204,22,.20) 100%);
+  }
+
+  .landing-share-grid{
+    display:grid;
+    grid-template-columns:minmax(0, 1.2fr) minmax(0, .8fr);
+    gap:2rem;
+    align-items:start;
+  }
+
+  .landing-share-list{
+    display:grid;
+    gap:.8rem;
+  }
+
+  .landing-share-item{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:18px;
+    background:rgba(0,0,0,.22);
+    color:#e4e4e7;
+    padding:1rem 1.1rem;
+  }
+
+  .landing-footer{
+    width:min(1200px, calc(100vw - 2rem));
+    margin:1rem auto 0;
+    padding:1.4rem 0 0;
+    border-top:1px solid rgba(255,255,255,.10);
+    display:flex;
+    justify-content:space-between;
+    gap:1rem;
+    color:#71717a;
+    font-size:.92rem;
+  }
+
+  .landing-footer-links{
+    display:flex;
+    gap:1.2rem;
+  }
+
+  .landing-footer-links a{
+    color:inherit;
+    text-decoration:none;
+  }
+
+  .landing-footer-links a:hover{
+    color:#d4d4d8;
+  }
+
+  @media (max-width: 991px){
+    .landing-grid,
+    .landing-share-grid,
+    .landing-card-grid-3,
+    .landing-card-grid-2{
+      grid-template-columns:1fr;
+    }
+
+    .landing-hero{
+      padding-top:1.75rem;
+    }
+
+    .landing-title{
+      font-size:clamp(2.4rem, 10vw, 4rem);
+    }
+
+    .landing-footer{
+      flex-direction:column;
+    }
+  }
+
+  @media (max-width: 767px){
+    .landing-v2{
+      width:100vw;
+    }
+
+    .landing-wrap{
+      width:min(100vw - 1.25rem, 1200px);
+    }
+
+    .landing-section{
+      padding:3rem 0;
+    }
+
+    .landing-stat-grid,
+    .landing-output-grid{
+      grid-template-columns:1fr;
+    }
+
+    .landing-actions{
+      flex-direction:column;
+    }
+
+    .landing-btn{
+      width:100%;
+    }
+
+    .landing-workspace-shell,
+    .landing-share-box{
+      border-radius:28px;
+    }
+
+    .landing-card,
+    .landing-feature-card,
+    .landing-community-card{
+      padding:1.35rem;
+    }
+
+    .landing-brand-row{
+      align-items:flex-start;
+      flex-direction:column;
+    }
+  }
+</style>
+
+<div class="landing-v2">
+  <section class="landing-hero">
+    <div class="landing-wrap landing-grid">
+      <div>
+        <div class="landing-badge">
+          <span class="landing-badge-dot"></span>
+          AI · LLM 기반 영어 학습 자료 생성 및 공유 플랫폼
+        </div>
+
+        <h1 class="landing-title">
+          필요한 영어 학습 자료를
+          <span class="landing-title-highlight">스스로 만들고, 함께 나누는 곳</span>
+        </h1>
+
+        <p class="landing-copy">
+          앙글앙글은 AI와 LLM을 활용해 단어장, 예문, 리스닝 자료, 쉐도잉 스크립트, 퀴즈, 번역,
+          학습 노트 같은 영어 학습 자료를 직접 만들고 저장하며, 다른 사용자와 함께 탐색하고 공유할 수 있는
+          영어 학습 지원 플랫폼입니다.
+        </p>
+
+        <div class="landing-actions">
+          {% if request.user.is_authenticated %}
+          <a class="landing-btn landing-btn-primary" href="{% url 'dashboard:home' %}">자료 만들기</a>
+          {% else %}
+          <a class="landing-btn landing-btn-primary" href="{% url 'platform_auth:signup' %}?next={% url 'dashboard:home' %}">자료 만들기</a>
+          {% endif %}
+          <a class="landing-btn landing-btn-secondary" href="{% url 'clips:list' %}">자료 둘러보기</a>
+        </div>
+
+        <div class="landing-stat-grid">
+          <div class="landing-stat-card">
+            <div class="landing-stat-title">AI 생성</div>
+            <p class="landing-stat-copy">단어장, 예문, 리스닝, 쉐도잉, 설명 자료를 빠르게 제작합니다.</p>
+          </div>
+          <div class="landing-stat-card">
+            <div class="landing-stat-title">LLM 보조</div>
+            <p class="landing-stat-copy">같은 자료를 수준별, 목적별, 시험 대비형으로 다시 구성할 수 있습니다.</p>
+          </div>
+          <div class="landing-stat-card">
+            <div class="landing-stat-title">공유 허브</div>
+            <p class="landing-stat-copy">내가 만든 자료를 쌓고, 다른 학습자의 자료를 가져와 재사용할 수 있습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="landing-workspace-shell">
+        <div class="landing-workspace">
+          <div class="landing-brand-row">
+            <div class="landing-brand-stack">
+              <div class="landing-brand-logo" aria-hidden="true"></div>
+              <div>
+                <div class="landing-brand-kicker">오늘의 제작 워크스페이스</div>
+                <div class="landing-brand-title">anglangl Study Builder</div>
+              </div>
+            </div>
+            <div class="landing-pill">LLM Active</div>
+          </div>
+
+          <div class="landing-input-card">
+            <div class="landing-brand-kicker">입력</div>
+            <div class="landing-input-box">"미드 대사를 넣으면 리스닝 문제와 쉐도잉 스크립트를 만들어줘"</div>
+          </div>
+
+          <div class="landing-output-grid">
+            <div class="landing-output-card">
+              <div class="landing-output-head">
+                <span class="landing-output-dot"></span>
+                <span>단어장</span>
+              </div>
+              <div class="landing-output-copy">핵심 표현과 어휘 포인트를 학습용 카드 형식으로 정리합니다.</div>
+            </div>
+            <div class="landing-output-card">
+              <div class="landing-output-head">
+                <span class="landing-output-dot"></span>
+                <span>퀴즈</span>
+              </div>
+              <div class="landing-output-copy">객관식, 빈칸, 해설형 문제를 자동으로 생성합니다.</div>
+            </div>
+            <div class="landing-output-card">
+              <div class="landing-output-head">
+                <span class="landing-output-dot"></span>
+                <span>리스닝</span>
+              </div>
+              <div class="landing-output-copy">구간별 듣기 연습과 반복 청취 흐름을 만들 수 있습니다.</div>
+            </div>
+            <div class="landing-output-card">
+              <div class="landing-output-head">
+                <span class="landing-output-dot"></span>
+                <span>쉐도잉</span>
+              </div>
+              <div class="landing-output-copy">문장 단위 따라 말하기와 발화 리듬 학습 자료를 구성합니다.</div>
+            </div>
+          </div>
+
+          <div class="landing-share-card">
+            <div class="landing-share-title">공유 가능</div>
+            <p class="landing-share-copy">
+              내가 만든 자료를 주제, 난이도, 학습 방식별로 정리하고 다른 학습자와 함께 활용할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="landing-section">
+    <div class="landing-wrap">
+      <div class="landing-card-grid-3">
+        <article class="landing-card">
+          <div class="landing-card-icon"></div>
+          <h2 class="landing-card-title">직접 만드는 영어 자료</h2>
+          <p class="landing-card-copy">
+            사용자는 원하는 주제와 목표를 입력해 자신에게 맞는 영어 학습 자료를 바로 생성할 수 있습니다.
+          </p>
+        </article>
+        <article class="landing-card">
+          <div class="landing-card-icon"></div>
+          <h2 class="landing-card-title">광범위한 자료 탐색</h2>
+          <p class="landing-card-copy">
+            단어, 문법, 독해, 회화, 리스닝, 발음, 시험 대비까지 폭넓은 영어 자료를 탐색할 수 있습니다.
+          </p>
+        </article>
+        <article class="landing-card">
+          <div class="landing-card-icon"></div>
+          <h2 class="landing-card-title">서로 나누는 학습 생태계</h2>
+          <p class="landing-card-copy">
+            혼자 쓰는 도구를 넘어, 다른 사용자가 만든 자료를 저장하고 공유하며 학습 자산을 확장합니다.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="landing-section">
+    <div class="landing-wrap">
+      <div class="landing-section-head">
+        <div class="landing-section-label">Features</div>
+        <h2 class="landing-section-title">필요한 학습 흐름을 한 곳에서</h2>
+        <p class="landing-section-copy">
+          생성, 편집, 저장, 공유까지 한 번에 이어지는 영어 학습 제작 흐름을 간결하게 정리했습니다.
+        </p>
+      </div>
+
+      <div class="landing-card-grid-2">
+        <article class="landing-feature-card">
+          <div class="landing-feature-chip">anglangl feature</div>
+          <h3 class="landing-feature-title">AI 자료 생성</h3>
+          <p class="landing-feature-copy">프롬프트 입력만으로 단어장, 예문, 번역, 설명, 퀴즈를 빠르게 제작합니다.</p>
+        </article>
+        <article class="landing-feature-card">
+          <div class="landing-feature-chip">anglangl feature</div>
+          <h3 class="landing-feature-title">LLM 맞춤 재구성</h3>
+          <p class="landing-feature-copy">초급, 중급, 시험 대비 등 목적에 맞춰 같은 자료를 다른 난이도로 다시 구성합니다.</p>
+        </article>
+        <article class="landing-feature-card">
+          <div class="landing-feature-chip">anglangl feature</div>
+          <h3 class="landing-feature-title">커뮤니티 공유</h3>
+          <p class="landing-feature-copy">내가 만든 학습 자료를 공개하고 다른 사용자 자료를 저장해 내 라이브러리로 가져옵니다.</p>
+        </article>
+        <article class="landing-feature-card">
+          <div class="landing-feature-chip">anglangl feature</div>
+          <h3 class="landing-feature-title">학습 아카이브</h3>
+          <p class="landing-feature-copy">주제별, 레벨별, 형식별로 자료를 축적해 나만의 영어 학습 창고를 만들 수 있습니다.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="share" class="landing-section">
+    <div class="landing-wrap">
+      <div class="landing-share-box">
+        <div class="landing-share-grid">
+          <div>
+            <div class="landing-section-label" style="color:#c4b5fd;">Share &amp; Grow</div>
+            <h2 class="landing-section-title" style="font-size:clamp(2rem, 4vw, 2.8rem);">
+              혼자 만드는 것을 넘어, 함께 쌓이는 영어 학습 자료
+            </h2>
+            <p class="landing-section-copy" style="color:#d4d4d8;">
+              앙글앙글은 사용자가 만든 자료가 다시 다른 사용자에게 영감이 되고, 수정되고, 확장되고,
+              재사용되는 구조를 지향합니다. AI와 LLM이 제작을 도와주고, 사람들은 그것을 연결하고 나누며
+              더 큰 학습 생태계를 만듭니다.
+            </p>
+          </div>
+          <div class="landing-share-list">
+            <div class="landing-share-item">주제별 자료 큐레이션</div>
+            <div class="landing-share-item">레벨별 모아보기</div>
+            <div class="landing-share-item">인기 자료 저장</div>
+            <div class="landing-share-item">내 라이브러리로 복사</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="community" class="landing-section">
+    <div class="landing-wrap">
+      <div class="landing-card-grid-3">
+        <article class="landing-community-card">
+          <h3 class="landing-community-title">AI Prompt Library</h3>
+          <p class="landing-community-copy">좋은 영어 학습 자료를 만들기 위한 프롬프트를 모아두는 공간입니다.</p>
+        </article>
+        <article class="landing-community-card">
+          <h3 class="landing-community-title">User Collections</h3>
+          <p class="landing-community-copy">다른 사용자의 자료 묶음을 구독하고 내 학습 흐름에 맞게 가져오는 기능입니다.</p>
+        </article>
+        <article class="landing-community-card">
+          <h3 class="landing-community-title">Open Learning Feed</h3>
+          <p class="landing-community-copy">새로 올라온 자료와 인기 자료를 빠르게 탐색하는 공개 피드입니다.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <div>© 2026 anglangl. AI · LLM 기반 영어 학습 자료 생성 및 공유 플랫폼.</div>
+    <div class="landing-footer-links">
+      <a href="#">Terms</a>
+      <a href="#">Privacy</a>
+      <a href="#">Contact</a>
+    </div>
+  </footer>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a> <span>/</span> Player
+</div>
+
+<div class="glass-panel" style="padding: 40px;">
+    <h2 class="mb-20">저장된 챕터 플레이</h2>
+    <p class="text-muted mb-30">다운로드가 완료된 챕터만 리스트업합니다. 항목을 클릭하면 바로 재생됩니다.</p>
+
+    {% if downloads %}
+        <div class="player-grid">
+            <div class="chapter-list" id="chapterList">
+                {% for item in downloads %}
+                    <button type="button" class="chapter-button" data-src="{{ media_url }}{{ item.output_path }}" data-title="{{ item.chapter_title|escape }}">
+                        <div class="glass-panel chapter-item">
+                            <div class="chapter-meta">
+                                <div style="font-weight: 600;">{{ item.chapter_title }}</div>
+                                <div class="text-muted">#{{ item.chapter_index }} · {{ item.video_title }}</div>
+                                <div class="text-muted">저장일: {{ item.created_at|date:"Y-m-d H:i" }}</div>
+                            </div>
+                            <span class="badge">#{{ item.chapter_index }}</span>
+                        </div>
+                    </button>
+                {% endfor %}
+            </div>
+            <div class="glass-panel player-shell">
+                <div style="font-weight: 600; margin-bottom: 12px;" id="playerTitle">챕터를 선택하세요</div>
+                <video id="chapterPlayer" controls preload="metadata">
+                    <source id="playerSource" src="" type="video/mp4">
+                    지원되지 않는 브라우저입니다.
+                </video>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center text-muted">아직 성공적으로 저장된 챕터가 없습니다. 먼저 챕터를 다운로드하세요.</div>
+    {% endif %}
+</div>
+
+<script>
+  const list = document.getElementById("chapterList");
+  const player = document.getElementById("chapterPlayer");
+  const source = document.getElementById("playerSource");
+  const titleEl = document.getElementById("playerTitle");
+
+  if (list && player && source && titleEl) {
+    list.addEventListener("click", (e) => {
+      const target = e.target.closest(".chapter-button");
+      if (!target) return;
+      const src = target.dataset.src;
+      const title = target.dataset.title || "선택한 챕터";
+      if (!src) return;
+      source.src = src;
+      player.load();
+      player.play().catch(() => {});
+      titleEl.textContent = title;
+
+      document.querySelectorAll(".chapter-button").forEach((btn) => btn.classList.remove("active"));
+      target.classList.add("active");
+    });
+  }
+</script>
+{% endblock %}

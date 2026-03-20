@@ -1,0 +1,15 @@
+{% load static %}
+<footer class="site-footer{% if footer_theme %} site-footer--{{ footer_theme }}{% endif %}">
+  <div class="site-footer__inner">
+    <div class="site-footer__avatar-wrap">
+      <a href="https://blog.naver.com/ahading/224211447832" target="_blank" rel="noopener noreferrer">
+        <img
+          class="site-footer__avatar"
+          src="{% static 'img/owner.jpg' %}"
+          alt="Owner portrait"
+        >
+      </a>
+    </div>
+    <p class="site-footer__text">Powered by Ahading · 아름다운 한글 코딩 · Since 2007.2</p>
+  </div>
+</footer>

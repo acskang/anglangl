@@ -1,0 +1,166 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Upload Clips{% endblock %}
+
+{% block extra_css %}
+<style>
+.editor-shell{
+  width:min(92vw, 920px);
+  margin:0 auto;
+  padding:3rem 1.25rem 3.5rem;
+}
+.editor-hero{
+  margin-bottom:1.2rem;
+}
+.editor-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.editor-title{
+  margin:.25rem 0 .4rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.4rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.editor-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.editor-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1.3rem;
+  box-shadow:0 24px 80px rgba(0,0,0,.28);
+}
+.editor-section{
+  padding:1rem 1rem .9rem;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;
+}
+.editor-section-title{
+  margin:0 0 .35rem;
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text);
+}
+.editor-help{
+  margin:0 0 .85rem;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.editor-label{
+  display:block;
+  margin-bottom:.45rem;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.editor-card input[type="file"],
+.editor-card .form-control{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font:inherit;
+  outline:none;
+  box-shadow:none;
+}
+.editor-card input[type="file"]:focus,
+.editor-card .form-control:focus{
+  border-color:var(--acc);
+  background:var(--s2);
+  color:var(--text);
+  box-shadow:none;
+}
+.editor-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+  margin-top:1rem;
+}
+.btn-primary-dark,
+.btn-secondary-dark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:150px;
+  padding:.82rem 1.1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.88rem;
+  font-weight:600;
+  border:1px solid var(--border);
+}
+.btn-primary-dark{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.btn-secondary-dark{
+  background:transparent;
+  color:var(--text);
+}
+.form-error{
+  margin-top:.45rem;
+  color:#fca5a5;
+  font-size:.78rem;
+}
+.editor-check{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  margin-top:1rem;
+  color:var(--text);
+  font-size:.84rem;
+}
+.editor-check input{
+  width:auto;
+  margin:0;
+}
+@media (max-width:760px){
+  .editor-shell{width:100%;padding:2rem .8rem 2.8rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editor-shell">
+  <div class="editor-hero">
+    <div class="editor-kicker">Clips</div>
+    <h1 class="editor-title">Upload Clips</h1>
+    <p class="editor-desc">여러 개의 로컬 클립 파일을 한 번에 업로드해서 배치로 처리합니다.</p>
+  </div>
+
+  <div class="editor-card">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="editor-section">
+        <h2 class="editor-section-title">Clip Files</h2>
+        <p class="editor-help">여러 개의 비디오 파일을 선택하면 하나의 배치로 등록됩니다.</p>
+        <label class="editor-label" for="{{ form.files.id_for_label }}">Video files (multiple)</label>
+        {{ form.files }}
+        <div class="editor-help" style="margin-top:.45rem;margin-bottom:0">Select multiple local video files.</div>
+        {% if form.files.errors %}<div class="form-error">{{ form.files.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <label class="editor-check" for="{{ form.default_is_public.id_for_label }}">
+        {{ form.default_is_public }}
+        <span>Default visibility: Public</span>
+      </label>
+
+      <div class="editor-actions">
+        <button type="submit" class="btn-primary-dark">Upload Batch</button>
+        <a href="{% url 'clips:batch-list' %}" class="btn-secondary-dark">Batch List</a>
+        <a href="{% url 'clips:list' %}" class="btn-secondary-dark">Clips</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

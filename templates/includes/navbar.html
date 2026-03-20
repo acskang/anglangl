@@ -1,0 +1,67 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark site-navbar">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'landing' %}">
+      <img
+        src="{% static 'dramaNlearn/logo.png' %}"
+        alt="ListenTube"
+        style="height: 34px; width: auto; display: block;"
+      >
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="{% url 'player' %}">Player</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'videos:list' %}">Youtube</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'videos:upload-list' %}">Videos</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'clips:list' %}">Clips</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="downloadNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Upload
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="downloadNavbarDropdown">
+            <li><a class="dropdown-item" href="{% url 'videos:create-youtube' %}">Register Youtube</a></li>
+            <li><a class="dropdown-item" href="{% url 'videos:create-video' %}">Register Video</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:create' %}">Create Clip</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:bulk-upload' %}">Upload Clips</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:batch-list' %}">Upload Batches</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="adminNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Admin
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminNavbarDropdown">
+            <li><a class="dropdown-item" href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a class="dropdown-item" href="{% url 'thumbnail_admin:list' %}">Thumbnail</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="dramaNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            dramaNlearn
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="dramaNavbarDropdown">
+            <li><a class="dropdown-item" href="{% url 'dramaNlearn:home' %}">m3-Play</a></li>
+            <li><a class="dropdown-item" href="{% url 'dramaNlearn:url_manage' %}">URL 추가/편집</a></li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        {% if request.user.is_authenticated %}
+          <li class="nav-item"><span class="navbar-text me-3">{{ request.user.username }}</span></li>
+          <li class="nav-item">
+            <form method="post" action="{% url 'platform_auth:logout' %}">
+              {% csrf_token %}
+              <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
+            </form>
+          </li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:login' %}">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:signup' %}">Sign up</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>

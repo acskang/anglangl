@@ -1,0 +1,382 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}Drama &amp; Learn{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero{
+  padding:3.5rem 2rem 2rem;text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-30%;left:50%;transform:translateX(-50%);
+  width:700px;height:400px;
+  background:radial-gradient(ellipse,rgba(255,61,90,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2.2rem,5vw,4.5rem);letter-spacing:8px;
+  background:linear-gradient(135deg,#fff 40%,var(--acc));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{color:var(--muted);font-size:.95rem;margin-top:.5rem}
+.quick-bar{
+  max-width:680px;margin:1.8rem auto 0;padding:0 1.5rem;
+}
+.quick-form{
+  display:flex;gap:.4rem;
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:12px;padding:.4rem;
+  transition:border-color .2s;
+}
+.quick-form:focus-within{border-color:var(--acc);box-shadow:0 0 24px var(--glow)}
+.quick-form input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-family:inherit;font-size:.88rem;padding:.35rem .7rem;
+}
+.quick-form input::placeholder{color:var(--muted)}
+.quick-form button{
+  background:var(--acc);color:#fff;border:none;border-radius:8px;
+  padding:.55rem 1.2rem;cursor:pointer;font-family:inherit;font-weight:600;
+  font-size:.88rem;transition:background .18s;white-space:nowrap;
+}
+.quick-form button:hover{background:#d42e48}
+.stat-bar{
+  max-width:1100px;margin:2rem auto 0;padding:0 1.5rem;
+  display:flex;gap:1rem;flex-wrap:wrap;
+}
+.stat-chip{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:8px;padding:.45rem 1rem;font-size:.8rem;color:var(--muted);
+  display:flex;align-items:center;gap:.4rem;
+}
+.stat-chip b{color:var(--text)}
+.login-note{
+  max-width:680px;margin:1.2rem auto 0;padding:0 1.5rem;
+  color:var(--muted);font-size:.84rem;text-align:center;
+}
+.toolbar{
+  max-width:1100px;margin:1.2rem auto 0;padding:0 1.5rem;
+  display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+}
+.filter-btn{
+  padding:.35rem .85rem;border-radius:6px;font-size:.78rem;
+  background:var(--s1);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.filter-btn.active,.filter-btn:hover{
+  background:var(--acc);border-color:var(--acc);color:#fff;
+}
+.toolbar-spacer{flex:1}
+.sort-select{
+  background:var(--s1);border:1px solid var(--border);
+  color:var(--text);font-family:inherit;font-size:.78rem;
+  padding:.35rem .7rem;border-radius:6px;outline:none;cursor:pointer;
+}
+.video-grid{
+  max-width:1100px;margin:1.2rem auto 4rem;
+  padding:0 1.5rem;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:1rem;
+}
+.card{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  text-decoration:none;color:inherit;
+  transition:transform .22s,border-color .22s,box-shadow .22s;
+  display:flex;flex-direction:column;
+  cursor:pointer;
+  animation:fadeUp .3s ease both;
+}
+.card:hover{
+  transform:translateY(-5px);border-color:var(--acc);
+  box-shadow:0 16px 48px var(--glow);
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.card-thumb{
+  width:100%;aspect-ratio:16/9;background:var(--s2);
+  position:relative;overflow:hidden;flex-shrink:0;
+}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.card-thumb-placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:2.5rem;color:var(--border);
+}
+.card-play{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s;
+}
+.card:hover .card-play{opacity:1}
+.card-play-circle{
+  width:52px;height:52px;background:var(--acc);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  box-shadow:0 0 24px var(--glow);
+}
+.card-duration{
+  position:absolute;bottom:.4rem;right:.4rem;
+  background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;
+  padding:.15rem .45rem;border-radius:4px;
+  font-family:'JetBrains Mono',monospace;
+}
+.status-badge{
+  position:absolute;top:.4rem;left:.4rem;
+  font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;letter-spacing:.5px;
+}
+.badge-ready  {background:#14532d;color:#86efac}
+.badge-fetching{background:#1e3a5f;color:#93c5fd;animation:pulse 1.5s infinite}
+.badge-error  {background:#7f1d1d;color:#fca5a5}
+.badge-pending{background:var(--s3);color:var(--muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.card-body{padding:.85rem 1rem;flex:1;display:flex;flex-direction:column}
+.card-title{
+  font-size:.9rem;font-weight:500;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  margin-bottom:.5rem;flex:1;
+}
+.card-meta{
+  font-size:.73rem;color:var(--muted);
+  display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;
+}
+.card-actions{
+  display:flex;gap:.4rem;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);
+}
+.card-action-btn{
+  padding:.25rem .6rem;border-radius:5px;font-size:.72rem;
+  background:var(--s2);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;font-family:inherit;
+  transition:all .15s;
+}
+.card-action-btn:hover{border-color:var(--acc);color:var(--acc)}
+.card-action-btn.danger:hover{border-color:#ff3d5a;color:#ff3d5a}
+.empty{
+  grid-column:1/-1;text-align:center;padding:5rem 1rem;
+  color:var(--muted);
+}
+.empty-icon{font-size:4rem;margin-bottom:1rem}
+.empty h3{font-size:1.2rem;color:var(--text);margin-bottom:.5rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>DRAMA &amp; LEARN</h1>
+  <p>외국어 공부를 위한 드라마 시청을 추천합니다</p>
+</div>
+
+{% if request.user.is_authenticated %}
+<div class="quick-bar">
+  <div class="quick-form" id="quickForm">
+    <input type="url" id="quickUrl" placeholder="영상 링크를 붙여넣으세요">
+    <button id="quickBtn">&#9654; 추출 &amp; 재생</button>
+  </div>
+  <div id="quickStatus" style="font-size:.8rem;color:var(--muted);margin-top:.5rem;min-height:1rem;text-align:center"></div>
+</div>
+{% else %}
+<div class="login-note">URL 등록과 편집은 로그인한 사용자만 가능합니다. 다른 사용자가 등록한 영상은 재생만 할 수 있습니다.</div>
+{% endif %}
+
+<div class="stat-bar">
+  <div class="stat-chip">총 <b>{{ videos.count }}개</b> 영상</div>
+  <div class="stat-chip">재생가능 <b>{{ ready_count }}개</b></div>
+  {% if error_count %}
+  <div class="stat-chip" style="border-color:#7f1d1d">오류 <b style="color:#fca5a5">{{ error_count }}개</b></div>
+  {% endif %}
+</div>
+
+<div class="toolbar">
+  <button class="filter-btn active" data-filter="all">전체</button>
+  <button class="filter-btn" data-filter="ready">재생가능</button>
+  <button class="filter-btn" data-filter="error">오류</button>
+  <div class="toolbar-spacer"></div>
+  <select class="sort-select" id="sortSelect">
+    <option value="newest">최신순</option>
+    <option value="oldest">오래된순</option>
+    <option value="views">조회순</option>
+  </select>
+</div>
+
+<div class="video-grid" id="videoGrid">
+{% for v in videos %}
+<div class="card" data-status="{{ v.status }}" data-id="{{ v.id }}" style="animation-delay:{{ forloop.counter0 }}0ms">
+  <div class="card-thumb">
+    {% if v.thumbnail %}
+    <img src="{{ v.thumbnail }}" alt="{{ v.title }}" loading="lazy">
+    {% else %}
+    <div class="card-thumb-placeholder">&#127916;</div>
+    {% endif %}
+    {% if v.status == 'ready' %}
+    <div class="card-play"><div class="card-play-circle">&#9654;</div></div>
+    {% endif %}
+    {% if v.duration %}
+    <div class="card-duration">{{ v.duration_str }}</div>
+    {% endif %}
+    <div class="status-badge badge-{{ v.status }}">
+      {% if v.status == 'ready' %}READY
+      {% elif v.status == 'fetching' %}추출중
+      {% elif v.status == 'error' %}ERROR
+      {% else %}PENDING{% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="card-title" title="{{ v.title }}">{{ v.title }}</div>
+    <div class="card-meta">
+      <span>&#128065; {{ v.view_count }}</span>
+      <span>{{ v.created_at|date:"m/d H:i" }}</span>
+      <span>{% if v.owner %}@{{ v.owner.username }}{% else %}공유 영상{% endif %}</span>
+      {% if v.status == 'error' %}
+      <span style="color:#fca5a5" title="{{ v.error_msg }}">&#9888; 오류</span>
+      {% endif %}
+    </div>
+    <div class="card-actions">
+      {% if v.status == 'ready' %}
+      <button class="card-action-btn" onclick="event.stopPropagation();location.href='{% url "dramaNlearn:player" v.id %}'">
+        &#9654; 재생
+      </button>
+      {% endif %}
+      {% if request.user.is_authenticated and v.owner_id == request.user.id %}
+      <button class="card-action-btn" onclick="event.stopPropagation();refreshVideo({{ v.id }},this)">
+        &#8635; 갱신
+      </button>
+      <button class="card-action-btn danger" onclick="event.stopPropagation();deleteVideo({{ v.id }},this)">
+        &#128465; 삭제
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% empty %}
+<div class="empty">
+  <div class="empty-icon">&#127916;</div>
+  <h3>아직 저장된 영상이 없습니다</h3>
+  <p>위 입력창에 영상 링크를 붙여넣어 보세요.</p>
+</div>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var CSRF = '{{ csrf_token }}';
+var PLAYER_URL_TEMPLATE = "{% url 'dramaNlearn:player' 999999 %}";
+var ADD_VIDEO_URL = "{% url 'dramaNlearn:add_video' %}";
+var REFRESH_URL_TEMPLATE = "{% url 'dramaNlearn:refresh_video' 999999 %}";
+var DELETE_URL_TEMPLATE = "{% url 'dramaNlearn:delete_video' 999999 %}";
+
+document.querySelectorAll('.card').forEach(function(card) {
+  card.addEventListener('click', function() {
+    var id = this.dataset.id;
+    var status = this.dataset.status;
+    if (status === 'ready') {
+      window.location.href = PLAYER_URL_TEMPLATE.replace('999999', id);
+    } else if (status === 'error') {
+      showToast('URL이 오류 상태입니다. 갱신 버튼을 눌러보세요.', 'err');
+    } else {
+      showToast('아직 추출 중입니다. 잠시 후 새로고침하세요.', 'info');
+    }
+  });
+});
+
+var quickBtn = document.getElementById('quickBtn');
+if (quickBtn) {
+  quickBtn.addEventListener('click', function() {
+    var url = document.getElementById('quickUrl').value.trim();
+    var status = document.getElementById('quickStatus');
+    var btn = this;
+    if (!url) { showToast('URL을 입력해주세요.', 'err'); return; }
+    if (url.indexOf('send2video.com') === -1) {
+      showToast('지원되는 영상 링크만 등록할 수 있습니다.', 'err'); return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 추출 중...';
+    status.textContent = 'iframe -> PackerJS 디코딩 -> m3u8 추출 중...';
+
+    fetch(ADD_VIDEO_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+      body: JSON.stringify({url: url, title: ''})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; 추출 &amp; 재생';
+      status.textContent = '';
+      if (data.ok) {
+        showToast('추출 성공! 이동합니다.', 'ok');
+        setTimeout(function() { window.location.href = data.redirect; }, 600);
+      } else {
+        showToast(data.error, 'err');
+        status.textContent = '오류: ' + data.error;
+      }
+    })
+    .catch(function(e) {
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; 추출 &amp; 재생';
+      showToast('오류: ' + e.message, 'err');
+    });
+  });
+}
+
+function refreshVideo(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch(REFRESH_URL_TEMPLATE.replace('999999', id), {
+    method:'POST', headers:{'X-CSRFToken':CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; 갱신';
+    if (data.ok) {
+      showToast('URL 갱신 완료!', 'ok');
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      showToast('갱신 실패: ' + data.error, 'err');
+    }
+  });
+}
+
+function deleteVideo(id, btn) {
+  if (!confirm('이 영상을 삭제하시겠습니까?')) return;
+  fetch(DELETE_URL_TEMPLATE.replace('999999', id), {
+    method:'POST', headers:{'X-CSRFToken':CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      showToast('삭제되었습니다.', 'ok');
+      var card = btn.closest('.card');
+      card.style.transition = 'opacity .3s';
+      card.style.opacity = '0';
+      setTimeout(function() { card.remove(); }, 300);
+    }
+  });
+}
+
+document.querySelectorAll('.filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    var filter = this.dataset.filter;
+    document.querySelectorAll('.card').forEach(function(card) {
+      card.style.display = filter === 'all' || card.dataset.status === filter ? '' : 'none';
+    });
+  });
+});
+
+document.getElementById('sortSelect').addEventListener('change', function() {
+  var grid = document.getElementById('videoGrid');
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
+  var mode = this.value;
+  cards.sort(function(a, b) {
+    if (mode === 'oldest') return parseInt(a.dataset.id, 10) - parseInt(b.dataset.id, 10);
+    if (mode === 'views') {
+      var av = parseInt(a.querySelector('.card-meta span').textContent.replace(/\D/g, ''), 10) || 0;
+      var bv = parseInt(b.querySelector('.card-meta span').textContent.replace(/\D/g, ''), 10) || 0;
+      return bv - av;
+    }
+    return parseInt(b.dataset.id, 10) - parseInt(a.dataset.id, 10);
+  });
+  cards.forEach(function(card) { grid.appendChild(card); });
+});
+</script>
+{% endblock %}

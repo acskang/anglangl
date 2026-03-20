@@ -1,0 +1,39 @@
+<div class="card shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 mb-0">Recent Study Clips</h2>
+      <a class="small text-decoration-none" href="{% url 'clips:list' %}">My clips</a>
+    </div>
+    {% if recent_study_items %}
+      <div class="vstack gap-3">
+        {% for item in recent_study_items %}
+          <div class="border rounded p-3">
+            <div class="row g-3 align-items-center">
+              <div class="col-12 col-md-3">
+                {% if item.clip_thumbnail_url %}
+                  <img src="{{ item.clip_thumbnail_url }}" alt="{{ item.clip_title }}" class="img-fluid rounded w-100">
+                {% else %}
+                  <div class="bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="min-height: 108px;">No thumbnail</div>
+                {% endif %}
+              </div>
+              <div class="col-12 col-md-6">
+                <h3 class="h6 mb-2">{{ item.clip_title }}</h3>
+                <div class="small text-muted mb-1">{{ item.source_type_label }} • {{ item.formatted_duration }}</div>
+                <div class="small text-muted mb-1">Last studied: {{ item.last_studied_at|date:"Y-m-d H:i" }}</div>
+                <div class="small text-muted">Study count: {{ item.study_count }}</div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="d-grid gap-2">
+                  <a class="btn btn-sm btn-primary" href="{{ item.study_url }}">학습 계속</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ item.clip_detail_url }}">상세 보기</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No study history yet.</p>
+    {% endif %}
+  </div>
+</div>

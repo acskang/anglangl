@@ -1,0 +1,791 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Create Clip{% endblock %}
+
+{% block extra_css %}
+<style>
+.clip-plan-shell{
+  width:min(96vw, 1360px);
+  margin:0 auto;
+  padding:2.6rem 1rem 3.2rem;
+}
+.selected-video-banner{
+  margin:0 0 1rem;
+  color:var(--text);
+  font-size:16pt;
+  font-weight:700;
+  line-height:1.25;
+}
+.clip-plan-hero{margin-bottom:1.1rem}
+.clip-plan-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.clip-plan-title{
+  margin:.2rem 0 .35rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.5rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.clip-plan-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.clip-plan-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr);
+  gap:1rem;
+  align-items:start;
+}
+.panel-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1.1rem;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.panel-title{
+  margin:0 0 .25rem;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:600;
+}
+.panel-help{
+  margin:0 0 .9rem;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.panel-grid{
+  display:grid;
+  gap:.9rem;
+}
+.panel-label{
+  display:block;
+  margin-bottom:.42rem;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.panel-card input[type="text"],
+.panel-card input[type="number"],
+.panel-card input[type="file"],
+.panel-card select,
+.panel-card textarea,
+.panel-card .form-control,
+.panel-card .form-select{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font:inherit;
+  outline:none;
+  box-shadow:none;
+}
+.panel-card input:focus,
+.panel-card select:focus,
+.panel-card textarea:focus,
+.panel-card .form-control:focus,
+.panel-card .form-select:focus{
+  border-color:var(--acc);
+  background:var(--s2);
+  color:var(--text);
+  box-shadow:none;
+}
+.panel-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.8rem;
+}
+.inline-time-row{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+}
+.inline-time-row .btn-secondary-dark,
+.inline-time-row .btn-ghost-dark{
+  min-width:auto;
+  height:48px;
+  padding:.68rem .88rem;
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+.inline-time-row input{
+  flex:1;
+  min-height:48px;
+  min-width:120px;
+}
+.range-start-input{
+  flex:0 0 120px;
+  max-width:120px;
+}
+.range-end-row{
+  display:flex;
+  gap:.8rem;
+  align-items:end;
+}
+.range-toolbar{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap:.8rem;
+  align-items:end;
+}
+.range-end-input{
+  flex:0 0 120px;
+  max-width:120px;
+}
+.range-field{
+  min-width:0;
+}
+.panel-check{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  color:var(--text);
+  font-size:.84rem;
+}
+.panel-check input{
+  width:auto;
+  margin:0;
+}
+.player-actions{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:nowrap;
+  justify-content:flex-start;
+  align-items:center;
+}
+.panel-actions{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+}
+.panel-actions.compact .btn-secondary-dark,
+.panel-actions.compact .btn-ghost-dark{
+  min-width:auto;
+  padding:.65rem .85rem;
+  font-size:.8rem;
+}
+.btn-primary-dark,
+.btn-secondary-dark,
+.btn-ghost-dark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  height:48px;
+  padding:.82rem 1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.86rem;
+  font-weight:600;
+  border:1px solid var(--border);
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn-primary-dark{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn-secondary-dark{background:transparent;color:var(--text)}
+.btn-ghost-dark{background:rgba(255,255,255,.04);color:var(--muted)}
+.btn-ghost-dark.active{
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  border-color:rgba(255,255,255,.16);
+}
+.btn-ghost-dark[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.form-error{
+  margin-top:.42rem;
+  color:#fca5a5;
+  font-size:.78rem;
+}
+.player-card{
+  display:grid;
+  gap:1rem;
+}
+.player-controls{
+  display:grid;
+  gap:.9rem;
+}
+.player-stage{
+  position:relative;
+  border-radius:18px;
+  overflow:hidden;
+  background:#000;
+  border:1px solid rgba(255,255,255,.06);
+}
+.player-stage video{
+  width:100%;
+  display:block;
+  aspect-ratio:16/9;
+  background:#000;
+}
+.table-card{margin-top:1rem}
+.plan-summary{
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  margin:0 0 .9rem;
+}
+.plan-summary-stats{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+}
+.summary-pill{
+  padding:.62rem .82rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  font-size:.78rem;
+}
+.summary-pill strong{
+  margin-right:.3rem;
+  color:#fff;
+}
+.table-wrap{
+  max-height:420px;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+}
+.plan-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:860px;
+  table-layout:fixed;
+}
+.plan-table th,
+.plan-table td{
+  padding:.75rem .55rem;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  text-align:left;
+  vertical-align:middle;
+}
+.plan-table th{
+  color:var(--muted);
+  font-size:.72rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  position:sticky;
+  top:0;
+  background:var(--s1);
+  z-index:1;
+}
+.plan-table tbody tr.is-active{
+  background:rgba(56,189,248,.08);
+}
+.plan-table input[type="text"]{
+  min-width:60px;
+  padding:.62rem .72rem;
+}
+.plan-col-select{width:72px}
+.plan-col-index{width:64px}
+.plan-col-start,
+.plan-col-end{width:110px}
+.plan-col-subtitle{width:auto}
+.plan-row-note{
+  color:var(--muted);
+  font-size:.76rem;
+}
+.empty-state{
+  padding:1.5rem 1rem;
+  text-align:center;
+  color:var(--muted);
+  border:1px dashed rgba(255,255,255,.08);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+.row-mini-actions{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  flex-wrap:wrap;
+  margin-left:.75rem;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+.row-mini-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.42rem .58rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  font-size:.74rem;
+  cursor:pointer;
+}
+.row-mini-btn:hover{
+  border-color:var(--acc);
+}
+.subtitle-cell{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+}
+.subtitle-cell input[type="text"]{
+  flex:1 1 auto;
+}
+@media (max-width: 980px){
+  .clip-plan-layout{grid-template-columns:1fr}
+  .panel-row{grid-template-columns:1fr}
+  .range-toolbar{
+    grid-template-columns:1fr;
+  }
+  .range-end-row{
+    flex-wrap:wrap;
+  }
+  .player-actions{
+    flex-wrap:wrap;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="clip-plan-shell">
+  {% if master_video %}
+  <div class="selected-video-banner">{{ master_video.title }}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="panel-card" style="margin-bottom:1rem;color:#fecaca">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="clip-plan-layout">
+      <div class="panel-card player-card">
+        <div class="player-stage">
+          <video id="planVideoPlayer" controls preload="metadata"></video>
+        </div>
+
+        <div class="player-controls">
+          {{ form.master_video.as_hidden }}
+
+          <div class="range-toolbar">
+            <div class="range-field">
+              <label class="panel-label" for="{{ form.range_start.id_for_label }}">Extraction range start</label>
+              <div class="inline-time-row">
+                <button type="button" class="btn-secondary-dark" id="setRangeStartFromPlayer">시작</button>
+                {{ form.range_start }}
+              </div>
+              {% if form.range_start.errors %}<div class="form-error">{{ form.range_start.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="range-field">
+              <label class="panel-label" for="{{ form.range_end.id_for_label }}">Extraction range end</label>
+              <div class="inline-time-row">
+                <button type="button" class="btn-secondary-dark" id="setRangeEndFromPlayer">끝</button>
+                {{ form.range_end }}
+              </div>
+              {% if form.range_end.errors %}<div class="form-error">{{ form.range_end.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <button type="button" class="btn-ghost-dark" id="playSelectedRange">선택 구간 미리보기</button>
+            <div class="player-actions">
+              <button type="submit" class="btn-primary-dark" name="action" value="plan">추출 계획</button>
+              <button type="submit" class="btn-secondary-dark" name="action" value="extract">클립 추출</button>
+              <button type="submit" class="btn-ghost-dark" name="action" value="reset">초기화</button>
+              <button
+                type="button"
+                class="btn-ghost-dark{% if subtitle_url %} active{% endif %}"
+                id="subtitleToggleBtn"
+                aria-pressed="{% if subtitle_url %}true{% else %}false{% endif %}"
+                {% if not subtitle_url %}disabled{% endif %}
+              >
+                자막 {% if subtitle_url %}On{% else %}Off{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card table-card">
+      <h2 class="panel-title">Extraction Plan Table</h2>
+      <p class="panel-help">시작/끝 시간을 수정한 뒤 바로 추출할 수 있습니다. 필요 없는 행은 체크 해제하세요.</p>
+
+      {% if plan_rows %}
+      <div class="plan-summary">
+        <div class="plan-summary-stats">
+          <div class="summary-pill"><strong id="summaryTotalRows">{{ plan_count }}</strong>plan rows</div>
+          <div class="summary-pill"><strong id="summarySelectedRows">{{ selected_plan_count }}</strong>selected</div>
+          <div class="summary-pill"><strong id="summarySelectedDuration">{{ selected_plan_duration_seconds|default:0 }}</strong>sec total</div>
+        </div>
+        <div class="panel-actions compact">
+          <button type="button" class="btn-secondary-dark" id="selectAllRows">전체 선택</button>
+          <button type="button" class="btn-secondary-dark" id="clearAllRows">전체 해제</button>
+          <button type="button" class="btn-ghost-dark" id="trimRangeToSelection">범위칸 채우기</button>
+        </div>
+      </div>
+      <input type="hidden" name="plan_total_rows" value="{{ plan_count }}">
+      <div class="table-wrap">
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th class="plan-col-index">번호</th>
+              <th class="plan-col-select">선택</th>
+              <th class="plan-col-start">시작시간</th>
+              <th class="plan-col-end">끝시간</th>
+              <th class="plan-col-subtitle">대사</th>
+            </tr>
+          </thead>
+          <tbody id="planTableBody">
+            {% for row in plan_rows %}
+            <tr data-row-index="{{ forloop.counter0 }}" data-start-seconds="{{ row.clip_start_time|default:'' }}" data-end-seconds="{{ row.clip_end_time|default:'' }}">
+              <td>{{ forloop.counter }}</td>
+              <td>
+                <input type="checkbox" name="plan_selected_{{ forloop.counter0 }}" class="plan-select-checkbox" {% if row.selected %}checked{% endif %}>
+              </td>
+              <td>
+                <input type="text" name="plan_start_{{ forloop.counter0 }}" value="{{ row.clip_start_label }}" class="plan-start-input">
+              </td>
+              <td>
+                <input type="text" name="plan_end_{{ forloop.counter0 }}" value="{{ row.clip_end_label }}" class="plan-end-input">
+              </td>
+              <td>
+                <div class="subtitle-cell">
+                  <input type="text" name="plan_subtitle_{{ forloop.counter0 }}" value="{{ row.subtitle_text }}">
+                  <div class="row-mini-actions">
+                    <button type="button" class="row-mini-btn" data-preview-row="{{ forloop.counter0 }}">재생</button>
+                    <button type="button" class="row-mini-btn" data-merge-up-row="{{ forloop.counter0 }}">↑</button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">먼저 범위를 정하고 <strong>추출 계획</strong>을 눌러 자막 기반 계획 행을 만드세요.</div>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<script>
+  (function () {
+    const player = document.getElementById("planVideoPlayer");
+    const rangeStartInput = document.getElementById("{{ form.range_start.id_for_label }}");
+    const rangeEndInput = document.getElementById("{{ form.range_end.id_for_label }}");
+    const setRangeStartBtn = document.getElementById("setRangeStartFromPlayer");
+    const setRangeEndBtn = document.getElementById("setRangeEndFromPlayer");
+    const playSelectedRangeBtn = document.getElementById("playSelectedRange");
+    const selectAllRowsBtn = document.getElementById("selectAllRows");
+    const clearAllRowsBtn = document.getElementById("clearAllRows");
+    const trimRangeToSelectionBtn = document.getElementById("trimRangeToSelection");
+    const planTableBody = document.getElementById("planTableBody");
+    const summarySelectedRows = document.getElementById("summarySelectedRows");
+    const summarySelectedDuration = document.getElementById("summarySelectedDuration");
+    const subtitleToggleBtn = document.getElementById("subtitleToggleBtn");
+    const sourceUrl = "{{ player_source_url|escapejs }}";
+    const sourceType = "{{ player_source_type }}";
+    const subtitleUrl = "{{ subtitle_url|escapejs }}";
+    let previewEndSeconds = null;
+    let audioBoostInitialized = false;
+    let audioContext = null;
+    let gainNode = null;
+
+    if (rangeStartInput) {
+      rangeStartInput.classList.add("range-start-input");
+    }
+    if (rangeEndInput) {
+      rangeEndInput.classList.add("range-end-input");
+    }
+
+    if (player && sourceUrl) {
+      if (sourceType === "hls") {
+        if (window.Hls && Hls.isSupported()) {
+          const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: true });
+          hls.loadSource(sourceUrl);
+          hls.attachMedia(player);
+        } else if (player.canPlayType("application/vnd.apple.mpegurl")) {
+          player.src = sourceUrl;
+        }
+      } else {
+        player.src = sourceUrl;
+      }
+    }
+
+    let subtitleTrackElement = null;
+    let subtitlesEnabled = Boolean(subtitleUrl);
+    if (player && subtitleUrl) {
+      subtitleTrackElement = document.createElement("track");
+      subtitleTrackElement.kind = "subtitles";
+      subtitleTrackElement.label = "Subtitle";
+      subtitleTrackElement.srclang = "en";
+      subtitleTrackElement.src = subtitleUrl;
+      subtitleTrackElement.default = true;
+      player.appendChild(subtitleTrackElement);
+    }
+
+    function formatTimecode(totalSeconds) {
+      const seconds = Math.max(0, Number(totalSeconds || 0));
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function jumpTo(seconds) {
+      if (!player) return;
+      player.currentTime = Math.max(0, Number(seconds || 0));
+      player.play().catch(function () {});
+    }
+
+    function playRange(startSeconds, endSeconds) {
+      if (!player) return;
+      previewEndSeconds = Number.isFinite(endSeconds) ? endSeconds : null;
+      player.currentTime = Math.max(0, Number(startSeconds || 0));
+      player.play().catch(function () {});
+    }
+
+    function ensureAudioBoost() {
+      if (!player || audioBoostInitialized) return;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      try {
+        audioContext = new AudioContextClass();
+        const sourceNode = audioContext.createMediaElementSource(player);
+        gainNode = audioContext.createGain();
+        gainNode.gain.value = 2.4;
+        sourceNode.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        audioBoostInitialized = true;
+      } catch (_error) {
+      }
+    }
+
+    function syncSubtitleState() {
+      if (!subtitleToggleBtn) return;
+      subtitleToggleBtn.textContent = subtitlesEnabled ? "자막 On" : "자막 Off";
+      subtitleToggleBtn.classList.toggle("active", subtitlesEnabled);
+      subtitleToggleBtn.setAttribute("aria-pressed", subtitlesEnabled ? "true" : "false");
+      if (!player || !player.textTracks || !player.textTracks.length) return;
+      for (let index = 0; index < player.textTracks.length; index += 1) {
+        player.textTracks[index].mode = subtitlesEnabled ? "showing" : "hidden";
+      }
+    }
+
+    function parseTimecode(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return null;
+      const parts = raw.split(":").map(function (part) { return part.trim(); });
+      if (parts.some(function (part) { return !/^\d+$/.test(part); })) return null;
+      if (parts.length === 1) return Number(parts[0]);
+      if (parts.length === 2) return (Number(parts[0]) * 60) + Number(parts[1]);
+      if (parts.length === 3) return (Number(parts[0]) * 3600) + (Number(parts[1]) * 60) + Number(parts[2]);
+      return null;
+    }
+
+    function highlightRow(index) {
+      if (!planTableBody) return;
+      planTableBody.querySelectorAll("tr").forEach(function (row) {
+        row.classList.toggle("is-active", row.dataset.rowIndex === String(index));
+      });
+    }
+
+    function updateSummary() {
+      if (!planTableBody || !summarySelectedRows || !summarySelectedDuration) return;
+      let selectedCount = 0;
+      let selectedDuration = 0;
+      planTableBody.querySelectorAll("tr").forEach(function (row) {
+        const checkbox = row.querySelector(".plan-select-checkbox");
+        const startInput = row.querySelector(".plan-start-input");
+        const endInput = row.querySelector(".plan-end-input");
+        if (!checkbox || !checkbox.checked) return;
+        selectedCount += 1;
+        const startSeconds = parseTimecode(startInput ? startInput.value : "");
+        const endSeconds = parseTimecode(endInput ? endInput.value : "");
+        if (startSeconds !== null && endSeconds !== null && endSeconds > startSeconds) {
+          selectedDuration += (endSeconds - startSeconds);
+        }
+      });
+      summarySelectedRows.textContent = String(selectedCount);
+      summarySelectedDuration.textContent = String(selectedDuration);
+    }
+
+    if (setRangeStartBtn && player && rangeStartInput) {
+      setRangeStartBtn.addEventListener("click", function () {
+        rangeStartInput.value = formatTimecode(player.currentTime || 0);
+      });
+    }
+
+    if (setRangeEndBtn && player && rangeEndInput) {
+      setRangeEndBtn.addEventListener("click", function () {
+        rangeEndInput.value = formatTimecode(player.currentTime || 0);
+      });
+    }
+
+    if (selectAllRowsBtn && planTableBody) {
+      selectAllRowsBtn.addEventListener("click", function () {
+        planTableBody.querySelectorAll(".plan-select-checkbox").forEach(function (checkbox) {
+          checkbox.checked = true;
+        });
+        updateSummary();
+      });
+    }
+
+    if (clearAllRowsBtn && planTableBody) {
+      clearAllRowsBtn.addEventListener("click", function () {
+        planTableBody.querySelectorAll(".plan-select-checkbox").forEach(function (checkbox) {
+          checkbox.checked = false;
+        });
+        updateSummary();
+      });
+    }
+
+    if (trimRangeToSelectionBtn && planTableBody && rangeStartInput && rangeEndInput) {
+      trimRangeToSelectionBtn.addEventListener("click", function () {
+        const selectedRows = Array.from(planTableBody.querySelectorAll("tr")).filter(function (row) {
+          const checkbox = row.querySelector(".plan-select-checkbox");
+          return checkbox && checkbox.checked;
+        });
+        if (!selectedRows.length) return;
+        const starts = selectedRows.map(function (row) {
+          return parseTimecode(row.querySelector(".plan-start-input").value);
+        }).filter(function (value) { return value !== null; });
+        const ends = selectedRows.map(function (row) {
+          return parseTimecode(row.querySelector(".plan-end-input").value);
+        }).filter(function (value) { return value !== null; });
+        if (!starts.length || !ends.length) return;
+        rangeStartInput.value = formatTimecode(Math.min.apply(null, starts));
+        rangeEndInput.value = formatTimecode(Math.max.apply(null, ends));
+      });
+    }
+
+    if (playSelectedRangeBtn) {
+      playSelectedRangeBtn.addEventListener("click", function () {
+        const startSeconds = parseTimecode(rangeStartInput ? rangeStartInput.value : "");
+        const endSeconds = parseTimecode(rangeEndInput ? rangeEndInput.value : "");
+        if (startSeconds === null || endSeconds === null || endSeconds <= startSeconds) return;
+        playRange(startSeconds, endSeconds);
+      });
+    }
+
+    if (planTableBody) {
+      planTableBody.addEventListener("change", function (event) {
+        if (event.target.matches(".plan-select-checkbox, .plan-start-input, .plan-end-input")) {
+          updateSummary();
+        }
+      });
+
+      planTableBody.addEventListener("click", function (event) {
+        const previewBtn = event.target.closest("[data-preview-row]");
+        if (previewBtn) {
+          const row = previewBtn.closest("tr");
+          if (!row) return;
+          const startSeconds = parseTimecode(row.querySelector(".plan-start-input").value);
+          const endSeconds = parseTimecode(row.querySelector(".plan-end-input").value);
+          if (startSeconds === null || endSeconds === null || endSeconds <= startSeconds) return;
+          playRange(startSeconds, endSeconds);
+          highlightRow(row.dataset.rowIndex);
+          return;
+        }
+
+        const mergeUpBtn = event.target.closest("[data-merge-up-row]");
+        if (mergeUpBtn) {
+          const row = mergeUpBtn.closest("tr");
+          if (!row) return;
+          const previousRow = row.previousElementSibling;
+          if (!previousRow) return;
+
+          const previousEndInput = previousRow.querySelector(".plan-end-input");
+          const previousSubtitleInput = previousRow.querySelector('input[name^="plan_subtitle_"]');
+          const previousCheckbox = previousRow.querySelector(".plan-select-checkbox");
+          const currentEndInput = row.querySelector(".plan-end-input");
+          const currentSubtitleInput = row.querySelector('input[name^="plan_subtitle_"]');
+          const currentCheckbox = row.querySelector(".plan-select-checkbox");
+
+          if (!previousEndInput || !previousSubtitleInput || !currentEndInput || !currentSubtitleInput || !currentCheckbox) {
+            return;
+          }
+
+          previousEndInput.value = currentEndInput.value;
+          const previousSubtitle = previousSubtitleInput.value.trim();
+          const currentSubtitle = currentSubtitleInput.value.trim();
+          previousSubtitleInput.value = previousSubtitle && currentSubtitle
+            ? previousSubtitle + " " + currentSubtitle
+            : (previousSubtitle || currentSubtitle);
+
+          if (previousCheckbox) {
+            previousCheckbox.checked = true;
+          }
+          currentCheckbox.checked = false;
+          row.remove();
+
+          Array.from(planTableBody.querySelectorAll("tr")).forEach(function (tableRow, index) {
+            tableRow.dataset.rowIndex = String(index);
+            const firstCell = tableRow.querySelector("td");
+            if (firstCell) {
+              firstCell.textContent = String(index + 1);
+            }
+          });
+
+          const totalRowsInput = document.querySelector('input[name="plan_total_rows"]');
+          if (totalRowsInput) {
+            totalRowsInput.value = String(planTableBody.querySelectorAll("tr").length);
+          }
+
+          highlightRow(previousRow.dataset.rowIndex);
+          updateSummary();
+          return;
+        }
+
+      });
+    }
+
+    if (player) {
+      player.addEventListener("play", function () {
+        ensureAudioBoost();
+        if (audioContext && audioContext.state === "suspended") {
+          audioContext.resume().catch(function () {});
+        }
+      });
+      player.addEventListener("loadedmetadata", syncSubtitleState);
+      player.addEventListener("timeupdate", function () {
+        if (previewEndSeconds === null) return;
+        if (player.currentTime >= previewEndSeconds) {
+          player.pause();
+          player.currentTime = previewEndSeconds;
+          previewEndSeconds = null;
+        }
+      });
+
+      player.addEventListener("seeking", function () {
+        if (previewEndSeconds === null) return;
+        if (player.currentTime > previewEndSeconds) {
+          previewEndSeconds = null;
+        }
+      });
+
+      player.addEventListener("ended", function () {
+        previewEndSeconds = null;
+      });
+    }
+
+    if (subtitleToggleBtn && !subtitleToggleBtn.disabled) {
+      subtitleToggleBtn.addEventListener("click", function () {
+        subtitlesEnabled = !subtitlesEnabled;
+        syncSubtitleState();
+      });
+      syncSubtitleState();
+    }
+
+    updateSummary();
+  })();
+</script>
+{% endblock %}

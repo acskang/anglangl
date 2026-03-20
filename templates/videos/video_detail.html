@@ -1,0 +1,1005 @@
+{% extends 'dramaNlearn/base.html' %}
+{% load clip_extras %}
+
+{% block title %}{{ video.title|default:"Video Detail" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.detail-shell{
+  width:min(94vw, 1180px);
+  margin:0 auto;
+  padding:2.7rem 1.25rem 3.5rem;
+}
+.detail-hero{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.detail-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.detail-title{
+  margin:.25rem 0 .45rem;
+  max-width:40ch;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:16pt;
+  font-weight:700;
+  letter-spacing:0;
+  color:var(--text);
+}
+.detail-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.detail-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.btn-primary-dark,
+.btn-secondary-dark,
+.btn-danger-dark,
+.btn-warn-dark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:138px;
+  padding:.82rem 1.1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.88rem;
+  font-weight:600;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.btn-primary-dark{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.btn-secondary-dark{
+  background:transparent;
+  color:var(--text);
+}
+.btn-danger-dark{
+  background:#7f1d1d;
+  border-color:#7f1d1d;
+  color:#fff;
+}
+.btn-warn-dark{
+  background:#7c2d12;
+  border-color:#7c2d12;
+  color:#fed7aa;
+}
+.detail-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:.9rem;
+  margin-bottom:1rem;
+}
+.job-card{
+  margin-bottom:1rem;
+}
+.job-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:.8rem 1.1rem;
+}
+.job-row{
+  min-width:0;
+}
+.job-label{
+  margin-bottom:.18rem;
+  color:var(--muted);
+  font-size:.74rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.job-value{
+  color:var(--text);
+  font-size:.92rem;
+  word-break:break-word;
+}
+.job-progress{
+  margin-top:.45rem;
+  width:100%;
+  height:12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.job-progress-fill{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #2563eb, #38bdf8);
+  transition:width .35s ease;
+}
+.job-status-inline{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+}
+.job-status-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#64748b;
+}
+.job-status-dot.processing{
+  background:#2563eb;
+  box-shadow:0 0 0 6px rgba(37,99,235,.14);
+  animation:jobPulse 1.2s ease-in-out infinite;
+}
+.job-status-dot.success{
+  background:#16a34a;
+}
+.job-status-dot.failed,
+.job-status-dot.canceled{
+  background:#dc2626;
+}
+.job-status-dot.queued,
+.job-status-dot.pending{
+  background:#f59e0b;
+}
+@keyframes jobPulse{
+  0%{ transform:scale(1); opacity:1; }
+  50%{ transform:scale(1.12); opacity:.75; }
+  100%{ transform:scale(1); opacity:1; }
+}
+.preview-stage{
+  margin:0 0 1.15rem;
+  padding:1rem;
+}
+.preview-layout{
+  display:grid;
+  grid-template-columns:528px minmax(0, 1fr);
+  gap:1rem;
+  align-items:start;
+}
+.preview-player{
+  width:100%;
+}
+.preview-frame{
+  position:relative;
+  width:100%;
+  max-width:528px;
+  aspect-ratio:16/9;
+  border-radius:18px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  cursor:pointer;
+}
+.preview-frame-empty{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  font-size:1rem;
+}
+.preview-video,
+.preview-poster{
+  width:100%;
+  height:100%;
+}
+.preview-video{
+  display:block;
+  background:#000;
+}
+.preview-poster{
+  position:absolute;
+  inset:0;
+  border:none;
+  padding:0;
+  background:transparent;
+  cursor:pointer;
+}
+.preview-poster img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.preview-play{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+.preview-play-dot{
+  width:66px;
+  height:66px;
+  border-radius:50%;
+  background:rgba(15,15,26,.78);
+  border:1px solid rgba(255,255,255,.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:1.5rem;
+}
+.preview-tools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.7rem 1rem;
+  margin-top:.95rem;
+  align-items:center;
+}
+.preview-loop-panel{
+  margin-top:.95rem;
+  padding:1rem;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);
+}
+.preview-loop-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:1rem;
+}
+.preview-loop-label{
+  display:block;
+  margin-bottom:.45rem;
+  color:var(--muted);
+  font-size:.74rem;
+}
+.preview-loop-row{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+}
+.preview-loop-input{
+  flex:1;
+  min-width:180px;
+  padding:.68rem .88rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--muted);
+  font-size:.82rem;
+}
+.preview-loop-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  padding:.68rem .88rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.8rem;
+  font-weight:600;
+}
+.preview-loop-actions{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+  margin-top:.85rem;
+}
+.preview-loop-note{
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-top:.8rem;
+  color:var(--muted);
+  font-size:.74rem;
+}
+.preview-tool-group{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.preview-tool-label{
+  color:var(--muted);
+  font-size:.76rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.preview-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:70px;
+  padding:.5rem .82rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.78rem;
+  font-weight:600;
+}
+.preview-chip.active{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.preview-side{
+  display:grid;
+  gap:1rem;
+}
+.preview-side-card{
+  padding:1rem;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);
+}
+.preview-side-title{
+  margin:0 0 .85rem;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:600;
+}
+.preview-side-label{
+  margin-bottom:.35rem;
+  color:var(--muted);
+  font-size:.74rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.preview-choice-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.45rem;
+  margin-bottom:.9rem;
+}
+.preview-wide-btn{
+  width:100%;
+  padding:.72rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.82rem;
+  font-weight:600;
+  text-align:center;
+}
+.preview-subtitle-box{
+  min-height:210px;
+  padding:.25rem 0 0;
+  color:#f4f4fa;
+  font-size:.98rem;
+  line-height:1.75;
+}
+.preview-subtitle-box em{
+  color:#facc15;
+  font-style:normal;
+}
+.stat-card,
+.detail-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.stat-card{
+  padding:1rem 1.05rem;
+}
+.stat-label{
+  color:var(--muted);
+  font-size:.76rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.stat-value{
+  margin-top:.3rem;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:600;
+}
+.detail-content{
+  display:grid;
+  grid-template-columns:minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap:1rem;
+}
+.detail-card{
+  padding:1.2rem;
+}
+.section-title{
+  margin:0 0 .95rem;
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text);
+}
+.detail-list{
+  display:grid;
+  grid-template-columns:150px minmax(0, 1fr);
+  gap:.7rem 1rem;
+  margin:0;
+}
+.detail-list dt{
+  color:var(--muted);
+  font-size:.8rem;
+}
+.detail-list dd{
+  margin:0;
+  color:var(--text);
+  font-size:.9rem;
+  word-break:break-word;
+}
+.detail-link{
+  color:#f8a5b4;
+  text-decoration:none;
+}
+.detail-link:hover{
+  color:#ffd2da;
+}
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.26rem .62rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  font-size:.76rem;
+}
+.status-chip.ready{color:#86efac;border-color:#14532d}
+.status-chip.processing,
+.status-chip.queued{color:#93c5fd;border-color:#1e3a5f}
+.status-chip.failed{color:#fca5a5;border-color:#7f1d1d}
+.note-block{
+  padding:1rem;
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05);
+}
+.subtitle-upload-form{
+  display:grid;
+  gap:.75rem;
+}
+.subtitle-upload-form input[type="file"]{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+}
+.note-error{
+  color:#fca5a5;
+  white-space:pre-wrap;
+}
+.mini-table{
+  width:100%;
+  border-collapse:collapse;
+}
+.mini-table th,
+.mini-table td{
+  padding:.8rem .2rem;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  text-align:left;
+  font-size:.84rem;
+}
+.mini-table th{
+  color:var(--muted);
+  font-size:.72rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.mini-table tr:last-child td{
+  border-bottom:none;
+}
+.table-actions{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+}
+.table-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:74px;
+  padding:.48rem .75rem;
+  border-radius:9px;
+  border:1px solid var(--border);
+  text-decoration:none;
+  color:var(--text);
+  background:var(--s2);
+  font-size:.78rem;
+  font-weight:600;
+}
+.table-btn:hover{
+  border-color:var(--acc);
+}
+.empty-row{
+  padding:1.4rem 0 !important;
+  text-align:center;
+  color:var(--muted);
+}
+@media (max-width: 980px){
+  .preview-layout{
+    grid-template-columns:1fr;
+  }
+  .detail-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+  .detail-content{
+    grid-template-columns:1fr;
+  }
+}
+@media (max-width: 640px){
+  .detail-shell{
+    padding:1.2rem .8rem 2.4rem;
+  }
+  .preview-stage{
+    padding:.8rem;
+  }
+  .preview-frame{
+    max-width:none;
+  }
+  .preview-loop-grid{
+    grid-template-columns:1fr;
+  }
+  .detail-grid{
+    grid-template-columns:1fr;
+  }
+  .job-grid{
+    grid-template-columns:1fr;
+  }
+  .detail-list{
+    grid-template-columns:1fr;
+    gap:.35rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-shell">
+  <div class="detail-hero">
+    <div>
+      <div class="detail-kicker">{% if video.source_type == 'youtube' %}Youtube{% else %}Video{% endif %}</div>
+      <h1 class="detail-title">{{ video.title|default:"Untitled" }}</h1>
+      <p class="detail-desc">
+        {% if video.source_type == 'youtube' %}
+        등록된 YouTube 영상의 다운로드 상태와 관련 클립을 확인합니다.
+        {% else %}
+        업로드한 로컬 비디오의 메타데이터와 관련 클립을 확인합니다.
+        {% endif %}
+      </p>
+    </div>
+    <div class="detail-actions">
+      {% if can_manage and video.download_status == 'ready' %}
+      <a href="{% url 'clips:create' %}?master_video={{ video.id }}" class="btn-primary-dark">Create Clip</a>
+      {% endif %}
+      {% if can_manage %}
+      <a href="{% url 'workers:master-video-job-history' video.id %}" class="btn-secondary-dark">Job History</a>
+      {% endif %}
+      <a href="{{ list_url }}" class="btn-secondary-dark">Back to {{ list_label }}</a>
+      {% if can_manage and video.source_type == 'youtube' and video.download_status == 'failed' %}
+      <form method="post" action="{% url 'videos:retry' video.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-warn-dark">Retry Download</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-card preview-stage">
+    <div class="preview-layout">
+      <div class="preview-player">
+        <div class="preview-frame">
+          {% if playback_url %}
+          <video
+            class="preview-video"
+            id="videoDetailPreview"
+            preload="metadata"
+            {% if video.thumbnail_url %}poster="{{ video.thumbnail_url }}"{% endif %}
+            controls
+          >
+            {% if playback_type == 'file' %}
+            <source src="{{ playback_url }}">
+            {% endif %}
+          </video>
+          <button type="button" class="preview-poster" id="videoDetailPoster" aria-label="Play video">
+            {% if video.thumbnail_url %}
+            <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}">
+            {% else %}
+            <div class="preview-frame-empty">Video Preview</div>
+            {% endif %}
+            <div class="preview-play">
+              <div class="preview-play-dot">&#9654;</div>
+            </div>
+          </button>
+          {% else %}
+          <div class="preview-frame-empty">Video Preview</div>
+          {% endif %}
+        </div>
+        <div class="preview-tools">
+          <div class="preview-tool-group">
+            <span class="preview-tool-label">Loop</span>
+            <span class="preview-chip">비활성</span>
+          </div>
+          <div class="preview-tool-group">
+            <span class="preview-tool-label">Speed</span>
+            <span class="preview-chip">0.5x</span>
+            <span class="preview-chip">0.75x</span>
+            <span class="preview-chip active">1.0x</span>
+            <span class="preview-chip">1.25x</span>
+            <span class="preview-chip">1.5x</span>
+          </div>
+        </div>
+        <div class="preview-loop-panel">
+          <div class="preview-loop-grid">
+            <div>
+              <label class="preview-loop-label">반복 시작</label>
+              <div class="preview-loop-row">
+                <div class="preview-loop-input">예 : 0:30 또는 30</div>
+                <div class="preview-loop-btn">현재 시각</div>
+              </div>
+            </div>
+            <div>
+              <label class="preview-loop-label">반복 종료</label>
+              <div class="preview-loop-row">
+                <div class="preview-loop-input">예 : 1:10 또는 70</div>
+                <div class="preview-loop-btn">현재 시각</div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-loop-actions">
+            <div class="preview-loop-btn">구간 반복 켜기</div>
+            <div class="preview-loop-btn">초기화</div>
+          </div>
+          <div class="preview-loop-note">
+            <span>반복 구간이 설정되지 않았습니다.</span>
+            <span>`mm:ss`, `hh:mm:ss`, 초 단위 숫자 모두 입력할 수 있습니다.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-side">
+        <div class="preview-side-card">
+          <h2 class="preview-side-title">Make Subtitle</h2>
+          <div class="preview-side-label">Model</div>
+          <div class="preview-choice-row">
+            <span class="preview-chip">tiny</span>
+            <span class="preview-chip active">base</span>
+            <span class="preview-chip">small</span>
+            <span class="preview-chip">medium</span>
+          </div>
+          <div class="preview-side-label">Language</div>
+          <div class="preview-choice-row" style="margin-bottom:.75rem">
+            <span class="preview-chip active">English</span>
+            <span class="preview-chip">Auto</span>
+            <span class="preview-chip">Korean</span>
+          </div>
+          <div class="preview-wide-btn">Extract</div>
+        </div>
+
+        <div class="preview-side-card">
+          <h2 class="preview-side-title">Subtitle</h2>
+          <div class="preview-subtitle-box"><em>Tonight,</em> we're gonna be kicking off Summer Screen Film Festival!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="stat-card">
+      <div class="stat-label">Status</div>
+      <div class="stat-value">
+        <span class="status-chip {{ video.download_status }}" id="videoDownloadStatusChip">{{ video.get_download_status_display }}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Duration</div>
+      <div class="stat-value">{% if video.duration_seconds %}{{ video.duration_seconds|hhmmss }}{% else %}-{% endif %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">File Size</div>
+      <div class="stat-value">{% if video.file_size_bytes %}{{ video.file_size_bytes|filesizeformat }}{% else %}-{% endif %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Owner</div>
+      <div class="stat-value">{% if video.owner %}@{{ video.owner.username }}{% else %}-{% endif %}</div>
+    </div>
+  </div>
+
+  {% if can_manage and job %}
+  <div class="detail-card job-card" id="videoJobCard" data-status-url="{% url 'videos:job-status' video.id %}">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.8rem">
+      <h2 class="section-title" style="margin-bottom:0">Background Job</h2>
+      <div class="job-status-inline">
+        <span class="job-status-dot {{ job.status }}" id="jobStatusDot"></span>
+        <span class="status-chip {{ job.status }}" id="jobStatusChip">{{ job.get_status_display }}</span>
+      </div>
+    </div>
+    <div class="job-grid">
+      <div class="job-row">
+        <div class="job-label">Job Type</div>
+        <div class="job-value" id="jobTypeValue">{{ job.job_type }}</div>
+      </div>
+      <div class="job-row">
+        <div class="job-label">Progress</div>
+        <div class="job-value"><span id="jobProgressValue">{{ job.progress_percent }}</span>%</div>
+        <div class="job-progress" role="progressbar" aria-label="Background job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ job.progress_percent }}" id="jobProgressBar">
+          <div class="job-progress-fill" id="jobProgressFill" style="width: {{ job.progress_percent }}%"></div>
+        </div>
+      </div>
+      <div class="job-row">
+        <div class="job-label">Message</div>
+        <div class="job-value" id="jobMessageValue">{{ job.message|default:"-" }}</div>
+      </div>
+      <div class="job-row">
+        <div class="job-label">Error</div>
+        <div class="job-value" id="jobErrorValue">{{ job.error_message|default:"-" }}</div>
+      </div>
+      <div class="job-row">
+        <div class="job-label">Started</div>
+        <div class="job-value" id="jobStartedValue">{{ job.started_at|date:'Y-m-d H:i:s'|default:'-' }}</div>
+      </div>
+      <div class="job-row">
+        <div class="job-label">Finished</div>
+        <div class="job-value" id="jobFinishedValue">{{ job.finished_at|date:'Y-m-d H:i:s'|default:'-' }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="detail-content">
+    <div class="detail-card">
+      <h2 class="section-title">Video Info</h2>
+      <dl class="detail-list">
+        <dt>Title</dt><dd>{{ video.title|default:"-" }}</dd>
+        <dt>Source Type</dt><dd>{{ video.get_source_type_display }}</dd>
+        <dt>Source</dt>
+        <dd>
+          {% if video.source_type == 'youtube' %}
+            <a class="detail-link" href="{{ video.youtube_url }}" target="_blank" rel="noopener">{{ video.youtube_url }}</a>
+            <div style="margin-top:.28rem;color:var(--muted);font-size:.78rem">{{ video.youtube_video_id }}</div>
+          {% elif video.video_file %}
+            <a class="detail-link" href="{{ video.video_file.url }}" target="_blank" rel="noopener">{{ video.video_file.name }}</a>
+            {% if video.hls_manifest_file %}
+            <div style="margin-top:.28rem;color:var(--muted);font-size:.78rem">
+              HLS manifest: <a class="detail-link" href="{{ video.hls_manifest_file.url }}" target="_blank" rel="noopener">{{ video.hls_manifest_file.name }}</a>
+            </div>
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+        <dt>{% if video.source_type == 'youtube' %}Downloaded At{% else %}Uploaded At{% endif %}</dt>
+        <dd>{{ video.downloaded_at|date:'Y-m-d H:i:s'|default:'-' }}</dd>
+        <dt>Subtitle</dt>
+        <dd>
+          {% if subtitle_url %}
+            <a class="detail-link" href="{{ subtitle_url }}" target="_blank" rel="noopener">{{ video.subtitle_file.name }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+        <dt>Created At</dt><dd>{{ video.created_at|date:'Y-m-d H:i:s' }}</dd>
+        <dt>Last Updated</dt><dd>{{ video.updated_at|date:'Y-m-d H:i:s' }}</dd>
+      </dl>
+    </div>
+
+    <div style="display:grid;gap:1rem">
+      <div class="detail-card">
+        <h2 class="section-title">Process Note</h2>
+        <div class="note-block">
+          {% if video.download_error_message %}
+          <div class="note-error" id="videoProcessNote">{{ video.download_error_message }}</div>
+          {% else %}
+          <div style="color:var(--muted);font-size:.84rem" id="videoProcessNote">현재 기록된 오류 메시지가 없습니다.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if can_manage and video.source_type == 'upload' %}
+      <div class="detail-card">
+        <h2 class="section-title">Subtitle Upload</h2>
+        <form class="subtitle-upload-form" method="post" action="{% url 'videos:subtitle-update' video.id %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="file" name="subtitle_file" accept=".srt,.vtt,.ass,.ssa" required>
+          <div>
+            <button type="submit" class="btn-primary-dark">Upload Subtitle</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-card" style="margin-top:1rem">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem">
+      <h2 class="section-title" style="margin-bottom:0">Related Clips</h2>
+      {% if can_manage and video.download_status == 'ready' %}
+      <a href="{% url 'clips:create' %}?master_video={{ video.id }}" class="btn-secondary-dark">New Clip</a>
+      {% endif %}
+    </div>
+    <div style="overflow:auto">
+      <table class="mini-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Range</th>
+            <th>Status</th>
+            <th>Visibility</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for clip in clips %}
+          <tr>
+            <td>{{ clip.title }}</td>
+            <td>{{ clip.start_time_seconds|hhmmss }} - {{ clip.end_time_seconds|hhmmss }}</td>
+            <td>{{ clip.get_file_status_display }}</td>
+            <td>{% if clip.is_public %}Public{% else %}Private{% endif %}</td>
+            <td>
+              <div class="table-actions">
+                <a href="{% url 'clips:detail' clip.id %}" class="table-btn">View</a>
+                {% if clip.owner_id == request.user.id %}
+                <a href="{% url 'clips:edit' clip.id %}" class="table-btn">Edit</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="empty-row">No clips yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<script>
+  (function () {
+    const previewVideo = document.getElementById("videoDetailPreview");
+    const previewPoster = document.getElementById("videoDetailPoster");
+    const playbackUrl = "{{ playback_url|escapejs }}";
+    const playbackType = "{{ playback_type }}";
+    let hlsInstance = null;
+
+    function applyPlaybackSource(nextPlaybackUrl, nextPlaybackType) {
+      if (!previewVideo || !nextPlaybackUrl) {
+        return;
+      }
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+      if (nextPlaybackType === "hls" && window.Hls && Hls.isSupported()) {
+        hlsInstance = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: true });
+        hlsInstance.loadSource(nextPlaybackUrl);
+        hlsInstance.attachMedia(previewVideo);
+      } else if (nextPlaybackType === "hls" && previewVideo.canPlayType("application/vnd.apple.mpegurl")) {
+        previewVideo.src = nextPlaybackUrl;
+      } else if (nextPlaybackType === "file") {
+        previewVideo.src = nextPlaybackUrl;
+      }
+    }
+
+    if (previewVideo && previewPoster) {
+      applyPlaybackSource(playbackUrl, playbackType);
+
+      function revealVideo() {
+        previewPoster.style.display = "none";
+      }
+
+      previewPoster.addEventListener("click", function () {
+        revealVideo();
+        const playPromise = previewVideo.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(function () {});
+        }
+      });
+
+      previewVideo.addEventListener("pause", function () {
+        if (previewVideo.currentTime <= 0.05 || previewVideo.ended) {
+          previewPoster.style.display = "";
+        }
+      });
+
+      previewVideo.addEventListener("ended", function () {
+        previewVideo.currentTime = 0;
+        previewPoster.style.display = "";
+      });
+    }
+
+    const jobCard = document.getElementById("videoJobCard");
+    if (!jobCard) return;
+
+    const statusUrl = jobCard.dataset.statusUrl;
+    const jobStatusChip = document.getElementById("jobStatusChip");
+    const jobStatusDot = document.getElementById("jobStatusDot");
+    const jobTypeValue = document.getElementById("jobTypeValue");
+    const jobProgressValue = document.getElementById("jobProgressValue");
+    const jobProgressBar = document.getElementById("jobProgressBar");
+    const jobProgressFill = document.getElementById("jobProgressFill");
+    const jobMessageValue = document.getElementById("jobMessageValue");
+    const jobErrorValue = document.getElementById("jobErrorValue");
+    const jobStartedValue = document.getElementById("jobStartedValue");
+    const jobFinishedValue = document.getElementById("jobFinishedValue");
+    const videoDownloadStatusChip = document.getElementById("videoDownloadStatusChip");
+    const videoProcessNote = document.getElementById("videoProcessNote");
+    let pollTimer = null;
+    let currentPlaybackUrl = playbackUrl;
+
+    function formatDate(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "-";
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mi = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+    }
+
+    function stopPollingIfDone(status) {
+      if (status === "success" || status === "failed" || status === "canceled") {
+        if (pollTimer) {
+          window.clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      }
+    }
+
+    async function refreshJobStatus() {
+      try {
+        const response = await fetch(statusUrl, {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!payload.ok || !payload.job) return;
+
+        const job = payload.job;
+        const video = payload.video || {};
+        jobStatusChip.textContent = job.status_label;
+        jobStatusChip.className = "status-chip " + job.status;
+        jobStatusDot.className = "job-status-dot " + job.status;
+        jobTypeValue.textContent = job.job_type;
+        jobProgressValue.textContent = String(job.progress_percent);
+        jobProgressBar.setAttribute("aria-valuenow", String(job.progress_percent));
+        jobProgressFill.style.width = job.progress_percent + "%";
+        jobMessageValue.textContent = job.message || "-";
+        jobErrorValue.textContent = job.error_message || "-";
+        jobStartedValue.textContent = formatDate(job.started_at);
+        jobFinishedValue.textContent = formatDate(job.finished_at);
+
+        if (videoDownloadStatusChip && video.download_status) {
+          videoDownloadStatusChip.textContent = video.download_status_label;
+          videoDownloadStatusChip.className = "status-chip " + video.download_status;
+        }
+        if (videoProcessNote) {
+          videoProcessNote.textContent = video.download_error_message || "현재 기록된 오류 메시지가 없습니다.";
+        }
+        if (video.playback_url && video.playback_url !== currentPlaybackUrl) {
+          currentPlaybackUrl = video.playback_url;
+          applyPlaybackSource(video.playback_url, video.playback_type);
+        }
+
+        stopPollingIfDone(job.status);
+      } catch (_error) {
+      }
+    }
+
+    pollTimer = window.setInterval(refreshJobStatus, 2000);
+    refreshJobStatus();
+  })();
+</script>
+{% endblock %}

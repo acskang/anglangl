@@ -1,0 +1,26 @@
+<div class="card shadow-sm border-danger-subtle">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 mb-0">Attention Needed</h2>
+      <span class="small text-muted">Recent failed items</span>
+    </div>
+    {% if attention_items %}
+      <div class="list-group list-group-flush">
+        {% for item in attention_items %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <h3 class="h6 mb-1">{{ item.title }}</h3>
+                <div class="small text-muted mb-1">{{ item.meta }} • {{ item.status }}</div>
+                <div class="small">{{ item.message }}</div>
+              </div>
+              <div class="small text-muted text-nowrap">{{ item.timestamp|date:"Y-m-d H:i" }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No failed items need attention right now.</p>
+    {% endif %}
+  </div>
+</div>

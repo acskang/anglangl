@@ -1,0 +1,371 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}Thumbnail{% endblock %}
+
+{% block extra_css %}
+<style>
+.manage-wrap{
+  max-width:1320px;
+  margin:0 auto;
+  padding:2rem 1.25rem 3rem;
+}
+.manage-hero{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.manage-title{
+  font-family:'Bebas Neue',sans-serif;
+  letter-spacing:3px;
+  font-size:2rem;
+  color:var(--text);
+}
+.manage-subtitle{
+  color:var(--muted);
+  font-size:.9rem;
+}
+.manage-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:1.1rem 1.1rem 1.2rem;
+  margin-bottom:1rem;
+}
+.manage-card h2{
+  font-size:1rem;
+  margin:0 0 .85rem;
+}
+.manage-note{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:.9rem;
+}
+.manage-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.manage-btn{
+  background:var(--acc);
+  color:#fff;
+  border:1px solid var(--acc);
+  border-radius:8px;
+  padding:.58rem 1rem;
+  font-size:.84rem;
+  font-weight:600;
+  cursor:pointer;
+  text-decoration:none;
+}
+.manage-btn.secondary{
+  background:var(--s2);
+  color:var(--text);
+  border-color:var(--border);
+}
+.manage-status{
+  min-height:1.1rem;
+  margin-top:.7rem;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.thumb-stack{
+  display:flex;
+  flex-direction:column;
+  gap:.6rem;
+}
+.thumb-stack-row{
+  display:grid;
+  grid-template-columns:1.6rem minmax(0,1fr) minmax(0,1.1fr);
+  gap:.55rem;
+  align-items:center;
+}
+.thumb-stack-index{
+  color:var(--muted);
+  font-size:.76rem;
+  text-align:right;
+  font-family:'JetBrains Mono',monospace;
+}
+.thumb-stack-input{
+  width:100%;
+  padding:.65rem .9rem;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:.88rem;
+  outline:none;
+}
+.thumb-stack-input:focus{border-color:var(--acc)}
+.thumb-stack-input::placeholder{color:var(--muted)}
+.thumb-stack-file{
+  width:100%;
+  padding:.52rem .7rem;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:.82rem;
+}
+.thumb-table-wrap{
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid var(--border);
+}
+.thumb-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:920px;
+  background:var(--s1);
+}
+.thumb-table th,
+.thumb-table td{
+  padding:.8rem .75rem;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+  text-align:left;
+  font-size:.8rem;
+}
+.thumb-table th{
+  color:var(--muted);
+  font-size:.72rem;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  background:rgba(255,255,255,.02);
+}
+.thumb-table tr:last-child td{border-bottom:none}
+.thumb-mini{
+  width:132px;
+  aspect-ratio:16/9;
+  border-radius:10px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:var(--s2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+}
+.thumb-mini img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.thumb-actions{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+}
+.thumb-item-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:82px;
+  padding:.42rem .72rem;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  text-decoration:none;
+  font-size:.78rem;
+}
+.thumb-item-btn.danger{
+  color:#fca5a5;
+  border-color:rgba(252,165,165,.3);
+}
+.table-empty{
+  padding:2rem 1rem;
+  text-align:center;
+  color:var(--muted);
+}
+@media (max-width:760px){
+  .manage-wrap{padding:1rem .75rem 2rem}
+  .thumb-stack-row{grid-template-columns:1.6rem minmax(0,1fr)}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manage-wrap">
+  <div class="manage-hero">
+    <div>
+      <div class="manage-title">Thumbnail</div>
+      <div class="manage-subtitle">여러 개의 썸네일을 한 번에 등록하고, 저장된 자산을 한 화면에서 관리합니다.</div>
+    </div>
+    <div class="manage-subtitle">저장 위치: <code>./media/thumbnails</code> · 등록된 썸네일 {{ assets|length }}개</div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="thumbnailBatchForm">
+    {% csrf_token %}
+    <input type="hidden" name="row_indexes" id="thumbnailRowIndexes">
+    <div class="manage-card">
+      <h2>썸네일 추가</h2>
+      <div class="manage-note">마지막 줄 아래에는 항상 빈 줄이 하나 유지됩니다. 이름과 이미지가 모두 채워진 줄만 저장됩니다.</div>
+      <div class="thumb-stack" id="thumbnailRowList"></div>
+      <div class="manage-actions" style="margin-top:.9rem">
+        <button class="manage-btn" type="submit" id="thumbnailSubmitBtn">썸네일 저장</button>
+        <button class="manage-btn secondary" type="button" id="thumbnailClearBtn">입력 비우기</button>
+      </div>
+      <div class="manage-status" id="thumbnailStatus"></div>
+    </div>
+  </form>
+
+  <div class="thumb-table-wrap">
+    <table class="thumb-table">
+      <thead>
+        <tr>
+          <th style="width:90px">ID</th>
+          <th style="width:220px">이름</th>
+          <th style="width:220px">이미지</th>
+          <th>경로</th>
+          <th style="width:190px">작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in assets %}
+        <tr>
+          <td>#{{ asset.id }}</td>
+          <td>{{ asset.name }}</td>
+          <td>
+            <div class="thumb-mini">
+              <img src="{{ asset.image.url }}" alt="{{ asset.name }}">
+            </div>
+          </td>
+          <td>{{ asset.image.name }}</td>
+          <td>
+            <div class="thumb-actions">
+              <a class="thumb-item-btn" href="{% url 'thumbnail_admin:edit' asset.id %}">수정</a>
+              <form method="post" action="{% url 'thumbnail_admin:delete' asset.id %}" onsubmit="return confirm('이 썸네일을 삭제하시겠습니까?');">
+                {% csrf_token %}
+                <button type="submit" class="thumb-item-btn danger">삭제</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td class="table-empty" colspan="5">등록된 썸네일이 없습니다.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var thumbnailRowList = document.getElementById('thumbnailRowList');
+var thumbnailStatus = document.getElementById('thumbnailStatus');
+var thumbnailClearBtn = document.getElementById('thumbnailClearBtn');
+var thumbnailBatchForm = document.getElementById('thumbnailBatchForm');
+var thumbnailRowIndexes = document.getElementById('thumbnailRowIndexes');
+var thumbRowCounter = 0;
+
+function createThumbnailRow() {
+  var indexValue = String(thumbRowCounter++);
+  var row = document.createElement('div');
+  row.className = 'thumb-stack-row';
+  row.setAttribute('data-row-index', indexValue);
+
+  var index = document.createElement('span');
+  index.className = 'thumb-stack-index';
+  row.appendChild(index);
+
+  var nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.name = 'name_' + indexValue;
+  nameInput.className = 'thumb-stack-input';
+  nameInput.placeholder = '썸네일 이름';
+  nameInput.addEventListener('input', function() {
+    syncThumbnailRows();
+  });
+  row.appendChild(nameInput);
+
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.name = 'image_' + indexValue;
+  fileInput.accept = 'image/*';
+  fileInput.className = 'thumb-stack-file';
+  fileInput.addEventListener('change', function() {
+    syncThumbnailRows();
+  });
+  row.appendChild(fileInput);
+
+  return row;
+}
+
+function updateThumbnailIndexes() {
+  Array.prototype.forEach.call(thumbnailRowList.querySelectorAll('.thumb-stack-row'), function(row, idx) {
+    row.querySelector('.thumb-stack-index').textContent = String(idx + 1) + '.';
+  });
+}
+
+function ensureThumbnailRows() {
+  if (!thumbnailRowList.querySelector('.thumb-stack-row')) {
+    thumbnailRowList.appendChild(createThumbnailRow());
+  }
+  updateThumbnailIndexes();
+}
+
+function rowHasValue(row) {
+  var textValue = row.querySelector('input[type="text"]').value.trim();
+  var fileValue = row.querySelector('input[type="file"]').files.length > 0;
+  return !!textValue || fileValue;
+}
+
+function syncThumbnailRows() {
+  ensureThumbnailRows();
+  var rows = Array.prototype.slice.call(thumbnailRowList.querySelectorAll('.thumb-stack-row'));
+  var lastRow = rows[rows.length - 1];
+  if (lastRow && rowHasValue(lastRow)) {
+    thumbnailRowList.appendChild(createThumbnailRow());
+  }
+  updateThumbnailIndexes();
+}
+
+function collectFilledThumbnailRows() {
+  return Array.prototype.filter.call(thumbnailRowList.querySelectorAll('.thumb-stack-row'), function(row) {
+    return rowHasValue(row);
+  });
+}
+
+thumbnailClearBtn.addEventListener('click', function() {
+  thumbnailRowList.innerHTML = '';
+  thumbRowCounter = 0;
+  thumbnailStatus.textContent = '';
+  ensureThumbnailRows();
+});
+
+thumbnailBatchForm.addEventListener('submit', function(event) {
+  var rows = collectFilledThumbnailRows();
+  if (!rows.length) {
+    event.preventDefault();
+    thumbnailStatus.textContent = '등록할 썸네일을 하나 이상 입력해주세요.';
+    return;
+  }
+
+  var invalid = rows.some(function(row) {
+    var nameValue = row.querySelector('input[type="text"]').value.trim();
+    var hasFile = row.querySelector('input[type="file"]').files.length > 0;
+    return !nameValue || !hasFile;
+  });
+
+  if (invalid) {
+    event.preventDefault();
+    thumbnailStatus.textContent = '각 줄마다 이름과 이미지를 모두 선택해야 합니다.';
+    return;
+  }
+
+  thumbnailRowIndexes.value = rows.map(function(row) {
+    return row.getAttribute('data-row-index');
+  }).join(',');
+});
+
+ensureThumbnailRows();
+</script>
+{% endblock %}

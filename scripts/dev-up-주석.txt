@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+
+# ----------------------------------------------------------------------
+# Development Startup Script
+# ----------------------------------------------------------------------
+# 이 스크립트는 로컬 개발 환경에서 아래 구성요소를 쉽게 기동하기 위한 것이다.
+#
+#   - Django 웹 서버
+#   - Celery Worker
+#   - MCP Server (GPT / Agent 연동용)
+#
+# 실행 모드:
+#
+#   full    : Django + Celery worker 실행 (일반 개발 모드)
+#   django  : Django 서버만 실행
+#   celery  : Celery worker만 실행
+#   mcp     : MCP 서버만 실행
+#
+# 예:
+#   ./scripts/dev-up.sh
+#   ./scripts/dev-up.sh full
+#   ./scripts/dev-up.sh django
+#   ./scripts/dev-up.sh celery
+#   ./scripts/dev-up.sh mcp
+#
+# ----------------------------------------------------------------------
+
+# Bash 안전 옵션
+set -euo pipefail
+
+# ----------------------------------------------------------------------
+# ROOT_DIR
+#
+# 현재 스크립트 기준으로 프로젝트 루트 디렉토리를 계산한다.
+#
+# scripts/dev-up.sh
+# → 프로젝트 루트
+#
+# ----------------------------------------------------------------------
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# 실행 모드 (기본값 full)
+MODE="${1:-full}"
+
+# Django bind address
+DJANGO_BIND="${DJANGO_BIND:-127.0.0.1:8000}"
+
+# Celery worker가 처리할 queue 목록
+CELERY_QUEUES="${CELERY_QUEUES:-default,youtube_download,clip_extract,clip_upload_process}"
+
+# migrate 실행 여부
+RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
+
+# Celery background process PID 저장
+CELERY_PID=""
+
+# ----------------------------------------------------------------------
+# log()
+#
+# 개발용 로그 출력 함수
+# ----------------------------------------------------------------------
+log() {
+  printf '[dev-up] %s\n' "$*"
+}
+
+# ----------------------------------------------------------------------
+# die()
+#
+# 오류 발생 시 메시지를 출력하고 종료
+# ----------------------------------------------------------------------
+die() {
+  printf '[dev-up] ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+# ----------------------------------------------------------------------
+# usage()
+#
+# 스크립트 사용법 안내
+# ----------------------------------------------------------------------
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/dev-up.sh [full|django|celery|mcp]
+
+Modes:
+  full    Run migrations, start one Celery worker in background, run Django in foreground.
+  django  Run migrations, then run Django only.
+  celery  Run one Celery worker in foreground.
+  mcp     Run the MCP server in foreground.
+
+Environment overrides:
+  DATABASE_URL
+  CELERY_BROKER_URL
+  CELERY_RESULT_BACKEND
+  DJANGO_BIND
+  CELERY_QUEUES
+  RUN_MIGRATIONS=0
+  DJANGO_INTERNAL_API_TOKEN
+  DJANGO_API_BASE_URL
+  DJANGO_DEFAULT_USER_ID
+EOF
+}
+
+# ----------------------------------------------------------------------
+# ensure_venv()
+#
+# Python virtualenv 자동 활성화
+#
+# 조건:
+#   - 현재 virtualenv 활성화 안됨
+#   - .venv 폴더 존재
+#
+# ----------------------------------------------------------------------
+ensure_venv() {
+  if [[ -z "${VIRTUAL_ENV:-}" && -f "$ROOT_DIR/.venv/bin/activate" ]]; then
+    source "$ROOT_DIR/.venv/bin/activate"
+    log "Activated virtualenv at $ROOT_DIR/.venv"
+  fi
+}
+
+# ----------------------------------------------------------------------
+# export_defaults()
+#
+# 개발용 기본 환경 변수 설정
+#
+# .env 없이도 바로 실행 가능하도록 기본값을 설정한다.
+# ----------------------------------------------------------------------
+export_defaults() {
+
+  export SECRET_KEY="${SECRET_KEY:-dev-secret-key}"
+  export DEBUG="${DEBUG:-True}"
+  export ALLOWED_HOSTS="${ALLOWED_HOSTS:-127.0.0.1,localhost}"
+
+  # PostgreSQL DB
+  export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/listen_practice}"
+
+  # Redis (Celery broker)
+  export CELERY_BROKER_URL="${CELERY_BROKER_URL:-redis://127.0.0.1:6379/0}"
+
+  # Redis result backend
+  export CELERY_RESULT_BACKEND="${CELERY_RESULT_BACKEND:-redis://127.0.0.1:6379/1}"
+
+  # static / media 설정
+  export STATIC_URL="${STATIC_URL:-/static/}"
+  export STATIC_ROOT="${STATIC_ROOT:-$ROOT_DIR/staticfiles}"
+
+  export MEDIA_URL="${MEDIA_URL:-/media/}"
+  export MEDIA_ROOT="${MEDIA_ROOT:-$ROOT_DIR/media}"
+
+  # clip upload 제한
+  export CLIP_UPLOAD_MAX_FILES_PER_BATCH="${CLIP_UPLOAD_MAX_FILES_PER_BATCH:-30}"
+  export CLIP_UPLOAD_MAX_FILE_SIZE_BYTES="${CLIP_UPLOAD_MAX_FILE_SIZE_BYTES:-314572800}"
+
+  export CLIP_UPLOAD_ALLOWED_EXTENSIONS="${CLIP_UPLOAD_ALLOWED_EXTENSIONS:-.mp4,.mov,.mkv,.webm,.m4v}"
+
+  # internal API 인증 토큰
+  export DJANGO_INTERNAL_API_TOKEN="${DJANGO_INTERNAL_API_TOKEN:-replace-with-strong-token}"
+
+  # playback 링크 TTL
+  export INTERNAL_PLAYBACK_LINK_TTL_SECONDS="${INTERNAL_PLAYBACK_LINK_TTL_SECONDS:-900}"
+
+  # MCP → Django 연결
+  export DJANGO_API_BASE_URL="${DJANGO_API_BASE_URL:-http://127.0.0.1:8000}"
+
+  # MCP public URL
+  export MCP_PUBLIC_BASE_URL="${MCP_PUBLIC_BASE_URL:-http://127.0.0.1:3000}"
+
+  # user header
+  export DJANGO_USER_HEADER_NAME="${DJANGO_USER_HEADER_NAME:-X-Internal-User-Id}"
+
+  export DJANGO_DEFAULT_USER_ID="${DJANGO_DEFAULT_USER_ID:-1}"
+
+  export DJANGO_API_TIMEOUT_SECONDS="${DJANGO_API_TIMEOUT_SECONDS:-10}"
+
+  # 개발 디렉토리 생성
+  mkdir -p "$STATIC_ROOT" "$MEDIA_ROOT" "$ROOT_DIR/.dev"
+}
+
+# ----------------------------------------------------------------------
+# cleanup()
+#
+# 스크립트 종료 시 background Celery worker 종료
+# ----------------------------------------------------------------------
+cleanup() {
+  if [[ -n "$CELERY_PID" ]] && kill -0 "$CELERY_PID" >/dev/null 2>&1; then
+    log "Stopping Celery worker ($CELERY_PID)"
+    kill "$CELERY_PID" >/dev/null 2>&1 || true
+    wait "$CELERY_PID" 2>/dev/null || true
+  fi
+}
+
+# ----------------------------------------------------------------------
+# preflight()
+#
+# dev-check.sh 실행
+#
+# 환경 점검
+#   - postgres
+#   - redis
+#   - python packages
+# ----------------------------------------------------------------------
+preflight() {
+  "$ROOT_DIR/scripts/dev-check.sh" "$@"
+}
+
+# ----------------------------------------------------------------------
+# run_migrations()
+#
+# Django DB migration 실행
+# ----------------------------------------------------------------------
+run_migrations() {
+
+  if [[ "$RUN_MIGRATIONS" == "1" ]]; then
+    log "Running migrations"
+    python "$ROOT_DIR/manage.py" migrate
+  else
+    log "Skipping migrations because RUN_MIGRATIONS=0"
+  fi
+}
+
+# ----------------------------------------------------------------------
+# start_celery_background()
+#
+# Celery worker 백그라운드 실행
+#
+# 로그:
+#   .dev/celery.log
+#
+# ----------------------------------------------------------------------
+start_celery_background() {
+
+  local logfile="$ROOT_DIR/.dev/celery.log"
+
+  log "Starting Celery worker in background for queues: $CELERY_QUEUES"
+
+  celery -A config worker -l info -Q "$CELERY_QUEUES" >"$logfile" 2>&1 &
+
+  CELERY_PID=$!
+
+  sleep 2
+
+  if ! kill -0 "$CELERY_PID" >/dev/null 2>&1; then
+    die "Celery worker exited immediately. Check $logfile"
+  fi
+
+  log "Celery worker PID=$CELERY_PID log=$logfile"
+}
+
+# ----------------------------------------------------------------------
+# run_django()
+#
+# Django 개발 서버 실행
+# ----------------------------------------------------------------------
+run_django() {
+  log "Starting Django on http://$DJANGO_BIND/"
+  python "$ROOT_DIR/manage.py" runserver "$DJANGO_BIND"
+}
+
+# ----------------------------------------------------------------------
+# run_celery_foreground()
+#
+# Celery worker foreground 실행
+# ----------------------------------------------------------------------
+run_celery_foreground() {
+  log "Starting Celery worker in foreground for queues: $CELERY_QUEUES"
+  exec celery -A config worker -l info -Q "$CELERY_QUEUES"
+}
+
+# ----------------------------------------------------------------------
+# run_mcp()
+#
+# MCP 서버 실행
+#
+# GPT / Agent 연동용
+# ----------------------------------------------------------------------
+run_mcp() {
+  log "Starting MCP server via stdio transport"
+  exec python -m mcp_server.server
+}

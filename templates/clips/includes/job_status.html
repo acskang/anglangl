@@ -1,0 +1,15 @@
+{% if job %}
+<div class="card mt-3">
+  <div class="card-body">
+    <h2 class="h6">Extraction Job</h2>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{{ job.get_status_display }}</dd>
+      <dt class="col-sm-3">Progress</dt><dd class="col-sm-9">{{ job.progress_percent }}%</dd>
+      <dt class="col-sm-3">Message</dt><dd class="col-sm-9">{{ job.message|default:'-' }}</dd>
+      <dt class="col-sm-3">Error</dt><dd class="col-sm-9">{{ job.error_message|default:'-' }}</dd>
+      <dt class="col-sm-3">Started</dt><dd class="col-sm-9">{{ job.started_at|date:'Y-m-d H:i:s'|default:'-' }}</dd>
+      <dt class="col-sm-3">Finished</dt><dd class="col-sm-9">{{ job.finished_at|date:'Y-m-d H:i:s'|default:'-' }}</dd>
+    </dl>
+  </div>
+</div>
+{% endif %}

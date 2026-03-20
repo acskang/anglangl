@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}ThePeach Sign up{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Create ThePeach account</h1>
+        <p class="text-muted">계정은 ThePeach에 생성되고, 완료 후 anglangl에 바로 로그인됩니다.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          {{ form.as_p }}
+          <button type="submit" class="btn btn-primary">Sign up with ThePeach</button>
+          <a class="btn btn-outline-secondary" href="{% url 'platform_auth:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Back to login</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

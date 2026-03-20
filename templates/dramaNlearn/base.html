@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Drama &amp; Learn{% endblock %}</title>
+<link rel="icon" type="image/png" href="{% static 'dramaNlearn/logo.png' %}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #07070d;
+  --s1:       #0f0f1a;
+  --s2:       #16162a;
+  --s3:       #1e1e35;
+  --acc:      #ff3d5a;
+  --acc2:     #ff7043;
+  --text:     #e8e8f0;
+  --muted:    #5a5a7a;
+  --border:   #252540;
+  --glow:     rgba(255,61,90,.2);
+  --radius:   10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;
+  line-height:1.6;
+}
+#toast-container{
+  position:fixed;top:68px;right:1.2rem;z-index:9999;
+  display:flex;flex-direction:column;gap:.5rem;pointer-events:none;
+}
+.toast{
+  padding:.7rem 1.2rem;border-radius:8px;font-size:.84rem;
+  font-weight:500;animation:toastIn .3s ease;pointer-events:auto;
+  max-width:320px;
+}
+.toast-ok  {background:#14532d;border:1px solid #22c55e;color:#86efac}
+.toast-err {background:#7f1d1d;border:1px solid var(--acc);color:#fca5a5}
+.toast-info{background:var(--s3);border:1px solid var(--border);color:var(--text)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:800;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+.modal-bg.open{display:flex}
+.modal-box{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:16px;padding:2rem;width:90%;max-width:520px;
+  box-shadow:0 0 80px var(--glow);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.5rem;
+}
+.modal-head h2{
+  font-family:'Bebas Neue',sans-serif;letter-spacing:3px;
+  font-size:1.4rem;color:var(--acc);
+}
+.modal-close{
+  background:none;border:none;color:var(--muted);
+  font-size:1.3rem;cursor:pointer;transition:color .15s;
+}
+.modal-close:hover{color:var(--text)}
+.field{margin-bottom:1rem}
+.field label{
+  display:block;font-size:.75rem;color:var(--muted);
+  margin-bottom:.35rem;letter-spacing:1px;text-transform:uppercase;
+}
+.field input,.field textarea{
+  width:100%;padding:.65rem .9rem;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:inherit;
+  font-size:.88rem;outline:none;transition:border-color .18s;
+}
+.field input:focus,.field textarea:focus{border-color:var(--acc)}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--acc)}
+.spinner{
+  display:inline-block;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% include 'includes/navbar.html' %}
+
+{% if request.user.is_authenticated %}
+<div class="modal-bg" id="addModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>영상 추가</h2>
+      <button class="modal-close" id="closeAddBtn">&#10005;</button>
+    </div>
+    <div class="field">
+      <label>제목 (선택 - 비워두면 자동)</label>
+      <input type="text" id="addTitle" placeholder="원피스 시즌2 E01">
+    </div>
+    <div class="field">
+      <label>영상 링크 *</label>
+      <input type="url" id="addUrl" placeholder="https://example.com/video-link">
+    </div>
+    <button id="addSubmitBtn"
+      style="width:100%;padding:.8rem;background:var(--acc);color:#fff;border:none;
+             border-radius:8px;font-family:inherit;font-size:1rem;font-weight:600;
+             cursor:pointer;transition:background .18s;margin-top:.5rem;">
+      &#9654; m3u8 추출 &amp; 저장
+    </button>
+    <div id="addStatus" style="margin-top:.8rem;font-size:.84rem;color:var(--muted);min-height:1.2rem;"></div>
+  </div>
+</div>
+{% endif %}
+
+<div id="toast-container"></div>
+
+{% block content %}{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showToast(msg, type) {
+  type = type || 'info';
+  var c = document.getElementById('toast-container');
+  var t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function() {
+    t.style.transition = 'opacity .4s';
+    t.style.opacity = '0';
+    setTimeout(function() { t.remove(); }, 400);
+  }, 3200);
+}
+
+function submitDramaUrls(items) {
+  return fetch('{% url "dramaNlearn:add_video" %}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+    body: JSON.stringify({items: items})
+  })
+  .then(function(response) {
+    return response.json().then(function(data) {
+      return {ok: response.ok, data: data};
+    });
+  });
+}
+
+function isSupportedSend2VideoUrl(url) {
+  try {
+    var parsed = new URL(url);
+    return parsed.hostname.indexOf('send2video.com') !== -1 && parsed.pathname && parsed.pathname !== '/';
+  } catch (e) {
+    return false;
+  }
+}
+
+var modal = document.getElementById('addModal');
+var openBtn = document.getElementById('openAddBtn');
+var closeBtn = document.getElementById('closeAddBtn');
+if (openBtn && modal && closeBtn) {
+  openBtn.addEventListener('click', function() { modal.classList.add('open'); });
+  closeBtn.addEventListener('click', function() { modal.classList.remove('open'); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('open'); });
+}
+
+var addSubmitBtn = document.getElementById('addSubmitBtn');
+if (addSubmitBtn) {
+  addSubmitBtn.addEventListener('click', function() {
+    var url = document.getElementById('addUrl').value.trim();
+    var title = document.getElementById('addTitle').value.trim();
+    var status = document.getElementById('addStatus');
+    var btn = this;
+
+    if (!url) { showToast('URL을 입력해주세요.', 'err'); return; }
+    if (!isSupportedSend2VideoUrl(url)) {
+      showToast('send2video 상세 페이지 URL을 입력해주세요.', 'err'); return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> m3u8 추출 중... (5~10초)';
+    status.textContent = 'iframe 분석 -> PackerJS 디코딩 -> m3u8 추출 중입니다...';
+
+    submitDramaUrls([{url: url, title: title}])
+    .then(function(result) {
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; m3u8 추출 &amp; 저장';
+      var data = result.data;
+      if (data.ok) {
+        showToast('추출 성공! 플레이어로 이동합니다.', 'ok');
+        modal.classList.remove('open');
+        document.getElementById('addUrl').value = '';
+        document.getElementById('addTitle').value = '';
+        status.textContent = '';
+        setTimeout(function() { window.location.href = data.redirect; }, 800);
+      } else {
+        status.textContent = '오류: ' + data.error;
+        showToast(data.error, 'err');
+      }
+    })
+    .catch(function(e) {
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; m3u8 추출 &amp; 저장';
+      showToast('네트워크 오류: ' + e.message, 'err');
+    });
+  });
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

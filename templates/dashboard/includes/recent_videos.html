@@ -1,0 +1,38 @@
+<div class="card shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 mb-0">Recent Master Videos</h2>
+      <a class="small text-decoration-none" href="{% url 'videos:list' %}">All videos</a>
+    </div>
+    {% if recent_master_videos %}
+      <div class="vstack gap-3">
+        {% for video in recent_master_videos %}
+          <div class="border rounded p-3">
+            <div class="row g-3 align-items-center">
+              <div class="col-12 col-md-4">
+                {% if video.thumbnail_url %}
+                  <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" class="img-fluid rounded w-100">
+                {% else %}
+                  <div class="bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="min-height: 108px;">No thumbnail</div>
+                {% endif %}
+              </div>
+              <div class="col-12 col-md-5">
+                <h3 class="h6 mb-2">{{ video.title }}</h3>
+                <div class="small text-muted mb-1">{{ video.get_download_status_display }} • {{ video.formatted_duration }}</div>
+                <div class="small text-muted">Created {{ video.created_at|date:"Y-m-d H:i" }}</div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="d-grid gap-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ video.detail_url }}">Detail</a>
+                  <a class="btn btn-sm btn-primary" href="{{ video.clip_create_url }}">Create Clip</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No master videos yet.</p>
+    {% endif %}
+  </div>
+</div>

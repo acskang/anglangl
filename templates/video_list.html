@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a> <span>/</span> Library
+</div>
+
+<div class="glass-panel" style="padding: 40px;">
+    <div class="search-container" style="margin-bottom: 30px;">
+        <input type="text" class="search-input" placeholder="Search saved videos...">
+        <a href="{% url 'save_video' %}" class="glass-btn primary"><i class="fas fa-plus"></i> Add</a>
+    </div>
+
+    {% if videos %}
+        <div id="videoGrid" class="video-grid">
+            {% for video in videos %}
+                <div class="glass-panel video-card" data-title="{{ video.title|escape }}">
+                    <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" class="video-thumb">
+                    <div class="video-info">
+                        <h3 class="video-title">
+                            {% if video.title|length > 70 %}
+                                {{ video.title|slice:":70" }}...
+                            {% else %}
+                                {{ video.title }}
+                            {% endif %}
+                        </h3>
+                        <div class="video-meta">
+                            <span>Saved</span>
+                            <a href="{{ video.url }}" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: none;">Open</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center text-muted">No videos saved yet. Add your first link.</div>
+    {% endif %}
+</div>
+{% endblock %}

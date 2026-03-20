@@ -1,0 +1,232 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-shell{
+  width:min(94vw, 1220px);
+  margin:0 auto;
+  padding:2.8rem 1.25rem 3.5rem;
+}
+.dashboard-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.dashboard-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.dashboard-title{
+  margin:.2rem 0 .35rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.6rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.dashboard-desc{
+  margin:0;
+  color:var(--muted);
+  font-size:.92rem;
+  max-width:760px;
+}
+.dashboard-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.dashboard-actions .btn{
+  border-radius:10px;
+  padding:.78rem 1rem;
+  border-color:var(--border);
+  font-size:.84rem;
+  font-weight:600;
+}
+.dashboard-actions .btn-primary{
+  background:var(--acc);
+  border-color:var(--acc);
+}
+.dashboard-actions .btn-outline-primary,
+.dashboard-actions .btn-outline-secondary,
+.dashboard-actions .btn-outline-dark{
+  color:var(--text);
+  background:transparent;
+}
+.dashboard-scope .card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.18);
+}
+.dashboard-scope .card-body{
+  padding:1.15rem 1.2rem;
+}
+.dashboard-scope .text-muted,
+.dashboard-scope .small{
+  color:var(--muted) !important;
+}
+.dashboard-scope .h5,
+.dashboard-scope .h6,
+.dashboard-scope .display-6,
+.dashboard-scope h3{
+  color:var(--text);
+}
+.dashboard-scope a{
+  color:var(--text);
+}
+.dashboard-scope a:hover{
+  color:var(--acc);
+}
+.dashboard-scope .btn{
+  border-radius:10px;
+  font-size:.82rem;
+}
+.dashboard-scope .btn-primary{
+  background:var(--acc);
+  border-color:var(--acc);
+}
+.dashboard-scope .btn-outline-secondary,
+.dashboard-scope .btn-outline-danger{
+  color:var(--text);
+  border-color:var(--border);
+}
+.dashboard-scope .list-group,
+.dashboard-scope .list-group-flush{
+  gap:.55rem;
+}
+.dashboard-scope .list-group-item{
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05) !important;
+  border-radius:12px !important;
+  color:var(--text);
+}
+.dashboard-scope .border,
+.dashboard-scope .rounded{
+  border-color:rgba(255,255,255,.05) !important;
+}
+.dashboard-scope .bg-light{
+  background:rgba(255,255,255,.04) !important;
+  color:var(--muted) !important;
+}
+.dashboard-scope img.rounded{
+  border-radius:12px !important;
+}
+.dashboard-scope .table{
+  color:var(--text);
+  margin-bottom:0;
+}
+.dashboard-scope .table > :not(caption) > * > *{
+  background:transparent;
+  border-bottom-color:rgba(255,255,255,.06);
+}
+.dashboard-scope .progress{
+  background:rgba(255,255,255,.06);
+  border-radius:999px;
+  overflow:hidden;
+}
+.dashboard-scope .progress-bar{
+  background:var(--acc);
+}
+.dashboard-scope .badge{
+  border-radius:999px;
+  padding:.36rem .65rem;
+}
+.dashboard-scope .text-bg-secondary{
+  background:rgba(255,255,255,.08) !important;
+  color:var(--text) !important;
+}
+.dashboard-scope .text-bg-danger{
+  background:rgba(127,29,29,.45) !important;
+  color:#fecaca !important;
+}
+.dashboard-scope .text-bg-success{
+  background:rgba(20,83,45,.5) !important;
+  color:#bbf7d0 !important;
+}
+.dashboard-scope .text-bg-primary{
+  background:rgba(30,58,95,.55) !important;
+  color:#bfdbfe !important;
+}
+.dashboard-scope .border-warning-subtle,
+.dashboard-scope .border-danger-subtle{
+  border-color:var(--border) !important;
+}
+@media (max-width:760px){
+  .dashboard-shell{width:100%;padding:2rem .8rem 2.8rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell dashboard-scope">
+  <div class="dashboard-hero">
+    <div>
+      <div class="dashboard-kicker">Overview</div>
+      <h1 class="dashboard-title">Dashboard</h1>
+      <p class="dashboard-desc">학습 진행, 클립 작업, 업로드 상태, 최근 영상과 주의 항목을 한 화면에서 보는 개인 작업 허브입니다.</p>
+    </div>
+    <div class="dashboard-actions">
+      <a class="btn btn-primary" href="{% url 'videos:create-youtube' %}">Register Youtube</a>
+      <a class="btn btn-outline-primary" href="{% url 'videos:create-video' %}">Register Video</a>
+      <a class="btn btn-outline-secondary" href="{% url 'clips:bulk-upload' %}">Upload Clips</a>
+      <a class="btn btn-outline-dark" href="{% url 'clips:list' %}">Open Clips</a>
+    </div>
+  </div>
+
+  {% include 'dashboard/includes/kpi_cards.html' %}
+
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-xl-8">
+      {% include 'dashboard/includes/recent_study_list.html' %}
+    </div>
+    <div class="col-12 col-xl-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h5 mb-0">Quick Start</h2>
+            <a class="small text-decoration-none" href="{% url 'clips:list' %}">All clips</a>
+          </div>
+          {% if quick_start_clips %}
+            <div class="list-group list-group-flush">
+              {% for clip in quick_start_clips %}
+                <div class="list-group-item px-3 py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <h3 class="h6 mb-1">{{ clip.title }}</h3>
+                      <div class="small mb-1">{{ clip.formatted_duration }} • {{ clip.visibility_label }}</div>
+                    </div>
+                    <a class="btn btn-sm btn-primary" href="{{ clip.dashboard_study_url }}">Study</a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="mb-0 text-muted">Ready clips will appear here once processing finishes.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    {% include 'dashboard/includes/recent_jobs_table.html' %}
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-xl-7">
+      {% include 'dashboard/includes/recent_videos.html' %}
+    </div>
+    <div class="col-12 col-xl-5">
+      {% include 'dashboard/includes/recent_batches.html' %}
+    </div>
+  </div>
+
+  {% include 'dashboard/includes/attention_items.html' %}
+</div>
+{% endblock %}

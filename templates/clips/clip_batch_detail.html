@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load clip_extras %}
+
+{% block title %}Upload Batch Detail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Upload Batch Detail</h1>
+  <div>
+    <a href="{% url 'clips:bulk-upload' %}" class="btn btn-outline-primary">New Bulk Upload</a>
+    <a href="{% url 'clips:batch-list' %}" class="btn btn-outline-secondary">Back to Batches</a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Title</dt><dd class="col-sm-9">{{ batch.title }}</dd>
+      <dt class="col-sm-3">Description</dt><dd class="col-sm-9">{{ batch.description|default:'-' }}</dd>
+      <dt class="col-sm-3">Directory Label</dt><dd class="col-sm-9">{{ batch.source_directory_label|default:'-' }}</dd>
+      <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{{ batch.get_status_display }}</dd>
+      <dt class="col-sm-3">Total Files</dt><dd class="col-sm-9">{{ batch.total_files }}</dd>
+      <dt class="col-sm-3">Success Files</dt><dd class="col-sm-9">{{ batch.success_files }}</dd>
+      <dt class="col-sm-3">Failed Files</dt><dd class="col-sm-9">{{ batch.failed_files }}</dd>
+      <dt class="col-sm-3">Error</dt><dd class="col-sm-9 text-danger">{{ batch.error_message|default:'-' }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Thumbnail</th>
+          <th>Filename / Title</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Visibility</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for clip in clips %}
+        <tr>
+          <td style="width:120px;">
+            {% if clip.thumbnail_file %}
+              <img src="{{ clip.thumbnail_file.url }}" alt="thumb" class="img-fluid rounded">
+            {% else %}
+              <span class="text-muted small">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="fw-semibold">{{ clip.title }}</div>
+            <div class="small text-muted">{{ clip.original_filename|default:'-' }}</div>
+          </td>
+          <td>{{ clip.get_file_status_display }}</td>
+          <td>{{ clip.duration_seconds|hhmmss }}</td>
+          <td>{% if clip.is_public %}Public{% else %}Private{% endif %}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'clips:detail' clip.id %}">Detail</a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'clips:edit' clip.id %}">Edit</a>
+            {% if clip.file_status == 'ready' %}
+              <a class="btn btn-sm btn-outline-success" href="{% url 'clips:detail' clip.id %}">Play</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No clips in this batch.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

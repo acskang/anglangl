@@ -1,0 +1,630 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}URL 추가/편집{% endblock %}
+
+{% block extra_css %}
+<style>
+.manage-wrap{
+  max-width:1320px;
+  margin:0 auto;
+  padding:2rem 1.25rem 3rem;
+}
+.manage-hero{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.manage-title{
+  font-family:'Bebas Neue',sans-serif;
+  letter-spacing:3px;
+  font-size:2rem;
+  color:var(--text);
+}
+.manage-subtitle{
+  color:var(--muted);
+  font-size:.9rem;
+}
+.manage-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:1.1rem 1.1rem 1.2rem;
+  margin-bottom:1rem;
+}
+.manage-card h2{
+  font-size:1rem;
+  margin:0 0 .85rem;
+}
+.manage-note{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:.9rem;
+}
+.url-stack{
+  display:grid;
+  gap:.85rem;
+}
+.url-stack-row{
+  display:grid;
+  grid-template-columns:minmax(220px, .75fr) minmax(340px, 1.25fr);
+  gap:.8rem;
+  padding:1rem;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)),
+    var(--s2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.url-stack-field{
+  min-width:0;
+}
+.url-stack-label{
+  display:block;
+  margin:0 0 .42rem;
+  color:#8f96ad;
+  font-size:.7rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.url-stack-input{
+  width:100%;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  background:#0c0d14;
+  color:var(--text);
+  padding:.82rem .95rem;
+  font-size:.92rem;
+  line-height:1.35;
+  outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.url-stack-input::placeholder{
+  color:#6d748b;
+}
+.url-stack-input:hover{
+  border-color:rgba(255,255,255,.12);
+}
+.url-stack-input:focus{
+  border-color:rgba(255,61,90,.55);
+  background:#10111b;
+  box-shadow:0 0 0 4px rgba(255,61,90,.10);
+}
+.manage-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.manage-btn{
+  background:var(--acc);
+  color:#fff;
+  border:1px solid var(--acc);
+  border-radius:8px;
+  padding:.58rem 1rem;
+  font-size:.84rem;
+  font-weight:600;
+  cursor:pointer;
+}
+.manage-btn.secondary{
+  background:var(--s2);
+  color:var(--text);
+  border-color:var(--border);
+}
+.manage-btn.warn{
+  background:#7f1d1d;
+  border-color:#7f1d1d;
+}
+.manage-btn:disabled{
+  opacity:.65;
+  cursor:default;
+}
+.manage-status{
+  min-height:1.1rem;
+  margin-top:.7rem;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.manage-table-wrap{
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid var(--border);
+}
+.manage-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:1020px;
+  background:var(--s1);
+}
+.manage-table th,
+.manage-table td{
+  padding:.8rem .75rem;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+  text-align:left;
+  font-size:.8rem;
+}
+.manage-table th{
+  color:var(--muted);
+  font-size:.72rem;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  background:rgba(255,255,255,.02);
+}
+.manage-table tr:last-child td{border-bottom:none}
+.table-title-input,
+.table-thumb-input{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  padding:.58rem .7rem;
+  font-size:.8rem;
+  outline:none;
+}
+.table-title-input:focus,
+.table-thumb-input:focus{border-color:var(--acc)}
+.thumb-mini{
+  width:96px;
+  aspect-ratio:16/9;
+  border-radius:8px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:var(--s2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  margin-bottom:.45rem;
+  cursor:pointer;
+}
+.thumb-mini img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.22rem .55rem;
+  border-radius:999px;
+  font-size:.72rem;
+  border:1px solid var(--border);
+  background:var(--s2);
+}
+.status-chip.ready{color:#86efac;border-color:#14532d}
+.status-chip.fetching{color:#93c5fd;border-color:#1e3a5f}
+.status-chip.error{color:#fca5a5;border-color:#7f1d1d}
+.row-actions{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:nowrap;
+  align-items:center;
+}
+.row-actions .manage-btn{
+  padding:.52rem .82rem;
+  white-space:nowrap;
+}
+.table-empty{
+  padding:2rem 1rem;
+  text-align:center;
+  color:var(--muted);
+}
+@media (max-width:760px){
+  .manage-wrap{padding:1rem .75rem 2rem}
+  .url-stack-row{grid-template-columns:1fr;padding:.85rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manage-wrap">
+  <div class="manage-hero">
+    <div>
+      <div class="manage-title">URL 추가/편집</div>
+      <div class="manage-subtitle">제목과 URL을 여러 줄로 입력하고, 추출된 영상의 제목/썸네일을 한 화면에서 관리합니다.</div>
+    </div>
+    <div class="manage-subtitle">내 영상 {{ videos.count }}개 · 재생가능 {{ ready_count }}개 · 오류 {{ error_count }}개</div>
+  </div>
+
+  <div class="manage-card">
+    <h2>URL 추가</h2>
+    <div class="manage-note">입력된 마지막 줄 아래에는 항상 빈 줄이 하나 유지됩니다. 제목과 URL을 모두 채운 줄만 저장됩니다.</div>
+    <div class="url-stack" id="manageUrlList"></div>
+    <div class="manage-actions" style="margin-top:.9rem">
+      <button class="manage-btn" type="button" id="manageSubmitBtn">&#9654; URL 추출 및 저장</button>
+      <button class="manage-btn secondary" type="button" id="manageClearBtn">입력 비우기</button>
+      <a class="manage-btn secondary" href="{% url 'dramaNlearn:home' %}" style="text-decoration:none">m3-Play로 이동</a>
+    </div>
+    <div class="manage-status" id="manageStatus"></div>
+  </div>
+
+  <div class="manage-table-wrap">
+    <table class="manage-table">
+      <thead>
+        <tr>
+          <th style="width:70px">ID</th>
+          <th style="width:210px">제목</th>
+          <th style="width:150px">상태</th>
+          <th style="width:100px">재생시간</th>
+          <th style="width:170px">썸네일</th>
+          <th style="width:260px">작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in videos %}
+        <tr data-video-id="{{ v.id }}">
+          <td>#{{ v.id }}</td>
+          <td>
+            <input class="table-title-input" type="text" value="{{ v.title }}" data-title-input>
+          </td>
+          <td>
+            <span class="status-chip {{ v.status }}">
+              {% if v.status == 'ready' %}READY{% elif v.status == 'fetching' %}FETCHING{% elif v.status == 'error' %}ERROR{% else %}PENDING{% endif %}
+            </span>
+            <div style="margin-top:.35rem;color:var(--muted)">{{ v.created_at|date:"Y-m-d H:i" }}</div>
+            {% if v.error_msg %}
+            <div style="margin-top:.35rem;color:#fca5a5">{{ v.error_msg }}</div>
+            {% endif %}
+          </td>
+          <td>{% if v.duration %}{{ v.duration_str }}{% else %}-{% endif %}</td>
+          <td>
+            <div class="thumb-mini" {% if v.status == 'ready' %}onclick="openThumbnailPicker({{ v.id }})"{% endif %}>
+              {% if v.thumbnail %}<img src="{{ v.thumbnail }}" alt="{{ v.title }}" data-thumb-preview>{% else %}<span data-thumb-empty>없음</span>{% endif %}
+            </div>
+            {% if v.status == 'ready' %}
+            <input class="table-thumb-input" type="url" value="{{ v.thumbnail }}" data-thumb-input hidden>
+            <input type="file" accept="image/*" data-thumb-file hidden onchange="handleThumbnailFileChange({{ v.id }}, this)">
+            {% else %}
+            <div style="color:var(--muted)">추출 완료 후 썸네일 등록 가능</div>
+            {% endif %}
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="manage-btn secondary" type="button" onclick="saveManageRow({{ v.id }}, this)">수정</button>
+              {% if v.status == 'ready' %}
+              <button class="manage-btn secondary" type="button" onclick="location.href='{% url 'dramaNlearn:player' v.id %}'">재생</button>
+              {% endif %}
+              <button class="manage-btn warn" type="button" onclick="deleteManageVideo({{ v.id }}, this)">삭제</button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td class="table-empty" colspan="6">등록된 URL이 없습니다.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var CSRF = '{{ csrf_token }}';
+var TITLE_URL_TEMPLATE = "{% url 'dramaNlearn:update_title' 999999 %}";
+var THUMBNAIL_URL_TEMPLATE = "{% url 'dramaNlearn:update_thumbnail' 999999 %}";
+var REFRESH_URL_TEMPLATE = "{% url 'dramaNlearn:refresh_video' 999999 %}";
+var DELETE_URL_TEMPLATE = "{% url 'dramaNlearn:delete_video' 999999 %}";
+var manageUrlList = document.getElementById('manageUrlList');
+var manageStatus = document.getElementById('manageStatus');
+var manageSubmitBtn = document.getElementById('manageSubmitBtn');
+var manageClearBtn = document.getElementById('manageClearBtn');
+
+function createManageRow(data) {
+  var row = document.createElement('div');
+  row.className = 'url-stack-row';
+
+  var titleField = document.createElement('div');
+  titleField.className = 'url-stack-field';
+
+  var titleLabel = document.createElement('label');
+  titleLabel.className = 'url-stack-label';
+  titleLabel.textContent = 'Title';
+  titleField.appendChild(titleLabel);
+
+  var titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.className = 'url-stack-input';
+  titleInput.placeholder = '예: peacemaker s2e8';
+  titleInput.value = data && data.title ? data.title : '';
+  titleInput.setAttribute('data-kind', 'title');
+  titleInput.addEventListener('input', function() {
+    syncManageRows(titleInput);
+  });
+  titleField.appendChild(titleInput);
+  row.appendChild(titleField);
+
+  var urlField = document.createElement('div');
+  urlField.className = 'url-stack-field';
+
+  var urlLabel = document.createElement('label');
+  urlLabel.className = 'url-stack-label';
+  urlLabel.textContent = 'URL';
+  urlField.appendChild(urlLabel);
+
+  var urlInput = document.createElement('input');
+  urlInput.type = 'url';
+  urlInput.className = 'url-stack-input';
+  urlInput.placeholder = 'https://send2video.com/watch/...';
+  urlInput.value = data && data.url ? data.url : '';
+  urlInput.setAttribute('data-kind', 'url');
+  urlInput.addEventListener('input', function() {
+    syncManageRows(urlInput);
+  });
+  urlField.appendChild(urlInput);
+  row.appendChild(urlField);
+  return row;
+}
+
+function updateManageIndexes() {
+  return;
+}
+
+function ensureManageRows(values) {
+  manageUrlList.innerHTML = '';
+  (values || [{}]).forEach(function(item) {
+    manageUrlList.appendChild(createManageRow(item));
+  });
+  updateManageIndexes();
+}
+
+function syncManageRows(activeInput) {
+  var rows = Array.prototype.slice.call(manageUrlList.querySelectorAll('.url-stack-row'));
+  if (!rows.length) {
+    ensureManageRows([{}]);
+    rows = Array.prototype.slice.call(manageUrlList.querySelectorAll('.url-stack-row'));
+  }
+  var lastRow = rows[rows.length - 1];
+  var lastTitle = lastRow.querySelector('[data-kind="title"]').value.trim();
+  var lastUrl = lastRow.querySelector('[data-kind="url"]').value.trim();
+  if (lastTitle || lastUrl) {
+    manageUrlList.appendChild(createManageRow({}));
+  }
+  updateManageIndexes();
+  if (activeInput && activeInput === document.activeElement) {
+    activeInput.focus();
+  }
+}
+
+function getManageItems() {
+  return Array.prototype.map.call(manageUrlList.querySelectorAll('.url-stack-row'), function(row) {
+    return {
+      title: row.querySelector('[data-kind="title"]').value.trim(),
+      url: row.querySelector('[data-kind="url"]').value.trim()
+    };
+  }).filter(function(item) {
+    return item.title || item.url;
+  });
+}
+
+function saveRowTitle(videoId, btn) {
+  var row = btn.closest('tr');
+  var input = row.querySelector('[data-title-input]');
+  var title = input.value.trim();
+  if (!title) {
+    return Promise.resolve({ok: false, error: '제목을 입력해주세요.'});
+  }
+  return fetch(TITLE_URL_TEMPLATE.replace('999999', videoId), {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify({title: title})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      return {ok: true};
+    } else {
+      return {ok: false, error: data.error || '제목 저장에 실패했습니다.'};
+    }
+  })
+  .catch(function(e) {
+    return {ok: false, error: '오류: ' + e.message};
+  });
+}
+
+function saveRowThumbnail(videoId, fileInput) {
+  var row = document.querySelector('tr[data-video-id="' + String(videoId) + '"]');
+  var input = row.querySelector('[data-thumb-input]');
+  var preview = row.querySelector('[data-thumb-preview]');
+  var formData = new FormData();
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    formData.append('thumbnail_file', fileInput.files[0]);
+  } else {
+    formData.append('thumbnail', input.value.trim());
+  }
+  return fetch(THUMBNAIL_URL_TEMPLATE.replace('999999', videoId), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF},
+    body: formData
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      if (data.thumbnail) {
+        if (!preview) {
+          preview = document.createElement('img');
+          preview.setAttribute('data-thumb-preview', '');
+          row.querySelector('.thumb-mini').innerHTML = '';
+          row.querySelector('.thumb-mini').appendChild(preview);
+        }
+        preview.src = data.thumbnail;
+        preview.alt = row.querySelector('[data-title-input]').value.trim();
+      } else {
+        row.querySelector('.thumb-mini').innerHTML = '<span data-thumb-empty>없음</span>';
+      }
+      if (input) {
+        input.value = data.thumbnail || '';
+      }
+      return {ok: true, thumbnail: data.thumbnail || ''};
+    } else {
+      return {ok: false, error: data.error || '썸네일 저장에 실패했습니다.'};
+    }
+  })
+  .catch(function(e) {
+    return {ok: false, error: '오류: ' + e.message};
+  });
+}
+
+function openThumbnailPicker(videoId) {
+  var row = document.querySelector('tr[data-video-id="' + String(videoId) + '"]');
+  if (!row) {
+    return;
+  }
+  var fileInput = row.querySelector('[data-thumb-file]');
+  if (fileInput) {
+    fileInput.click();
+  }
+}
+
+function handleThumbnailFileChange(videoId, input) {
+  if (!input.files || !input.files.length) {
+    return;
+  }
+  var row = input.closest('tr');
+  var button = row.querySelector('.row-actions .manage-btn.secondary');
+  var preview = row.querySelector('[data-thumb-preview]');
+  var file = input.files[0];
+  if (button) {
+    button.textContent = '수정*';
+  }
+  if (preview) {
+    preview.src = URL.createObjectURL(file);
+  } else {
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.alt = row.querySelector('[data-title-input]').value.trim();
+    img.setAttribute('data-thumb-preview', '');
+    row.querySelector('.thumb-mini').innerHTML = '';
+    row.querySelector('.thumb-mini').appendChild(img);
+  }
+}
+
+function saveManageRow(videoId, btn) {
+  var row = btn.closest('tr');
+  var fileInput = row.querySelector('[data-thumb-file]');
+  btn.disabled = true;
+  saveRowTitle(videoId, btn).then(function(titleResult) {
+    if (!titleResult.ok) {
+      btn.disabled = false;
+      showToast(titleResult.error, 'err');
+      return;
+    }
+    var shouldSaveThumbnail = fileInput && fileInput.files && fileInput.files.length;
+    if (!shouldSaveThumbnail) {
+      btn.disabled = false;
+      showToast('수정되었습니다.', 'ok');
+      return;
+    }
+    saveRowThumbnail(videoId, fileInput).then(function(result) {
+      btn.disabled = false;
+      fileInput.value = '';
+      btn.textContent = '수정';
+      if (result.ok) {
+        showToast('수정되었습니다.', 'ok');
+      } else {
+        showToast(result.error, 'err');
+      }
+    });
+  });
+}
+
+function refreshManageVideo(videoId, btn) {
+  btn.disabled = true;
+  fetch(REFRESH_URL_TEMPLATE.replace('999999', videoId), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    if (data.ok) {
+      showToast('URL이 갱신되었습니다.', 'ok');
+      setTimeout(function() { location.reload(); }, 600);
+    } else {
+      showToast(data.error || '갱신에 실패했습니다.', 'err');
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    showToast('오류: ' + e.message, 'err');
+  });
+}
+
+function deleteManageVideo(videoId, btn) {
+  if (!confirm('이 URL을 삭제하시겠습니까?')) {
+    return;
+  }
+  fetch(DELETE_URL_TEMPLATE.replace('999999', videoId), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      showToast('삭제되었습니다.', 'ok');
+      btn.closest('tr').remove();
+    } else {
+      showToast(data.error || '삭제에 실패했습니다.', 'err');
+    }
+  });
+}
+
+manageSubmitBtn.addEventListener('click', function() {
+  var items = getManageItems();
+  if (!items.length) {
+    showToast('제목과 URL을 하나 이상 입력해주세요.', 'err');
+    return;
+  }
+  var invalid = items.find(function(item) { return !item.title || !item.url; });
+  if (invalid) {
+    showToast('입력한 줄은 제목과 URL을 모두 채워야 합니다.', 'err');
+    manageStatus.textContent = '오류: 제목과 URL을 모두 입력해주세요.';
+    return;
+  }
+  var invalidUrl = items.find(function(item) { return !isSupportedSend2VideoUrl(item.url); });
+  if (invalidUrl) {
+    showToast('send2video 상세 페이지 URL을 입력해주세요.', 'err');
+    manageStatus.textContent = '오류: send2video 상세 페이지 URL을 입력해주세요.';
+    return;
+  }
+  manageSubmitBtn.disabled = true;
+  manageStatus.textContent = items.length + '개 URL을 순서대로 추출 중입니다...';
+  submitDramaUrls(items)
+    .then(function(response) {
+      manageSubmitBtn.disabled = false;
+      var data = response.data;
+      if (data.ok) {
+        manageStatus.textContent = '새로 저장 ' + (data.success_count || 0) + '개, 중복 ' + (data.existing_count || 0) + '개, 실패 ' + (data.failed_count || 0) + '개';
+        showToast('URL 저장 작업이 완료되었습니다.', 'ok');
+        ensureManageRows([{}]);
+        setTimeout(function() { location.reload(); }, 800);
+      } else {
+        var failed = (data.results || []).find(function(item) { return !item.ok; });
+        manageStatus.textContent = '오류: ' + ((failed && failed.error) || data.error || '추출에 실패했습니다.');
+        showToast((failed && failed.error) || data.error || '추출에 실패했습니다.', 'err');
+      }
+    })
+    .catch(function(e) {
+      manageSubmitBtn.disabled = false;
+      manageStatus.textContent = '오류: ' + e.message;
+      showToast('오류: ' + e.message, 'err');
+    });
+});
+
+manageClearBtn.addEventListener('click', function() {
+  ensureManageRows([{}]);
+  manageStatus.textContent = '';
+});
+
+ensureManageRows([{}]);
+</script>
+{% endblock %}

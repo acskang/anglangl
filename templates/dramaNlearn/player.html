@@ -1,0 +1,1068 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}{{ video.title }} — Drama & Learn{% endblock %}
+{% block extra_css %}
+<style>
+.player-wrap{
+  width:min(100%, calc(100vw - 2rem));
+  max-width:1400px;
+  margin:0 auto 2rem;
+  padding:1.25rem 1rem 0;
+}
+.player-wrap:focus{outline:none}
+.player-box{
+  width:100%;
+  margin-bottom:1rem;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#000;
+  overflow:hidden;
+  box-shadow:0 18px 40px rgba(0,0,0,.28);
+}
+.player-ratio{
+  position:relative;
+  width:100%;
+  padding-top:56.25%;
+  background:#000;
+}
+#videoEl{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  background:#000;
+}
+
+/* 로딩 오버레이 */
+#loadOverlay{
+  position:absolute;inset:0;z-index:20;
+  background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  transition:opacity .5s;
+}
+#loadOverlay.hidden{opacity:0;pointer-events:none}
+.load-spinner{
+  width:52px;height:52px;
+  border:3px solid var(--border);border-top-color:var(--acc);
+  border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1rem;
+}
+.load-text{color:var(--muted);font-size:.85rem}
+
+/* 오류 오버레이 */
+#errorOverlay{
+  position:absolute;inset:0;z-index:30;
+  background:rgba(0,0,0,.9);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:1rem;
+  text-align:center;padding:2rem;
+}
+#errorOverlay.show{display:flex}
+#errorOverlay h3{color:var(--acc);font-size:1.1rem}
+#errorOverlay p{color:var(--muted);font-size:.85rem;max-width:360px}
+
+/* 컨트롤 바 */
+.ctrl-bar{
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  padding:.7rem .9rem;background:var(--s1);
+  border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;
+}
+.ctrl-btn{
+  display:flex;align-items:center;gap:.3rem;
+  padding:.4rem .8rem;border-radius:7px;font-size:.78rem;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);background:var(--s2);
+  color:var(--text);font-family:inherit;transition:all .15s;white-space:nowrap;
+}
+.ctrl-btn:hover{border-color:var(--acc);color:var(--acc)}
+.ctrl-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.ctrl-sep{width:1px;height:22px;background:var(--border)}
+.ctrl-spacer{flex:1}
+
+/* 스피드 선택 */
+.speed-select{
+  background:var(--s2);border:1px solid var(--border);color:var(--text);
+  font-family:inherit;font-size:.75rem;padding:.35rem .6rem;
+  border-radius:7px;outline:none;cursor:pointer;
+}
+.caption-select{
+  min-width:150px;
+}
+.caption-status{
+  font-size:.72rem;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.caption-style-select{
+  min-width:110px;
+}
+.volume-wrap{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  padding:0 .2rem;
+}
+.volume-slider{
+  width:110px;
+  accent-color:var(--acc);
+  cursor:pointer;
+}
+.volume-label{
+  font-size:.72rem;
+  color:var(--muted);
+  min-width:42px;
+}
+
+/* 정보 패널 */
+.info-panel{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;
+}
+.info-title{
+  font-size:1.15rem;font-weight:700;margin-bottom:.5rem;line-height:1.4;
+  display:flex;align-items:flex-start;gap:.6rem;
+}
+.info-title span{flex:1}
+.edit-title-btn{
+  flex-shrink:0;background:none;border:1px solid var(--border);
+  border-radius:6px;color:var(--muted);font-size:.72rem;padding:.2rem .5rem;
+  cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.edit-title-btn:hover{border-color:var(--acc);color:var(--acc)}
+.info-meta{
+  display:flex;gap:1rem;font-size:.78rem;color:var(--muted);flex-wrap:wrap;
+  margin-bottom:.8rem;
+}
+.url-row{display:flex;gap:.4rem}
+.url-input{
+  flex:1;background:var(--s2);border:1px solid var(--border);
+  border-radius:7px;padding:.4rem .7rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.copy-btn{
+  padding:.4rem .9rem;background:var(--s2);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);font-size:.75rem;cursor:pointer;
+  font-family:inherit;transition:all .15s;white-space:nowrap;
+}
+.copy-btn:hover{border-color:var(--acc);color:var(--acc)}
+.owner-note{margin-bottom:.8rem;font-size:.78rem;color:var(--muted)}
+.thumb-edit{
+  display:grid;
+  grid-template-columns:minmax(0, 220px) minmax(0, 1fr);
+  gap:1rem;
+  margin-bottom:1rem;
+  align-items:start;
+}
+.thumb-preview{
+  aspect-ratio:16/9;
+  border-radius:10px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:var(--s2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.thumb-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.thumb-preview.is-empty img{display:none}
+.thumb-edit-form{
+  display:flex;
+  flex-direction:column;
+  gap:.55rem;
+}
+.thumb-edit-label{
+  font-size:.74rem;
+  color:var(--muted);
+  letter-spacing:.3px;
+}
+.thumb-input{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:.65rem .8rem;
+  color:var(--text);
+  font-family:inherit;
+  font-size:.82rem;
+  outline:none;
+}
+.thumb-input:focus{border-color:var(--acc)}
+.thumb-help{
+  font-size:.72rem;
+  color:var(--muted);
+}
+.thumb-actions{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+}
+.thumb-browser-search{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:.7rem .85rem;
+  color:var(--text);
+  font-family:inherit;
+  font-size:.82rem;
+  outline:none;
+  margin-bottom:.8rem;
+}
+.thumb-browser-search:focus{border-color:var(--acc)}
+.thumb-browser-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:.8rem;
+  max-height:55vh;
+  overflow:auto;
+}
+.thumb-browser-item{
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:.55rem;
+  cursor:pointer;
+  transition:border-color .15s,transform .15s;
+}
+.thumb-browser-item:hover{
+  border-color:var(--acc);
+  transform:translateY(-2px);
+}
+.thumb-browser-item img{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  border-radius:8px;
+  display:block;
+  margin-bottom:.5rem;
+}
+.thumb-browser-name{
+  font-size:.76rem;
+  color:var(--text);
+  word-break:break-all;
+}
+.thumb-browser-path{
+  margin-top:.2rem;
+  font-size:.68rem;
+  color:var(--muted);
+  word-break:break-all;
+}
+.thumb-browser-empty{
+  padding:1rem 0;
+  color:var(--muted);
+  font-size:.82rem;
+}
+
+/* 관련 영상 */
+.related-title{
+  font-family:'Bebas Neue',sans-serif;letter-spacing:3px;
+  font-size:1.1rem;margin-bottom:.8rem;color:var(--muted);
+}
+.related-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.7rem;
+  margin-bottom:3rem;
+}
+.rel-card{
+  display:flex;gap:.7rem;background:var(--s1);border:1px solid var(--border);
+  border-radius:9px;overflow:hidden;text-decoration:none;color:inherit;
+  transition:all .18s;cursor:pointer;
+}
+.rel-card:hover{border-color:var(--acc);transform:translateY(-2px)}
+.rel-thumb{
+  width:90px;flex-shrink:0;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+  aspect-ratio:16/9;
+}
+.rel-thumb img{width:100%;height:100%;object-fit:cover}
+.rel-info{padding:.5rem .6rem;flex:1;min-width:0}
+.rel-info-title{
+  font-size:.78rem;font-weight:500;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.rel-info-meta{font-size:.68rem;color:var(--muted);margin-top:.25rem}
+
+/* 제목 편집 */
+.title-edit-box{display:none}
+.title-edit-box.show{display:flex;gap:.4rem;margin-top:.4rem}
+.title-edit-input{
+  flex:1;background:var(--s2);border:1px solid var(--acc);
+  border-radius:7px;padding:.45rem .7rem;color:var(--text);
+  font-family:inherit;font-size:.9rem;outline:none;
+}
+@media (max-width:760px){
+  .thumb-edit{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="player-wrap" id="playerHotkeyRoot" tabindex="0">
+  <!-- 플레이어 -->
+  <div class="player-box">
+    <div class="player-ratio">
+      <video id="videoEl" controls playsinline crossorigin="anonymous"></video>
+
+      <div id="loadOverlay">
+        <div class="load-spinner"></div>
+        <div class="load-text">HLS 스트림 연결 중...</div>
+      </div>
+
+      <div id="errorOverlay">
+        <h3>&#9888; 스트림 오류</h3>
+        <p id="errorMsg">m3u8 URL이 만료되었거나 접근할 수 없습니다.</p>
+        <button class="ctrl-btn" style="border-color:var(--acc);color:var(--acc)"
+                onclick="refreshAndReload()">&#8635; URL 갱신 후 재시도</button>
+        <button class="ctrl-btn" onclick="document.getElementById('errorOverlay').classList.remove('show')">
+          &#10005; 닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 컨트롤 바 -->
+  <div class="ctrl-bar">
+    <button class="ctrl-btn" onclick="skipTime(-10)">&#8249;&#8249; 10초</button>
+    <button class="ctrl-btn" onclick="skipTime(10)">10초 &#8250;&#8250;</button>
+    <div class="ctrl-sep"></div>
+
+    <select class="speed-select" id="speedSel" onchange="setSpeed(this.value)">
+      <option value="0.5">0.5x</option>
+      <option value="0.75">0.75x</option>
+      <option value="1" selected>1.0x</option>
+      <option value="1.25">1.25x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2.0x</option>
+    </select>
+    <div class="ctrl-sep"></div>
+
+    <button class="ctrl-btn" id="captionToggleBtn" onclick="toggleCaptions()">CC 자막 끄기</button>
+    <select class="speed-select caption-select" id="captionTrackSelect" onchange="changeCaptionTrack(this.value)">
+      <option value="">자막 없음</option>
+    </select>
+    <select class="speed-select caption-style-select" id="captionSizeSelect" onchange="changeCaptionStyle()">
+      <option value="18px">자막 작게</option>
+      <option value="22px" selected>자막 보통</option>
+      <option value="26px">자막 크게</option>
+      <option value="30px">자막 매우 크게</option>
+    </select>
+    <select class="speed-select caption-style-select" id="captionColorSelect" onchange="changeCaptionStyle()">
+      <option value="#ffffff" selected>글자 흰색</option>
+      <option value="#ffe082">글자 노랑</option>
+      <option value="#a5d6ff">글자 하늘</option>
+    </select>
+    <select class="speed-select caption-style-select" id="captionBgSelect" onchange="changeCaptionStyle()">
+      <option value="rgba(0,0,0,.35)">배경 약하게</option>
+      <option value="rgba(0,0,0,.72)" selected>배경 보통</option>
+      <option value="rgba(0,0,0,.92)">배경 진하게</option>
+      <option value="transparent">배경 없음</option>
+    </select>
+    <span class="caption-status" id="captionStatus">캡션 없음</span>
+    <div class="ctrl-sep"></div>
+
+    <button class="ctrl-btn" id="sizeBtn" onclick="cycleSize()">&#9645; 기본</button>
+    <button class="ctrl-btn" onclick="toggleFullscreen()">&#9633; 전체화면</button>
+    <div class="ctrl-sep"></div>
+
+    <div class="volume-wrap">
+      <span class="volume-label" id="volumeLabel">15%</span>
+      <input class="volume-slider" id="volumeSlider" type="range" min="0" max="100" step="1" value="15"
+             oninput="setVolume(this.value)">
+    </div>
+    <div class="ctrl-sep"></div>
+
+    {% if is_owner %}
+    <button class="ctrl-btn" onclick="refreshAndReload()">&#8635; URL 갱신</button>
+    {% endif %}
+    <div class="ctrl-spacer"></div>
+
+    <span style="font-size:.72rem;color:var(--muted)">←/→ = 5초 이동 &nbsp;|&nbsp; F = 전체화면 &nbsp;|&nbsp; R = 갱신</span>
+  </div>
+
+  <!-- 정보 패널 -->
+  <div class="info-panel">
+    <div class="info-title">
+      <span id="titleText">{{ video.title }}</span>
+      {% if is_owner %}
+      <button class="edit-title-btn" onclick="toggleTitleEdit()">&#9998; 편집</button>
+      {% endif %}
+    </div>
+    <div class="owner-note">
+      등록자:
+      {% if video.owner %}@{{ video.owner.username }}{% else %}알 수 없음{% endif %}
+      {% if is_owner %} · 내 영상{% else %} · 읽기 전용{% endif %}
+    </div>
+    {% if is_owner %}
+    <div class="title-edit-box" id="titleEditBox">
+      <input class="title-edit-input" id="titleInput" value="{{ video.title }}">
+      <button class="ctrl-btn" onclick="saveTitle()">저장</button>
+      <button class="ctrl-btn" onclick="toggleTitleEdit()">취소</button>
+    </div>
+    {% endif %}
+    <div class="info-meta">
+      <span>&#128065; {{ video.view_count }}회</span>
+      {% if video.duration %}<span>&#9200; {{ video.duration_str }}</span>{% endif %}
+      <span>&#128197; {{ video.created_at|date:"Y.m.d H:i" }}</span>
+      <span style="color:{% if video.status == 'ready' %}#86efac{% else %}#fca5a5{% endif %}">
+        &#9679; {{ video.get_status_display }}
+      </span>
+    </div>
+    <div class="thumb-edit">
+      <div class="thumb-preview{% if not video.thumbnail %} is-empty{% endif %}" id="thumbPreview">
+        <img id="thumbPreviewImg" src="{{ video.thumbnail }}" alt="{{ video.title }}">
+        <span id="thumbPreviewEmpty">{% if video.thumbnail %}{% else %}썸네일 없음{% endif %}</span>
+      </div>
+      <div class="thumb-edit-form">
+        <div class="thumb-edit-label">썸네일</div>
+        {% if is_owner %}
+        <input class="thumb-input" id="thumbnailInput" type="url" value="{{ video.thumbnail }}"
+               placeholder="https://example.com/thumbnail.jpg">
+        <div class="thumb-help">이미지 URL을 넣고 저장하면 목록과 관련 영상 썸네일에 바로 반영됩니다. 비워두면 제거됩니다.</div>
+        <div class="thumb-actions">
+          <button class="ctrl-btn" id="thumbnailSaveBtn" onclick="saveThumbnail()">썸네일 저장</button>
+          <button class="ctrl-btn" onclick="openThumbnailBrowser()">static에서 선택</button>
+          <button class="ctrl-btn" onclick="clearThumbnailInput()">비우기</button>
+        </div>
+        {% else %}
+        <div class="thumb-help">{% if video.thumbnail %}등록된 썸네일이 적용되어 있습니다.{% else %}등록된 썸네일이 없습니다.{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% if is_owner %}
+    <div class="url-row">
+      <input class="url-input" id="m3u8Input" value="{{ video.m3u8_url }}" readonly>
+      <button class="copy-btn" onclick="copyM3u8()">&#128279; 복사</button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 관련 영상 -->
+  {% if related %}
+  <div class="related-title">다른 영상</div>
+  <div class="related-grid">
+    {% for r in related %}
+    <a class="rel-card" href="{% url 'dramaNlearn:player' r.id %}">
+      <div class="rel-thumb">
+        {% if r.thumbnail %}<img src="{{ r.thumbnail }}" alt="">{% else %}&#127916;{% endif %}
+      </div>
+      <div class="rel-info">
+        <div class="rel-info-title">{{ r.title }}</div>
+        <div class="rel-info-meta">&#128065; {{ r.view_count }} &nbsp; {{ r.created_at|date:"m/d" }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% if is_owner %}
+<div class="modal-bg" id="thumbnailBrowserModal">
+  <div class="modal-box" style="max-width:920px">
+    <div class="modal-head">
+      <h2>STATIC THUMBNAILS</h2>
+      <button class="modal-close" onclick="closeThumbnailBrowser()">&#10005;</button>
+    </div>
+    <input class="thumb-browser-search" id="thumbnailBrowserSearch" type="search"
+           placeholder="파일명 또는 경로 검색">
+    <div class="thumb-browser-list" id="thumbnailBrowserList"></div>
+    <div class="thumb-browser-empty" id="thumbnailBrowserEmpty" style="display:none">
+      표시할 정적 이미지가 없습니다.
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- HLS.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<script>
+var VIDEO_ID  = {{ video.id }};
+var M3U8_URL  = "{{ video.m3u8_url|escapejs }}";
+var EXTERNAL_SUBTITLES = {{ subtitle_tracks_json|safe }};
+var CSRF      = "{{ csrf_token }}";
+var REFRESH_URL_TEMPLATE = "{% url 'dramaNlearn:refresh_video' 999999 %}";
+var TITLE_URL_TEMPLATE = "{% url 'dramaNlearn:update_title' 999999 %}";
+var THUMBNAIL_URL_TEMPLATE = "{% url 'dramaNlearn:update_thumbnail' 999999 %}";
+var STATIC_IMAGES_URL = "{% url 'dramaNlearn:api_static_images' %}";
+var playerHotkeyRoot = document.getElementById('playerHotkeyRoot');
+var video     = document.getElementById('videoEl');
+var loadOverlay  = document.getElementById('loadOverlay');
+var errorOverlay = document.getElementById('errorOverlay');
+var captionToggleBtn = document.getElementById('captionToggleBtn');
+var captionTrackSelect = document.getElementById('captionTrackSelect');
+var captionSizeSelect = document.getElementById('captionSizeSelect');
+var captionColorSelect = document.getElementById('captionColorSelect');
+var captionBgSelect = document.getElementById('captionBgSelect');
+var captionStatus = document.getElementById('captionStatus');
+var volumeSlider = document.getElementById('volumeSlider');
+var volumeLabel = document.getElementById('volumeLabel');
+var thumbnailBrowserItems = [];
+var hls;
+var externalSubtitleTracks = [];
+var activeCaptionMode = 'off';
+
+function loadVolumePreference() {
+  var savedVolume = localStorage.getItem('player-volume');
+  var volume = savedVolume === null ? 15 : parseInt(savedVolume, 10);
+  if (Number.isNaN(volume)) {
+    volume = 15;
+  }
+  volume = Math.max(0, Math.min(100, volume));
+  setVolume(volume);
+}
+
+function syncVolumeUI() {
+  var volume = video.muted ? 0 : Math.round((video.volume || 0) * 100);
+  volumeSlider.value = String(volume);
+  volumeLabel.textContent = volume + '%';
+}
+
+function setVolume(value) {
+  var volume = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
+  video.volume = volume / 100;
+  video.muted = volume === 0;
+  localStorage.setItem('player-volume', String(volume));
+  syncVolumeUI();
+}
+
+function loadCaptionStyle() {
+  var size = localStorage.getItem('caption-size') || captionSizeSelect.value;
+  var color = localStorage.getItem('caption-color') || captionColorSelect.value;
+  var bg = localStorage.getItem('caption-bg') || captionBgSelect.value;
+  captionSizeSelect.value = size;
+  captionColorSelect.value = color;
+  captionBgSelect.value = bg;
+  video.style.setProperty('--cue-size', size);
+  video.style.setProperty('--cue-color', color);
+  video.style.setProperty('--cue-bg', bg);
+}
+
+function changeCaptionStyle() {
+  video.style.setProperty('--cue-size', captionSizeSelect.value);
+  video.style.setProperty('--cue-color', captionColorSelect.value);
+  video.style.setProperty('--cue-bg', captionBgSelect.value);
+  localStorage.setItem('caption-size', captionSizeSelect.value);
+  localStorage.setItem('caption-color', captionColorSelect.value);
+  localStorage.setItem('caption-bg', captionBgSelect.value);
+}
+
+function resetExternalSubtitles() {
+  externalSubtitleTracks = [];
+  Array.prototype.slice.call(video.querySelectorAll('track[data-external-subtitle="1"]')).forEach(function(track) {
+    track.remove();
+  });
+}
+
+function applyExternalSubtitles(subtitles) {
+  resetExternalSubtitles();
+  (subtitles || []).forEach(function(track, index) {
+    if (!track || !track.src) {
+      return;
+    }
+    var el = document.createElement('track');
+    el.setAttribute('data-external-subtitle', '1');
+    el.kind = track.kind || 'subtitles';
+    el.label = track.label || ('Subtitle ' + (index + 1));
+    el.srclang = track.srclang || '';
+    el.src = track.src;
+    if (track.default) {
+      el.default = true;
+    }
+    video.appendChild(el);
+    externalSubtitleTracks.push({
+      index: index,
+      label: el.label,
+      kind: el.kind,
+      srclang: el.srclang,
+      source: 'external',
+    });
+  });
+}
+
+function getCaptionTracks() {
+  var tracks = [];
+
+  if (hls && hls.subtitleTracks && hls.subtitleTracks.length) {
+    tracks = tracks.concat(hls.subtitleTracks.map(function(track, index) {
+      return {
+        index: index,
+        label: track.name || track.lang || ('자막 ' + (index + 1)),
+        source: 'hls',
+      };
+    }));
+  }
+
+  return tracks.concat(Array.prototype.map.call(video.textTracks || [], function(track, index) {
+    return {
+      index: index,
+      label: track.label || track.language || ('자막 ' + (index + 1)),
+      source: 'native',
+    };
+  }));
+}
+
+function setNativeTrackMode(selectedIndex, selectedSource) {
+  Array.prototype.forEach.call(video.textTracks || [], function(track, index) {
+    track.mode = selectedSource === 'native' && index === selectedIndex && activeCaptionMode === 'showing'
+      ? 'showing'
+      : 'disabled';
+  });
+}
+
+function updateCaptionUI() {
+  var tracks = getCaptionTracks();
+  var activeTrack = null;
+
+  if (hls && hls.subtitleTracks && hls.subtitleTracks.length && hls.subtitleTrack >= 0) {
+    activeTrack = tracks.find(function(track) {
+      return track.source === 'hls' && track.index === hls.subtitleTrack;
+    }) || null;
+  }
+  if (!activeTrack) {
+    activeTrack = tracks.find(function(track) {
+      return track.source === 'native' && video.textTracks[track.index] && video.textTracks[track.index].mode === 'showing';
+    }) || null;
+  }
+
+  captionTrackSelect.innerHTML = '';
+
+  if (!tracks.length) {
+    captionTrackSelect.innerHTML = '<option value="">자막 없음</option>';
+    captionTrackSelect.disabled = true;
+    captionToggleBtn.disabled = true;
+    captionToggleBtn.classList.remove('active');
+    captionToggleBtn.textContent = 'CC 자막 없음';
+    captionStatus.textContent = '캡션 없음';
+    return;
+  }
+
+  captionTrackSelect.disabled = false;
+  captionToggleBtn.disabled = false;
+
+  tracks.forEach(function(track) {
+    var option = document.createElement('option');
+    option.value = track.source + ':' + String(track.index);
+    option.textContent = track.label;
+    captionTrackSelect.appendChild(option);
+  });
+
+  if (!activeTrack) {
+    activeTrack = tracks[0];
+  }
+  captionTrackSelect.value = activeTrack.source + ':' + String(activeTrack.index);
+
+  var isShowing = activeCaptionMode === 'showing';
+  captionToggleBtn.classList.toggle('active', isShowing);
+  captionToggleBtn.textContent = isShowing ? 'CC 자막 켜짐' : 'CC 자막 끄기';
+  captionStatus.textContent = isShowing
+    ? '현재: ' + activeTrack.label
+    : '캡션 대기 중';
+}
+
+function applyCaptionState(index, source) {
+  if (hls && hls.subtitleTracks && hls.subtitleTracks.length) {
+    hls.subtitleTrack = activeCaptionMode === 'showing' && source === 'hls' ? index : -1;
+  }
+  setNativeTrackMode(index, source);
+  updateCaptionUI();
+}
+
+function changeCaptionTrack(value) {
+  var parts = (value || '').split(':');
+  var source = parts[0];
+  var index = parseInt(parts[1], 10);
+  if (!source || Number.isNaN(index)) {
+    return;
+  }
+  activeCaptionMode = 'showing';
+  applyCaptionState(index, source);
+}
+
+function toggleCaptions() {
+  if (captionToggleBtn.disabled) {
+    return;
+  }
+  var parts = (captionTrackSelect.value || 'native:0').split(':');
+  var source = parts[0] || 'native';
+  var index = parseInt(parts[1], 10) || 0;
+  activeCaptionMode = activeCaptionMode === 'showing' ? 'off' : 'showing';
+  applyCaptionState(index, source);
+}
+
+// ── HLS 로드 ──────────────────────────────────────────────
+function loadHLS(url) {
+  if (!url) {
+    showError('m3u8 URL이 없습니다. URL 갱신을 시도해보세요.');
+    return;
+  }
+  loadOverlay.classList.remove('hidden');
+  errorOverlay.classList.remove('show');
+
+  if (hls) { hls.destroy(); }
+  activeCaptionMode = 'off';
+  applyExternalSubtitles(EXTERNAL_SUBTITLES);
+  updateCaptionUI();
+
+  if (Hls.isSupported()) {
+    hls = new Hls({
+      maxBufferLength: 30,
+      maxMaxBufferLength: 60,
+      enableWorker: true,
+    });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+      loadOverlay.classList.add('hidden');
+      updateCaptionUI();
+      video.play().catch(function() {});
+    });
+
+    hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function() {
+      updateCaptionUI();
+    });
+
+    hls.on(Hls.Events.ERROR, function(event, data) {
+      if (data.fatal) {
+        loadOverlay.classList.add('hidden');
+        showError('HLS 오류: ' + data.type + ' — URL이 만료되었을 수 있습니다.');
+      }
+    });
+
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari 네이티브 HLS
+    video.src = url;
+    video.addEventListener('loadedmetadata', function() {
+      loadOverlay.classList.add('hidden');
+      updateCaptionUI();
+      video.play().catch(function() {});
+    });
+    video.addEventListener('error', function() {
+      loadOverlay.classList.add('hidden');
+      showError('재생 오류. URL을 갱신해보세요.');
+    });
+  } else {
+    showError('이 브라우저는 HLS를 지원하지 않습니다.');
+  }
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  errorOverlay.classList.add('show');
+  loadOverlay.classList.add('hidden');
+}
+
+// ── URL 갱신 후 재로드 ──
+function refreshAndReload() {
+  {% if not is_owner %}
+  showToast('내가 등록한 영상만 갱신할 수 있습니다.', 'err');
+  return;
+  {% endif %}
+  showToast('URL 갱신 중...', 'info');
+  fetch(REFRESH_URL_TEMPLATE.replace('999999', VIDEO_ID), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      showToast('갱신 완료! 재생합니다.', 'ok');
+      M3U8_URL = data.m3u8_url;
+      EXTERNAL_SUBTITLES = data.subtitles || [];
+      document.getElementById('m3u8Input').value = M3U8_URL;
+      loadHLS(M3U8_URL);
+    } else {
+      showToast('갱신 실패: ' + data.error, 'err');
+    }
+  })
+  .catch(function(e) { showToast('오류: ' + e.message, 'err'); });
+}
+
+// ── 컨트롤 ──
+function skipTime(sec) {
+  video.currentTime = Math.max(0, video.currentTime + sec);
+}
+function setSpeed(v) { video.playbackRate = parseFloat(v); }
+function togglePlayback() {
+  if (video.paused) {
+    video.play().catch(function() {});
+    return;
+  }
+  video.pause();
+}
+function focusPlayerHotkeys() {
+  if (playerHotkeyRoot) {
+    playerHotkeyRoot.focus({preventScroll: true});
+  }
+}
+function shouldIgnoreHotkeyTarget(target) {
+  if (!target) {
+    return false;
+  }
+  if (target.isContentEditable) {
+    return true;
+  }
+  return !!target.closest('input, select, textarea, [contenteditable="true"]');
+}
+
+var sizeMode = 0;
+var sizeModes = [
+  {label:'&#9645; 기본',  max:'1080px'},
+  {label:'&#9645; 넓게',  max:'100%'},
+  {label:'&#9645; 시네마', max:'100%', pt:'45%'},
+];
+function cycleSize() {
+  sizeMode = (sizeMode + 1) % sizeModes.length;
+  var m = sizeModes[sizeMode];
+  var wrap = document.querySelector('.player-wrap');
+  wrap.style.maxWidth = m.max;
+  if (m.pt) {
+    document.querySelector('.player-ratio').style.paddingTop = m.pt;
+  } else {
+    document.querySelector('.player-ratio').style.paddingTop = '56.25%';
+  }
+  document.getElementById('sizeBtn').innerHTML = m.label;
+}
+
+function toggleFullscreen() {
+  var box = document.querySelector('.player-box');
+  if (!document.fullscreenElement) {
+    box.requestFullscreen && box.requestFullscreen();
+  } else {
+    document.exitFullscreen && document.exitFullscreen();
+  }
+}
+
+// ── 제목 편집 ──
+function toggleTitleEdit() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  var box = document.getElementById('titleEditBox');
+  box.classList.toggle('show');
+  if (box.classList.contains('show')) {
+    document.getElementById('titleInput').focus();
+  }
+}
+function saveTitle() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  var title = document.getElementById('titleInput').value.trim();
+  if (!title) return;
+  fetch(TITLE_URL_TEMPLATE.replace('999999', VIDEO_ID), {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body: JSON.stringify({title: title})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      document.getElementById('titleText').textContent = title;
+      document.title = title + ' — Drama & Learn';
+      toggleTitleEdit();
+      showToast('제목이 저장되었습니다.', 'ok');
+    }
+  });
+}
+
+function updateThumbnailPreview(url) {
+  var preview = document.getElementById('thumbPreview');
+  var img = document.getElementById('thumbPreviewImg');
+  var empty = document.getElementById('thumbPreviewEmpty');
+  if (!preview || !img || !empty) {
+    return;
+  }
+  if (url) {
+    img.src = url;
+    img.alt = document.getElementById('titleText').textContent;
+    preview.classList.remove('is-empty');
+    empty.textContent = '';
+  } else {
+    img.removeAttribute('src');
+    preview.classList.add('is-empty');
+    empty.textContent = '썸네일 없음';
+  }
+}
+
+function clearThumbnailInput() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  document.getElementById('thumbnailInput').value = '';
+}
+
+function saveThumbnail() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  var input = document.getElementById('thumbnailInput');
+  var btn = document.getElementById('thumbnailSaveBtn');
+  var thumbnail = input.value.trim();
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  fetch(THUMBNAIL_URL_TEMPLATE.replace('999999', VIDEO_ID), {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body: JSON.stringify({thumbnail: thumbnail})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.textContent = '썸네일 저장';
+    if (data.ok) {
+      input.value = data.thumbnail || '';
+      updateThumbnailPreview(data.thumbnail || '');
+      showToast(data.thumbnail ? '썸네일이 저장되었습니다.' : '썸네일이 제거되었습니다.', 'ok');
+    } else {
+      showToast(data.error || '썸네일 저장에 실패했습니다.', 'err');
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    btn.textContent = '썸네일 저장';
+    showToast('오류: ' + e.message, 'err');
+  });
+}
+
+function renderThumbnailBrowser(items) {
+  var list = document.getElementById('thumbnailBrowserList');
+  var empty = document.getElementById('thumbnailBrowserEmpty');
+  var keyword = (document.getElementById('thumbnailBrowserSearch').value || '').trim().toLowerCase();
+  var filtered = (items || []).filter(function(item) {
+    var target = (item.name + ' ' + item.path).toLowerCase();
+    return !keyword || target.indexOf(keyword) !== -1;
+  });
+
+  list.innerHTML = '';
+  empty.style.display = filtered.length ? 'none' : 'block';
+  filtered.forEach(function(item) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'thumb-browser-item';
+    button.innerHTML =
+      '<img src="' + item.url + '" alt="">' +
+      '<div class="thumb-browser-name">' + item.name + '</div>' +
+      '<div class="thumb-browser-path">' + item.path + '</div>';
+    button.addEventListener('click', function() {
+      document.getElementById('thumbnailInput').value = item.url;
+      updateThumbnailPreview(item.url);
+      closeThumbnailBrowser();
+      showToast('썸네일 경로를 입력칸에 넣었습니다. 저장 버튼을 누르면 적용됩니다.', 'info');
+    });
+    list.appendChild(button);
+  });
+}
+
+function closeThumbnailBrowser() {
+  var modal = document.getElementById('thumbnailBrowserModal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+}
+
+function openThumbnailBrowser() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  var modal = document.getElementById('thumbnailBrowserModal');
+  var list = document.getElementById('thumbnailBrowserList');
+  var empty = document.getElementById('thumbnailBrowserEmpty');
+  var search = document.getElementById('thumbnailBrowserSearch');
+  modal.classList.add('open');
+  search.value = '';
+
+  if (thumbnailBrowserItems.length) {
+    renderThumbnailBrowser(thumbnailBrowserItems);
+    search.focus();
+    return;
+  }
+
+  list.innerHTML = '<div class="thumb-browser-empty">이미지 목록을 불러오는 중...</div>';
+  empty.style.display = 'none';
+  fetch(STATIC_IMAGES_URL)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        throw new Error(data.error || '정적 이미지 목록을 불러오지 못했습니다.');
+      }
+      thumbnailBrowserItems = data.images || [];
+      renderThumbnailBrowser(thumbnailBrowserItems);
+      search.focus();
+    })
+    .catch(function(e) {
+      list.innerHTML = '';
+      empty.textContent = '오류: ' + e.message;
+      empty.style.display = 'block';
+    });
+}
+
+// ── URL 복사 ──
+function copyM3u8() {
+  {% if not is_owner %}
+  return;
+  {% endif %}
+  var input = document.getElementById('m3u8Input');
+  navigator.clipboard.writeText(input.value).then(function() {
+    showToast('m3u8 URL이 복사되었습니다!', 'ok');
+  });
+}
+
+// ── 단축키 ──
+window.addEventListener('keydown', function(e) {
+  if (shouldIgnoreHotkeyTarget(e.target)) return;
+  if (e.repeat && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ' || e.code === 'Space')) return;
+  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  if (e.key === 'r' || e.key === 'R') refreshAndReload();
+  if (e.key === 'c' || e.key === 'C') toggleCaptions();
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePlayback(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); skipTime(-5); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); skipTime(5); }
+});
+window.addEventListener('keyup', function(e) {
+  if (shouldIgnoreHotkeyTarget(e.target)) return;
+  if (e.key === ' ' || e.code === 'Space') {
+    e.preventDefault();
+  }
+});
+
+['.player-box', '.ctrl-bar', '#videoEl'].forEach(function(selector) {
+  var element = document.querySelector(selector);
+  if (element) {
+    element.addEventListener('click', focusPlayerHotkeys);
+  }
+});
+
+video.addEventListener('volumechange', function() {
+  syncVolumeUI();
+  localStorage.setItem('player-volume', String(video.muted ? 0 : Math.round((video.volume || 0) * 100)));
+});
+
+var thumbnailBrowserSearch = document.getElementById('thumbnailBrowserSearch');
+if (thumbnailBrowserSearch) {
+  thumbnailBrowserSearch.addEventListener('input', function() {
+    renderThumbnailBrowser(thumbnailBrowserItems);
+  });
+}
+
+var thumbnailBrowserModal = document.getElementById('thumbnailBrowserModal');
+if (thumbnailBrowserModal) {
+  thumbnailBrowserModal.addEventListener('click', function(e) {
+    if (e.target === thumbnailBrowserModal) {
+      closeThumbnailBrowser();
+    }
+  });
+}
+
+// ── 시작 ──
+loadCaptionStyle();
+loadVolumePreference();
+focusPlayerHotkeys();
+loadHLS(M3U8_URL);
+</script>
+{% endblock %}
