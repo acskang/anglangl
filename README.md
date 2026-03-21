@@ -194,3 +194,16 @@ python -m mcp_server.server
 3. Route `/internal-api/` only through trusted network path if possible.
 4. Rotate internal API token periodically.
 5. Monitor logs for repeated auth failures and tool abuse.
+
+## Production deployment summary
+
+- Topology: `Cloudflare Tunnel -> Nginx -> Gunicorn -> Django`
+- Production settings: `config.settings.prod`
+- Gunicorn runs as the `cskang` user via systemd
+- Runtime env file: `/etc/anglangl/anglangl.env`
+- Runtime logs: `/logs/anglangl`
+- Gunicorn socket: `/run/gunicorn_anglangl.sock`
+- Nginx serves `/static/` and `/media/` directly
+- Health endpoint: `/api/v1/health/`
+
+Deployment assets live under `deploy/production/`.

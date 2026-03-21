@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import requests
+from django.conf import settings
+from django.db import connections
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -193,3 +195,28 @@ def player_movie_search_api(request):
         return JsonResponse({"error": f"영화 검색 네트워크 오류: {exc}"}, status=502)
 
     return JsonResponse(results)
+
+
+@require_GET
+def health_check(request):
+    try:
+        with connections["default"].cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        database_ok = True
+        database_error = ""
+    except Exception as exc:
+        database_ok = False
+        database_error = str(exc)
+
+    payload = {
+        "status": "ok" if database_ok else "degraded",
+        "service": "anglangl",
+        "settings_module": settings.SETTINGS_MODULE,
+        "database": {
+            "ok": database_ok,
+            "engine": settings.DATABASES["default"]["ENGINE"],
+            "error": database_error,
+        },
+    }
+    return JsonResponse(payload, status=200 if database_ok else 503)

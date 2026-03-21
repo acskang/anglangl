@@ -3,9 +3,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from core.views import LandingPageView, PlayerPageView, player_movie_search_api
+from core.views import LandingPageView, PlayerPageView, health_check, player_movie_search_api
 
 urlpatterns = [
+    path("api/v1/health/", health_check, name="health-check"),
     path("admin/dashboard/", include("dashboard.urls")),
     path("admin/thumbnail/", include(("dramaNlearn.admin_urls", "thumbnail_admin"), namespace="thumbnail_admin")),
     path("admin/", admin.site.urls),

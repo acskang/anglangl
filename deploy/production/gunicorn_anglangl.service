@@ -1,0 +1,25 @@
+[Unit]
+Description=Gunicorn for anglangl
+After=network.target
+
+[Service]
+Type=notify
+PermissionsStartOnly=true
+User=cskang
+Group=www-data
+WorkingDirectory=/home/cskang/ganzskang/anglangl
+RuntimeDirectory=anglangl
+RuntimeDirectoryMode=0775
+ExecStartPre=/bin/rm -f /run/gunicorn_anglangl.sock
+ExecStartPre=/bin/ln -s /run/anglangl/gunicorn.sock /run/gunicorn_anglangl.sock
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+EnvironmentFile=/etc/anglangl/anglangl.env
+ExecStart=/home/cskang/miniconda3/envs/dj5/bin/gunicorn --config /home/cskang/ganzskang/anglangl/deploy/production/gunicorn_anglangl.config.py config.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

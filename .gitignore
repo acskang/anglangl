@@ -32,3 +32,4 @@ staticfiles/
 .dev/
 -design/
 codex-history/
+.runtime/

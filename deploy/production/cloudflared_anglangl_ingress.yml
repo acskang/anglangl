@@ -1,0 +1,6 @@
+# Merge this ingress block into /etc/cloudflared/config.yml
+- hostname: anglangl.thesysm.com
+  service: http://localhost
+  originRequest:
+    unixSocketPath: /run/gunicorn_anglangl.sock
+    httpHostHeader: anglangl.thesysm.com

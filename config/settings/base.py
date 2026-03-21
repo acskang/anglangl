@@ -5,19 +5,49 @@ from urllib.parse import urlparse
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
+def _env(name: str, default=None, *, legacy_names: tuple[str, ...] = ()):
+    for candidate in (name, *legacy_names):
+        value = os.environ.get(candidate)
+        if value not in {None, ""}:
+            return value
+    return default
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
-    return os.environ.get(name, str(default)).lower() in {"1", "true", "yes", "on"}
+    value = _env(name, str(default), legacy_names=("DEBUG",) if name == "DJANGO_DEBUG" else ())
+    return str(value).lower() in {"1", "true", "yes", "on"}
 
 
 def _env_list(name: str, default: str = "") -> list[str]:
-    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+    legacy_names = ()
+    if name == "DJANGO_ALLOWED_HOSTS":
+        legacy_names = ("ALLOWED_HOSTS",)
+    elif name == "DJANGO_CSRF_TRUSTED_ORIGINS":
+        legacy_names = ("CSRF_TRUSTED_ORIGINS",)
+    value = _env(name, default, legacy_names=legacy_names)
+    return [item.strip() for item in str(value).split(",") if item.strip()]
 
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "")
-DEBUG = _env_bool("DEBUG", False)
+def _resolve_thepeach_base_url(name: str, default: str) -> str:
+    base_url = str(_env(name, default)).rstrip("/")
+    origin_base_url = str(os.environ.get("THEPEACH_ORIGIN_BASE_URL", "http://127.0.0.1")).rstrip("/")
+    upstream_host = str(os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "thepeach.thesysm.com")).strip()
+    parsed = urlparse(base_url)
+    if (
+        not DEBUG
+        and upstream_host
+        and parsed.scheme in {"http", "https"}
+        and parsed.hostname == upstream_host
+    ):
+        return origin_base_url
+    return base_url
 
-ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "127.0.0.1,localhost")
-CSRF_TRUSTED_ORIGINS = _env_list("CSRF_TRUSTED_ORIGINS")
+
+SECRET_KEY = _env("DJANGO_SECRET_KEY", "", legacy_names=("SECRET_KEY",))
+DEBUG = _env_bool("DJANGO_DEBUG", False)
+
+ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
+CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -117,8 +147,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "ko-kr"
+TIME_ZONE = _env("DJANGO_TIME_ZONE", "Asia/Seoul")
 USE_I18N = True
 USE_TZ = True
 
@@ -138,8 +168,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = os.environ.get("X_FRAME_OPTIONS", "DENY")
 SECURE_REFERRER_POLICY = os.environ.get("SECURE_REFERRER_POLICY", "same-origin")
 
-THEPEACH_AUTH_BASE_URL = os.environ.get("THEPEACH_AUTH_BASE_URL", "http://127.0.0.1").rstrip("/")
-THEPEACH_LOGIN_BASE_URL = os.environ.get("THEPEACH_LOGIN_BASE_URL", THEPEACH_AUTH_BASE_URL).rstrip("/")
+THEPEACH_AUTH_BASE_URL = _resolve_thepeach_base_url("THEPEACH_AUTH_BASE_URL", "http://127.0.0.1")
+THEPEACH_LOGIN_BASE_URL = _resolve_thepeach_base_url("THEPEACH_LOGIN_BASE_URL", THEPEACH_AUTH_BASE_URL)
 THEPEACH_UPSTREAM_HOST_HEADER = os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "thepeach.thesysm.com").strip()
 THEPEACH_SIGNUP_PATH = os.environ.get("THEPEACH_SIGNUP_PATH", "/api/v1/auth/signup/")
 THEPEACH_LOGIN_PATH = os.environ.get("THEPEACH_LOGIN_PATH", "/api/v1/auth/login/")
@@ -180,3 +210,53 @@ CLIP_UPLOAD_ALLOWED_EXTENSIONS = os.environ.get(
 DJANGO_INTERNAL_API_TOKEN = os.environ.get("DJANGO_INTERNAL_API_TOKEN", "")
 INTERNAL_PLAYBACK_LINK_TTL_SECONDS = int(os.environ.get("INTERNAL_PLAYBACK_LINK_TTL_SECONDS", "900"))
 KOBIS_API_KEY = os.environ.get("KOBIS_API_KEY", "")
+
+LOG_DIR = Path(_env("DJANGO_LOG_DIR", str(BASE_DIR / ".runtime" / "logs")))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "app_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": str(LOG_DIR / "application.log"),
+            "formatter": "verbose",
+        },
+        "error_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": str(LOG_DIR / "error.log"),
+            "formatter": "verbose",
+        },
+        "security_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": str(LOG_DIR / "security.log"),
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console", "app_file"],
+        "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console", "error_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console", "security_file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}
