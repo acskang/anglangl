@@ -1,64 +1,247 @@
-{% extends 'base.html' %}
+{% extends 'dramaNlearn/base.html' %}
 
-{% block title %}Register Video{% endblock %}
+{% block title %}Add Video{% endblock %}
+
+{% block extra_css %}
+<style>
+.register-shell{
+  width:min(94vw, 1120px);
+  margin:0 auto;
+  padding:2.8rem 1.25rem 3.5rem;
+}
+.register-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);
+  gap:1rem;
+}
+.register-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1.1rem;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.register-kicker{
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--acc);
+}
+.register-title{
+  margin:.2rem 0 .35rem;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4vw,3.5rem);
+  letter-spacing:.08em;
+  color:var(--text);
+}
+.register-desc{
+  margin:0 0 1.1rem;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.register-card input[type="text"],
+.register-card input[type="url"],
+.register-card input[type="file"],
+.register-card textarea{
+  width:100%;
+  padding:.82rem .95rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+}
+.register-field{margin-bottom:1rem}
+.register-label{
+  display:block;
+  margin-bottom:.42rem;
+  color:var(--muted);
+  font-size:.78rem;
+}
+.register-panels{
+  display:grid;
+  gap:1rem;
+}
+.register-panel{
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:1rem;
+  background:rgba(255,255,255,.02);
+}
+.register-panel-title{
+  margin:0 0 .18rem;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:600;
+}
+.register-panel-help{
+  margin:0 0 .85rem;
+  color:var(--muted);
+  font-size:.8rem;
+}
+.register-options{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+  margin-bottom:1rem;
+}
+.register-option{
+  position:relative;
+}
+.register-option input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.register-option span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:130px;
+  padding:.72rem .92rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.82rem;
+  font-weight:600;
+  cursor:pointer;
+}
+.register-option input:checked + span{
+  background:var(--acc);
+  border-color:var(--acc);
+  color:#fff;
+}
+.register-actions{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+  margin-top:1.1rem;
+}
+.btn-primary-dark,
+.btn-secondary-dark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:138px;
+  padding:.82rem 1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:.84rem;
+  font-weight:600;
+  border:1px solid var(--border);
+}
+.btn-primary-dark{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn-secondary-dark{background:transparent;color:var(--text)}
+.recent-list{
+  display:grid;
+  gap:.7rem;
+}
+.recent-item{
+  display:block;
+  padding:.82rem .88rem;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.02);
+  text-decoration:none;
+}
+.recent-item-title{
+  color:var(--text);
+  font-weight:600;
+}
+.recent-item-sub{
+  margin-top:.24rem;
+  color:var(--muted);
+  font-size:.76rem;
+}
+.form-error{
+  margin-top:.4rem;
+  color:#fca5a5;
+  font-size:.78rem;
+}
+@media (max-width:880px){
+  .register-shell{width:100%;padding:2rem .8rem 2.8rem}
+  .register-grid{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-body">
-        <h1 class="h4 mb-3">Register Video</h1>
-        <p class="text-muted">You can either queue a YouTube download or upload a local video file directly.</p>
-        <form method="post" enctype="multipart/form-data" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-          {% endif %}
-          <div class="mb-3">
-            <label class="form-label d-block">{{ form.source_type.label }}</label>
-            {% for radio in form.source_type %}
-              <div class="form-check form-check-inline">
-                {{ radio.tag }}
-                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
-              </div>
-            {% endfor %}
-            {% if form.source_type.errors %}
-              <div class="text-danger small mt-1">{{ form.source_type.errors|join:', ' }}</div>
-            {% endif %}
-          </div>
-          <div class="border rounded p-3 mb-3" data-source-panel="youtube">
-            <h2 class="h6">YouTube Download</h2>
-            <p class="text-muted small mb-3">Submit a YouTube URL or video ID to queue background download.</p>
-            <div class="mb-0">
-              <label class="form-label" for="{{ form.youtube_input.id_for_label }}">{{ form.youtube_input.label }}</label>
+<div class="register-shell">
+  <div class="register-kicker">Library</div>
+  <h1 class="register-title">Add Video</h1>
+  <p class="register-desc">링크 비디오를 등록하거나 로컬 비디오를 업로드해서 소스 라이브러리에 추가합니다.</p>
+
+  <div class="register-grid">
+    <div class="register-card">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="form-error" style="margin-bottom:1rem">{{ form.non_field_errors|join:', ' }}</div>
+        {% endif %}
+
+        <div class="register-options">
+          {% for radio in form.source_type %}
+          <label class="register-option">
+            {{ radio.tag }}
+            <span>{{ radio.choice_label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <div class="register-panels">
+          <section class="register-panel" data-source-panel="youtube">
+            <h2 class="register-panel-title">Linked Video</h2>
+            <p class="register-panel-help">YouTube URL 또는 video ID를 등록하면 백그라운드로 소스 비디오를 가져옵니다.</p>
+            <div class="register-field">
+              <label class="register-label" for="{{ form.youtube_input.id_for_label }}">{{ form.youtube_input.label }}</label>
               {{ form.youtube_input }}
-              {% if form.youtube_input.errors %}
-                <div class="text-danger small mt-1">{{ form.youtube_input.errors|join:', ' }}</div>
-              {% endif %}
+              {% if form.youtube_input.errors %}<div class="form-error">{{ form.youtube_input.errors|join:', ' }}</div>{% endif %}
             </div>
-          </div>
-          <div class="border rounded p-3 mb-3" data-source-panel="upload">
-            <h2 class="h6">Local Upload</h2>
-            <p class="text-muted small mb-3">Upload a video file from your computer. It will be available immediately after save.</p>
-            <div class="mb-3">
-              <label class="form-label" for="{{ form.upload_title.id_for_label }}">{{ form.upload_title.label }}</label>
+          </section>
+
+          <section class="register-panel" data-source-panel="upload">
+            <h2 class="register-panel-title">Upload</h2>
+            <p class="register-panel-help">로컬 비디오를 올리면 플레이어와 클립 추출에 바로 사용할 수 있도록 처리합니다.</p>
+            <div class="register-field">
+              <label class="register-label" for="{{ form.upload_title.id_for_label }}">{{ form.upload_title.label }}</label>
               {{ form.upload_title }}
-              {% if form.upload_title.errors %}
-                <div class="text-danger small mt-1">{{ form.upload_title.errors|join:', ' }}</div>
-              {% endif %}
+              {% if form.upload_title.errors %}<div class="form-error">{{ form.upload_title.errors|join:', ' }}</div>{% endif %}
             </div>
-            <div class="mb-0">
-              <label class="form-label" for="{{ form.video_file.id_for_label }}">{{ form.video_file.label }}</label>
+            <div class="register-field">
+              <label class="register-label" for="{{ form.video_file.id_for_label }}">{{ form.video_file.label }}</label>
               {{ form.video_file }}
-              {% if form.video_file.errors %}
-                <div class="text-danger small mt-1">{{ form.video_file.errors|join:', ' }}</div>
-              {% endif %}
+              {% if form.video_file.errors %}<div class="form-error">{{ form.video_file.errors|join:', ' }}</div>{% endif %}
             </div>
-          </div>
-          <button type="submit" class="btn btn-primary">Register & Queue Download</button>
-          <a href="{% url 'videos:list' %}" class="btn btn-outline-secondary">Back to list</a>
-        </form>
+            <div class="register-field" style="margin-bottom:0">
+              <label class="register-label" for="{{ form.subtitle_file.id_for_label }}">{{ form.subtitle_file.label }}</label>
+              {{ form.subtitle_file }}
+              {% if form.subtitle_file.errors %}<div class="form-error">{{ form.subtitle_file.errors|join:', ' }}</div>{% endif %}
+            </div>
+          </section>
+        </div>
+
+        <div class="register-actions">
+          <button type="submit" class="btn-primary-dark">Save Video</button>
+          <a href="{% url 'dashboard:home' %}" class="btn-secondary-dark">Back to Dashboard</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="register-card">
+      <h2 class="register-panel-title">Recent Videos</h2>
+      <p class="register-panel-help">최근 등록한 비디오를 확인하고 바로 상세 화면으로 이동할 수 있습니다.</p>
+      {% if recent_videos %}
+      <div class="recent-list">
+        {% for video in recent_videos %}
+        <a href="{% url 'videos:detail' video.id %}" class="recent-item">
+          <div class="recent-item-title">{{ video.title|default:video.source_reference }}</div>
+          <div class="recent-item-sub">{{ video.source_reference }} • {{ video.get_download_status_display }}</div>
+        </a>
+        {% endfor %}
       </div>
+      {% else %}
+      <div class="text-muted">최근 등록한 비디오가 없습니다.</div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -72,7 +255,7 @@
 
     function syncPanels() {
       const checked = radios.find((radio) => radio.checked);
-      const current = checked ? checked.value : "youtube";
+      const current = checked ? checked.value : "{{ preferred_source_type|default:'youtube' }}";
       panels.forEach((panel) => {
         panel.style.display = panel.getAttribute("data-source-panel") === current ? "" : "none";
       });

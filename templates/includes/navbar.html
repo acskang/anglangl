@@ -1,4 +1,4 @@
-{% load static %}
+{% load static user_display %}
 <nav class="navbar navbar-expand-lg navbar-dark site-navbar">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="{% url 'landing' %}">
@@ -14,19 +14,29 @@
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link" href="{% url 'player' %}">Player</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'videos:list' %}">Youtube</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'videos:upload-list' %}">Videos</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'clips:list' %}">Clips</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'movies:search' %}">Movies</a></li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="downloadNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Upload
+          <a class="nav-link dropdown-toggle" href="#" id="youtubeNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Youtube
           </a>
-          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="downloadNavbarDropdown">
-            <li><a class="dropdown-item" href="{% url 'videos:create-youtube' %}">Register Youtube</a></li>
-            <li><a class="dropdown-item" href="{% url 'videos:create-video' %}">Register Video</a></li>
-            <li><a class="dropdown-item" href="{% url 'clips:create' %}">Create Clip</a></li>
-            <li><a class="dropdown-item" href="{% url 'clips:bulk-upload' %}">Upload Clips</a></li>
-            <li><a class="dropdown-item" href="{% url 'clips:batch-list' %}">Upload Batches</a></li>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="youtubeNavbarDropdown">
+            <li><a class="dropdown-item" href="{% url 'videos:create-youtube' %}">영상 추가</a></li>
+            <li><a class="dropdown-item" href="{% url 'videos:linked-list' %}">저장된 영상</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'clips:bulk-upload' %}">클립 업로드</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:batch-list' %}">업로드 배치</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:album-upload' %}">이미지 등록</a></li>
+            <li><a class="dropdown-item" href="{% url 'videos:linked-list' %}">블로그편집</a></li>
+            <li><a class="dropdown-item" href="{% url 'videos:thumbnail-album' %}">썸네일 이미지 앨범</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="materialsNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Materials
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="materialsNavbarDropdown">
+            <li><a class="dropdown-item" href="{% url 'study:list' %}">Library</a></li>
+            <li><a class="dropdown-item" href="{% url 'study:explore' %}">Explore</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
@@ -35,31 +45,30 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminNavbarDropdown">
             <li><a class="dropdown-item" href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a class="dropdown-item" href="{% url 'clips:create' %}">자막클립생성</a></li>
             <li><a class="dropdown-item" href="{% url 'thumbnail_admin:list' %}">Thumbnail</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="dramaNavbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            dramaNlearn
+            Drama
           </a>
           <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="dramaNavbarDropdown">
-            <li><a class="dropdown-item" href="{% url 'dramaNlearn:home' %}">m3-Play</a></li>
-            <li><a class="dropdown-item" href="{% url 'dramaNlearn:url_manage' %}">URL 추가/편집</a></li>
+            <li><a class="dropdown-item" href="{% url 'dramaNlearn:home' %}">드라마보기</a></li>
+            <li><a class="dropdown-item" href="{% url 'dramaNlearn:imdb' %}">IMDB</a></li>
+            <li><a class="dropdown-item" href="{% url 'dramaNlearn:url_manage' %}">드라마URL생성</a></li>
           </ul>
         </li>
       </ul>
       <ul class="navbar-nav ms-auto">
         {% if request.user.is_authenticated %}
-          <li class="nav-item"><span class="navbar-text me-3">{{ request.user.username }}</span></li>
+          <li class="nav-item"><span class="navbar-text me-3">{{ request.user|user_display_label }}</span></li>
           <li class="nav-item">
-            <form method="post" action="{% url 'platform_auth:logout' %}">
-              {% csrf_token %}
-              <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
-            </form>
+            <button class="btn btn-outline-light btn-sm" type="button" data-logout-open>Logout</button>
           </li>
         {% else %}
-          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:login' %}">Login</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:signup' %}">Sign up</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:login' %}" data-auth-open="login" data-next="{{ request.get_full_path }}">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'platform_auth:signup' %}" data-auth-open="signup" data-next="{{ request.get_full_path }}">Sign up</a></li>
         {% endif %}
       </ul>
     </div>

@@ -577,9 +577,9 @@
           {% if request.user.is_authenticated %}
           <a class="landing-btn landing-btn-primary" href="{% url 'dashboard:home' %}">자료 만들기</a>
           {% else %}
-          <a class="landing-btn landing-btn-primary" href="{% url 'platform_auth:signup' %}?next={% url 'dashboard:home' %}">자료 만들기</a>
+          <a class="landing-btn landing-btn-primary" href="{% url 'platform_auth:signup' %}?next={% url 'dashboard:home' %}" data-auth-open="signup" data-next="{% url 'dashboard:home' %}">자료 만들기</a>
           {% endif %}
-          <a class="landing-btn landing-btn-secondary" href="{% url 'clips:list' %}">자료 둘러보기</a>
+          <a class="landing-btn landing-btn-secondary" href="{% url 'study:explore' %}">자료 둘러보기</a>
         </div>
 
         <div class="landing-stat-grid">

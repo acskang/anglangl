@@ -411,6 +411,14 @@
         &#9679; {{ video.get_status_display }}
       </span>
     </div>
+    <div class="thumb-actions" style="margin-bottom:1rem;">
+      <a class="ctrl-btn" href="{% url 'study:create' %}?source_type=drama_video&drama_video_id={{ video.id }}">학습 자료 만들기</a>
+      <a class="ctrl-btn" href="{% url 'study:list' %}">내 라이브러리</a>
+      {% if is_owner %}
+      <a class="ctrl-btn" href="{{ clip_extract_url }}">클립 추출</a>
+      <a class="ctrl-btn" href="{% url 'workers:drama-video-job-history' video.id %}">작업 이력</a>
+      {% endif %}
+    </div>
     <div class="thumb-edit">
       <div class="thumb-preview{% if not video.thumbnail %} is-empty{% endif %}" id="thumbPreview">
         <img id="thumbPreviewImg" src="{{ video.thumbnail }}" alt="{{ video.title }}">

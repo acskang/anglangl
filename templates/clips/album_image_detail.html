@@ -1,0 +1,77 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Album Image{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1040px;padding:2.5rem 1rem 3rem">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+      <div class="small text-uppercase text-muted" style="letter-spacing:.16em">Album</div>
+      <h1 class="h3 text-light mb-2">{{ image.title }}</h1>
+      <p class="text-muted mb-0">이미지 메타데이터를 수정하거나 연결된 비디오/클립으로 이동합니다.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ back_url }}" class="btn btn-outline-light">{{ back_label }}</a>
+      <form method="post" action="{% url 'clips:album-delete' image.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('이 album image를 삭제하시겠습니까?');">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="card bg-dark border-secondary">
+        <div class="card-body">
+          <img src="{{ image.image.url }}" alt="{{ image.title }}" class="img-fluid rounded">
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-5">
+      <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body">
+          <form method="post" action="{% url 'clips:album-update' image.id %}">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label text-light" for="{{ metadata_form.title.id_for_label }}">Title</label>
+              {{ metadata_form.title }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-light" for="{{ metadata_form.description.id_for_label }}">Description</label>
+              {{ metadata_form.description }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-light" for="{{ metadata_form.tags.id_for_label }}">Tags</label>
+              {{ metadata_form.tags }}
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card bg-dark border-secondary">
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Source</dt>
+            <dd class="col-sm-8 text-light">{{ image.get_source_display }}</dd>
+            <dt class="col-sm-4 text-muted">Created</dt>
+            <dd class="col-sm-8 text-light">{{ image.created_at|date:"Y-m-d H:i:s" }}</dd>
+            {% if image.master_video %}
+            <dt class="col-sm-4 text-muted">Video</dt>
+            <dd class="col-sm-8"><a href="{% url 'videos:detail' image.master_video.id %}" class="link-light">{{ image.master_video.title }}</a></dd>
+            {% endif %}
+            {% if image.clip %}
+            <dt class="col-sm-4 text-muted">Clip</dt>
+            <dd class="col-sm-8"><a href="{% url 'clips:detail' image.clip.id %}" class="link-light">{{ image.clip.title }}</a></dd>
+            {% endif %}
+            {% if image.clip_image %}
+            <dt class="col-sm-4 text-muted">Capture</dt>
+            <dd class="col-sm-8"><a href="{% url 'clips:image-edit' image.clip_image.id %}" class="link-light">{{ image.clip_image.title }}</a></dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

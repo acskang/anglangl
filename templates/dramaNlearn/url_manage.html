@@ -201,12 +201,17 @@
 }
 .status-chip.ready{color:#86efac;border-color:#14532d}
 .status-chip.fetching{color:#93c5fd;border-color:#1e3a5f}
+.status-chip.queued{color:#c4b5fd;border-color:#4c1d95}
 .status-chip.error{color:#fca5a5;border-color:#7f1d1d}
+.status-chip.canceled{color:#fcd34d;border-color:#92400e}
 .row-actions{
   display:flex;
   gap:.45rem;
   flex-wrap:nowrap;
   align-items:center;
+}
+.row-actions form{
+  margin:0;
 }
 .row-actions .manage-btn{
   padding:.52rem .82rem;
@@ -267,14 +272,23 @@
           </td>
           <td>
             <span class="status-chip {{ v.status }}">
-              {% if v.status == 'ready' %}READY{% elif v.status == 'fetching' %}FETCHING{% elif v.status == 'error' %}ERROR{% else %}PENDING{% endif %}
+              {% if v.status == 'ready' %}READY{% elif v.status == 'fetching' %}FETCHING{% elif v.status == 'queued' %}QUEUED{% elif v.status == 'error' %}ERROR{% else %}PENDING{% endif %}
             </span>
             <div style="margin-top:.35rem;color:var(--muted)">{{ v.created_at|date:"Y-m-d H:i" }}</div>
+            {% if v.latest_job %}
+            <div style="margin-top:.35rem;color:var(--muted)" data-job-message>{{ v.latest_job.message }}</div>
+            <div style="margin-top:.25rem;color:#cbd5e1" data-job-progress>{{ v.latest_job.progress_percent }}%</div>
+            {% else %}
+            <div style="margin-top:.35rem;color:var(--muted)" data-job-message></div>
+            <div style="margin-top:.25rem;color:#cbd5e1" data-job-progress></div>
+            {% endif %}
             {% if v.error_msg %}
-            <div style="margin-top:.35rem;color:#fca5a5">{{ v.error_msg }}</div>
+            <div style="margin-top:.35rem;color:#fca5a5" data-video-error>{{ v.error_msg }}</div>
+            {% else %}
+            <div style="margin-top:.35rem;color:#fca5a5" data-video-error></div>
             {% endif %}
           </td>
-          <td>{% if v.duration %}{{ v.duration_str }}{% else %}-{% endif %}</td>
+          <td data-video-duration>{% if v.duration %}{{ v.duration_str }}{% else %}-{% endif %}</td>
           <td>
             <div class="thumb-mini" {% if v.status == 'ready' %}onclick="openThumbnailPicker({{ v.id }})"{% endif %}>
               {% if v.thumbnail %}<img src="{{ v.thumbnail }}" alt="{{ v.title }}" data-thumb-preview>{% else %}<span data-thumb-empty>없음</span>{% endif %}
@@ -292,7 +306,19 @@
               {% if v.status == 'ready' %}
               <button class="manage-btn secondary" type="button" onclick="location.href='{% url 'dramaNlearn:player' v.id %}'">재생</button>
               {% endif %}
-              <button class="manage-btn warn" type="button" onclick="deleteManageVideo({{ v.id }}, this)">삭제</button>
+              <button class="manage-btn secondary" type="button" onclick="refreshManageVideo({{ v.id }}, this)">재추출</button>
+              {% if v.status == 'error' %}
+              <button class="manage-btn secondary" type="button" onclick="retryManageVideo({{ v.id }}, this)">재시도</button>
+              {% endif %}
+              {% if v.status == 'queued' %}
+              <button class="manage-btn secondary" type="button" onclick="cancelManageVideo({{ v.id }}, this)">취소</button>
+              {% endif %}
+              <a class="manage-btn secondary" href="{% url 'workers:drama-video-job-history' v.id %}" style="text-decoration:none">이력</a>
+              <form method="post" action="{% url 'dramaNlearn:delete_video' v.id %}" onsubmit="return confirm('이 URL을 삭제하시겠습니까?');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'dramaNlearn:url_manage' %}">
+                <button class="manage-btn warn" type="submit">삭제</button>
+              </form>
             </div>
           </td>
         </tr>
@@ -313,7 +339,9 @@ var CSRF = '{{ csrf_token }}';
 var TITLE_URL_TEMPLATE = "{% url 'dramaNlearn:update_title' 999999 %}";
 var THUMBNAIL_URL_TEMPLATE = "{% url 'dramaNlearn:update_thumbnail' 999999 %}";
 var REFRESH_URL_TEMPLATE = "{% url 'dramaNlearn:refresh_video' 999999 %}";
-var DELETE_URL_TEMPLATE = "{% url 'dramaNlearn:delete_video' 999999 %}";
+var RETRY_URL_TEMPLATE = "{% url 'dramaNlearn:retry_video' 999999 %}";
+var CANCEL_URL_TEMPLATE = "{% url 'dramaNlearn:cancel_video' 999999 %}";
+var STATUS_URL_TEMPLATE = "{% url 'dramaNlearn:api_video_status' 999999 %}";
 var manageUrlList = document.getElementById('manageUrlList');
 var manageStatus = document.getElementById('manageStatus');
 var manageSubmitBtn = document.getElementById('manageSubmitBtn');
@@ -547,8 +575,8 @@ function refreshManageVideo(videoId, btn) {
   .then(function(data) {
     btn.disabled = false;
     if (data.ok) {
-      showToast('URL이 갱신되었습니다.', 'ok');
-      setTimeout(function() { location.reload(); }, 600);
+      showToast('재추출 작업이 큐에 등록되었습니다.', 'ok');
+      startVideoStatusPolling(videoId);
     } else {
       showToast(data.error || '갱신에 실패했습니다.', 'err');
     }
@@ -559,22 +587,133 @@ function refreshManageVideo(videoId, btn) {
   });
 }
 
-function deleteManageVideo(videoId, btn) {
-  if (!confirm('이 URL을 삭제하시겠습니까?')) {
+function formatDramaDuration(seconds) {
+  if (!seconds) {
+    return '-';
+  }
+  var total = Math.max(0, Math.floor(seconds));
+  var s = total % 60;
+  var m = Math.floor(total / 60) % 60;
+  var h = Math.floor(total / 3600);
+  if (h) {
+    return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function updateVideoRowStatus(videoId, payload) {
+  var row = document.querySelector('tr[data-video-id="' + String(videoId) + '"]');
+  if (!row) {
     return;
   }
-  fetch(DELETE_URL_TEMPLATE.replace('999999', videoId), {
+  var chip = row.querySelector('.status-chip');
+  if (chip) {
+    chip.className = 'status-chip ' + (payload.status || 'pending');
+    if (payload.status === 'ready') {
+      chip.textContent = 'READY';
+    } else if (payload.status === 'fetching') {
+      chip.textContent = 'FETCHING';
+    } else if (payload.status === 'queued') {
+      chip.textContent = 'QUEUED';
+    } else if (payload.status === 'canceled') {
+      chip.textContent = 'CANCELED';
+    } else if (payload.status === 'error') {
+      chip.textContent = 'ERROR';
+    } else {
+      chip.textContent = 'PENDING';
+    }
+  }
+  var duration = row.querySelector('[data-video-duration]');
+  if (duration) {
+    duration.textContent = formatDramaDuration(payload.duration);
+  }
+  var jobMessage = row.querySelector('[data-job-message]');
+  if (jobMessage) {
+    jobMessage.textContent = (payload.job && payload.job.message) || '';
+  }
+  var jobProgress = row.querySelector('[data-job-progress]');
+  if (jobProgress) {
+    jobProgress.textContent = (payload.job && payload.job.progress_percent >= 0) ? (payload.job.progress_percent + '%') : '';
+  }
+  var errorBox = row.querySelector('[data-video-error]');
+  if (errorBox) {
+    errorBox.textContent = payload.error || (payload.job && payload.job.error_message) || '';
+  }
+}
+
+function shouldContinuePolling(payload) {
+  return payload.status === 'queued' || payload.status === 'fetching' || (payload.job && (payload.job.status === 'queued' || payload.job.status === 'processing' || payload.job.status === 'pending'));
+}
+
+function cancelManageVideo(videoId, btn) {
+  btn.disabled = true;
+  fetch(CANCEL_URL_TEMPLATE.replace('999999', videoId), {
     method: 'POST',
     headers: {'X-CSRFToken': CSRF}
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
+    btn.disabled = false;
     if (data.ok) {
-      showToast('삭제되었습니다.', 'ok');
-      btn.closest('tr').remove();
+      showToast('대기 중 추출 작업을 취소했습니다.', 'ok');
+      startVideoStatusPolling(videoId);
     } else {
-      showToast(data.error || '삭제에 실패했습니다.', 'err');
+      showToast(data.error || '작업 취소에 실패했습니다.', 'err');
     }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    showToast('오류: ' + e.message, 'err');
+  });
+}
+
+function startVideoStatusPolling(videoId) {
+  var attempts = 0;
+  function poll() {
+    attempts += 1;
+    fetch(STATUS_URL_TEMPLATE.replace('999999', videoId))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        updateVideoRowStatus(videoId, data);
+        if (shouldContinuePolling(data) && attempts < 90) {
+          setTimeout(poll, 2000);
+          return;
+        }
+        if (data.status === 'ready') {
+          showToast('영상 추출이 완료되었습니다.', 'ok');
+          setTimeout(function() { location.reload(); }, 800);
+        } else if (data.status === 'error') {
+          showToast(data.error || '추출에 실패했습니다.', 'err');
+        }
+      })
+      .catch(function() {
+        if (attempts < 90) {
+          setTimeout(poll, 3000);
+        }
+      });
+  }
+  poll();
+}
+
+function retryManageVideo(videoId, btn) {
+  btn.disabled = true;
+  fetch(RETRY_URL_TEMPLATE.replace('999999', videoId), {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    if (data.ok) {
+      showToast('재시도 작업이 큐에 등록되었습니다.', 'ok');
+      startVideoStatusPolling(videoId);
+    } else {
+      showToast(data.error || '재시도에 실패했습니다.', 'err');
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    showToast('오류: ' + e.message, 'err');
   });
 }
 
@@ -603,8 +742,8 @@ manageSubmitBtn.addEventListener('click', function() {
       manageSubmitBtn.disabled = false;
       var data = response.data;
       if (data.ok) {
-        manageStatus.textContent = '새로 저장 ' + (data.success_count || 0) + '개, 중복 ' + (data.existing_count || 0) + '개, 실패 ' + (data.failed_count || 0) + '개';
-        showToast('URL 저장 작업이 완료되었습니다.', 'ok');
+        manageStatus.textContent = '새로 등록 ' + (data.success_count || 0) + '개, 중복 ' + (data.existing_count || 0) + '개, 실패 ' + (data.failed_count || 0) + '개';
+        showToast('URL 추출 작업이 큐에 등록되었습니다.', 'ok');
         ensureManageRows([{}]);
         setTimeout(function() { location.reload(); }, 800);
       } else {
@@ -626,5 +765,15 @@ manageClearBtn.addEventListener('click', function() {
 });
 
 ensureManageRows([{}]);
+Array.prototype.forEach.call(document.querySelectorAll('tr[data-video-id]'), function(row) {
+  var videoId = row.getAttribute('data-video-id');
+  var chip = row.querySelector('.status-chip');
+  if (!videoId || !chip) {
+    return;
+  }
+  if (chip.classList.contains('queued') || chip.classList.contains('fetching')) {
+    startVideoStatusPolling(videoId);
+  }
+});
 </script>
 {% endblock %}

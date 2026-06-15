@@ -1,0 +1,41 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Upload Album Image{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:760px;padding:2.5rem 1rem 3rem">
+  <div class="mb-4">
+    <div class="small text-uppercase text-muted" style="letter-spacing:.16em">Album</div>
+    <h1 class="display-6 text-light mb-2">Upload Image</h1>
+    <p class="text-muted mb-0">외부 이미지를 앨범에 추가합니다.</p>
+  </div>
+
+  <div class="card bg-dark border-secondary">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.title.id_for_label }}">Title</label>
+          {{ form.title }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.description.id_for_label }}">Description</label>
+          {{ form.description }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.tags.id_for_label }}">Tags</label>
+          {{ form.tags }}
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-light" for="{{ form.image.id_for_label }}">Image</label>
+          {{ form.image }}
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn btn-primary">Upload</button>
+          <a href="{% url 'dashboard:home' %}" class="btn btn-outline-light">Back to Dashboard</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

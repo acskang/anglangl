@@ -1,0 +1,51 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Clip Image{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:960px;padding:2.5rem 1rem 3rem">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+      <div class="small text-uppercase text-muted" style="letter-spacing:.16em">Clip Image</div>
+      <h1 class="h3 mb-2 text-light">{{ image.title }}</h1>
+      <p class="text-muted mb-0">캡처 이미지를 수정하거나 삭제합니다.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'clips:detail' image.clip.id %}" class="btn btn-outline-light">Back to Clip</a>
+      <form method="post" action="{% url 'clips:image-delete' image.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('이 캡처 이미지를 삭제하시겠습니까?');">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="card bg-dark border-secondary">
+        <div class="card-body">
+          <img src="{{ image.image.url }}" alt="{{ image.title }}" class="img-fluid rounded">
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-5">
+      <div class="card bg-dark border-secondary">
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label text-light" for="{{ form.title.id_for_label }}">Title</label>
+              {{ form.title }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-light" for="{{ form.description.id_for_label }}">Description</label>
+              {{ form.description }}
+            </div>
+            <div class="small text-muted mb-3">Captured at {{ image.capture_time_seconds|floatformat:1 }}s</div>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

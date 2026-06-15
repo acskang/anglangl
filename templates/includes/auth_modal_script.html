@@ -1,0 +1,337 @@
+<script>
+(function() {
+  function readCsrfToken() {
+    if (typeof window.getCsrfToken === "function") {
+      return window.getCsrfToken();
+    }
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content && meta.content !== "NOTPROVIDED") {
+      return meta.content;
+    }
+    var input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (input && input.value && input.value !== "NOTPROVIDED") {
+      return input.value;
+    }
+    return "";
+  }
+
+  function showAuthToast(message, type) {
+    if (typeof window.toast === "function") {
+      window.toast(message, type);
+      return;
+    }
+    if (typeof window.showToast === "function") {
+      window.showToast(message, type);
+    }
+  }
+
+  function parseNextFromHref(href) {
+    if (!href) {
+      return "";
+    }
+    try {
+      var parsed = new URL(href, window.location.origin);
+      return parsed.searchParams.get("next") || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  var authBackdrop = document.getElementById("authModalBackdrop");
+  var logoutBackdrop = document.getElementById("logoutModalBackdrop");
+  var loginForm = document.getElementById("loginModalForm");
+  var signupForm = document.getElementById("signupModalForm");
+  var logoutForm = document.getElementById("logoutModalForm");
+  var loginError = document.getElementById("loginAuthError");
+  var signupError = document.getElementById("signupAuthError");
+  var loginHint = document.getElementById("loginSignupHint");
+
+  function toggleBodyScroll(forceOpen) {
+    document.body.classList.toggle("auth-modal-open", Boolean(forceOpen));
+  }
+
+  function setAlert(element, message) {
+    if (!element) {
+      return;
+    }
+    if (message) {
+      element.textContent = message;
+      element.classList.add("is-visible");
+    } else {
+      element.textContent = "";
+      element.classList.remove("is-visible");
+    }
+  }
+
+  function setHintVisible(visible) {
+    if (!loginHint) {
+      return;
+    }
+    loginHint.classList.toggle("is-visible", Boolean(visible));
+  }
+
+  function syncNextValue(nextValue) {
+    if (loginForm && loginForm.elements.next) {
+      loginForm.elements.next.value = nextValue;
+    }
+    if (signupForm && signupForm.elements.next) {
+      signupForm.elements.next.value = nextValue;
+    }
+  }
+
+  function switchAuthPanel(mode) {
+    if (!authBackdrop) {
+      return;
+    }
+    authBackdrop.dataset.authMode = mode;
+    document.querySelectorAll(".auth-modal-tab[data-auth-switch]").forEach(function(button) {
+      button.classList.toggle("is-active", button.dataset.authSwitch === mode);
+    });
+    document.querySelectorAll("[data-auth-panel]").forEach(function(panel) {
+      panel.classList.toggle("is-active", panel.dataset.authPanel === mode);
+    });
+    if (mode === "login") {
+      setAlert(signupError, "");
+    } else {
+      setAlert(loginError, "");
+      setHintVisible(false);
+    }
+  }
+
+  function openAuthModal(mode, nextValue) {
+    if (!authBackdrop) {
+      return;
+    }
+    switchAuthPanel(mode || authBackdrop.dataset.authMode || "login");
+    syncNextValue(nextValue || authBackdrop.dataset.authNext || window.location.pathname + window.location.search);
+    authBackdrop.classList.add("is-open");
+    authBackdrop.setAttribute("aria-hidden", "false");
+    toggleBodyScroll(true);
+  }
+
+  function closeAuthModal() {
+    if (!authBackdrop) {
+      return;
+    }
+    if (authBackdrop.dataset.authRoute === "1") {
+      window.location.href = authBackdrop.dataset.authCancelUrl || "/";
+      return;
+    }
+    authBackdrop.classList.remove("is-open");
+    authBackdrop.setAttribute("aria-hidden", "true");
+    toggleBodyScroll(false);
+    setAlert(loginError, "");
+    setAlert(signupError, "");
+    setHintVisible(false);
+  }
+
+  function openLogoutModal() {
+    if (!logoutBackdrop) {
+      return;
+    }
+    logoutBackdrop.classList.add("is-open");
+    logoutBackdrop.setAttribute("aria-hidden", "false");
+    toggleBodyScroll(true);
+  }
+
+  function closeLogoutModal() {
+    if (!logoutBackdrop) {
+      return;
+    }
+    logoutBackdrop.classList.remove("is-open");
+    logoutBackdrop.setAttribute("aria-hidden", "true");
+    toggleBodyScroll(false);
+  }
+
+  function withBusyState(form, busy) {
+    if (!form) {
+      return;
+    }
+    form.querySelectorAll("button").forEach(function(button) {
+      button.disabled = busy;
+    });
+  }
+
+  function handleAuthResponse(data, mode) {
+    if (!data || !data.ok) {
+      var message = (data && data.error) || "인증을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
+      if (mode === "signup") {
+        setAlert(signupError, message);
+      } else {
+        setAlert(loginError, message);
+        setHintVisible(Boolean(data && data.suggest_signup));
+      }
+      return;
+    }
+    showAuthToast(data.message || (mode === "signup" ? "회원가입이 완료되었습니다." : "로그인되었습니다."), "success");
+    window.location.href = data.redirect_url || "/";
+  }
+
+  function submitAuthForm(form, mode) {
+    if (!form) {
+      return;
+    }
+    withBusyState(form, true);
+    if (mode === "login") {
+      setAlert(loginError, "");
+      setHintVisible(false);
+    } else {
+      setAlert(signupError, "");
+    }
+    fetch(form.action, {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "X-CSRFToken": readCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new FormData(form),
+      credentials: "same-origin"
+    })
+      .then(function(response) {
+        return response.json().catch(function() {
+          return {ok: false, error: "서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해주세요."};
+        });
+      })
+      .then(function(data) {
+        handleAuthResponse(data, mode);
+      })
+      .catch(function() {
+        handleAuthResponse({ok: false, error: "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."}, mode);
+      })
+      .finally(function() {
+        withBusyState(form, false);
+      });
+  }
+
+  function submitLogoutForm(form) {
+    if (!form) {
+      return;
+    }
+    withBusyState(form, true);
+    fetch(form.action, {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "X-CSRFToken": readCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new FormData(form),
+      credentials: "same-origin"
+    })
+      .then(function(response) {
+        return response.json().catch(function() {
+          return {ok: false, error: "로그아웃을 처리하지 못했습니다."};
+        });
+      })
+      .then(function(data) {
+        if (!data || !data.ok) {
+          showAuthToast((data && data.error) || "로그아웃을 처리하지 못했습니다.", "error");
+          return;
+        }
+        showAuthToast(data.message || "로그아웃되었습니다.", "success");
+        window.location.href = data.redirect_url || "/";
+      })
+      .catch(function() {
+        showAuthToast("로그아웃을 처리하지 못했습니다.", "error");
+      })
+      .finally(function() {
+        withBusyState(form, false);
+      });
+  }
+
+  document.addEventListener("click", function(event) {
+    var authTrigger = event.target.closest("[data-auth-open]");
+    if (authTrigger && authBackdrop) {
+      event.preventDefault();
+      openAuthModal(
+        authTrigger.dataset.authOpen || "login",
+        authTrigger.dataset.next || parseNextFromHref(authTrigger.getAttribute("href"))
+      );
+      return;
+    }
+
+    if (event.target.closest("[data-auth-close]")) {
+      event.preventDefault();
+      closeAuthModal();
+      return;
+    }
+
+    var authSwitch = event.target.closest("[data-auth-switch]");
+    if (authSwitch && authBackdrop) {
+      event.preventDefault();
+      switchAuthPanel(authSwitch.dataset.authSwitch || "login");
+      return;
+    }
+
+    if (authBackdrop && event.target === authBackdrop) {
+      closeAuthModal();
+      return;
+    }
+
+    var logoutTrigger = event.target.closest("[data-logout-open]");
+    if (logoutTrigger && logoutBackdrop) {
+      event.preventDefault();
+      openLogoutModal();
+      return;
+    }
+
+    if (event.target.closest("[data-logout-close]")) {
+      event.preventDefault();
+      closeLogoutModal();
+      return;
+    }
+
+    if (logoutBackdrop && event.target === logoutBackdrop) {
+      closeLogoutModal();
+    }
+  });
+
+  document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") {
+      return;
+    }
+    if (logoutBackdrop && logoutBackdrop.classList.contains("is-open")) {
+      closeLogoutModal();
+      return;
+    }
+    if (authBackdrop && authBackdrop.classList.contains("is-open")) {
+      closeAuthModal();
+    }
+  });
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+      submitAuthForm(loginForm, "login");
+    });
+  }
+
+  if (signupForm) {
+    signupForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+      submitAuthForm(signupForm, "signup");
+    });
+  }
+
+  if (logoutForm) {
+    logoutForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+      submitLogoutForm(logoutForm);
+    });
+  }
+
+  if (authBackdrop && authBackdrop.classList.contains("is-open")) {
+    toggleBodyScroll(true);
+    switchAuthPanel(authBackdrop.dataset.authMode || "login");
+  }
+
+  if (authBackdrop && !authBackdrop.classList.contains("is-open")) {
+    var params = new URLSearchParams(window.location.search);
+    var authMode = params.get("auth");
+    if (authMode === "login" || authMode === "signup") {
+      openAuthModal(authMode, params.get("next") || "");
+    }
+  }
+})();
+</script>

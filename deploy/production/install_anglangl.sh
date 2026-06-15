@@ -6,7 +6,7 @@ ENV_FILE="/etc/anglangl/anglangl.env"
 PYTHON_BIN="${PYTHON_BIN:-/home/cskang/miniconda3/envs/dj5/bin/python}"
 PUBLIC_DOMAIN="${ANGLANGL_PUBLIC_DOMAIN:-anglangl.thesysm.com}"
 USE_SQLITE_FALLBACK="${ANGLANGL_USE_SQLITE:-0}"
-THEPEACH_PUBLIC_DOMAIN="${THEPEACH_PUBLIC_DOMAIN:-thepeach.thesysm.com}"
+THEPEACH_PUBLIC_DOMAIN="${THEPEACH_PUBLIC_DOMAIN:-peach.thesysm.com}"
 THEPEACH_ORIGIN_BASE_URL="${THEPEACH_ORIGIN_BASE_URL:-http://127.0.0.1}"
 
 cd "$ROOT_DIR"
@@ -51,6 +51,8 @@ DJANGO_SECURE_SSL_REDIRECT=true
 ${database_block}
 CELERY_BROKER_URL=redis://127.0.0.1:6379/0
 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1
+CELERY_QUEUES=default,youtube_download,clip_extract,clip_upload_process
+CELERY_LOG_LEVEL=INFO
 STATIC_URL=/static/
 STATIC_ROOT=${ROOT_DIR}/staticfiles
 MEDIA_URL=/media/
@@ -66,6 +68,7 @@ EOF
 fi
 
 sudo install -m 644 -o root -g root deploy/production/gunicorn_anglangl.service /etc/systemd/system/gunicorn_anglangl.service
+sudo install -m 644 -o root -g root deploy/production/celery_anglangl.service /etc/systemd/system/celery_anglangl.service
 sudo install -m 644 -o root -g root deploy/production/nginx_anglangl.conf /etc/nginx/sites-available/anglangl
 sudo ln -sfn /etc/nginx/sites-available/anglangl /etc/nginx/sites-enabled/anglangl
 
@@ -117,7 +120,10 @@ sudo systemctl daemon-reload
 sudo systemctl disable --now gunicorn_anglangl.socket 2>/dev/null || true
 sudo rm -f /etc/systemd/system/gunicorn_anglangl.socket /etc/systemd/system/sockets.target.wants/gunicorn_anglangl.socket
 sudo rm -f /run/gunicorn_anglangl.sock
-sudo systemctl enable --now gunicorn_anglangl.service
+sudo systemctl enable gunicorn_anglangl.service
+sudo systemctl restart gunicorn_anglangl.service
+sudo systemctl enable celery_anglangl.service
+sudo systemctl restart celery_anglangl.service
 sudo nginx -t
 sudo systemctl restart nginx
 sudo systemctl restart cloudflared

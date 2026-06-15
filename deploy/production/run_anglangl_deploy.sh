@@ -6,7 +6,7 @@ ENV_FILE="/etc/anglangl/anglangl.env"
 PYTHON_BIN="${PYTHON_BIN:-/home/cskang/miniconda3/envs/dj5/bin/python}"
 PUBLIC_DOMAIN="${ANGLANGL_PUBLIC_DOMAIN:-anglangl.thesysm.com}"
 USE_SQLITE_FALLBACK="${ANGLANGL_USE_SQLITE:-0}"
-THEPEACH_PUBLIC_DOMAIN="${THEPEACH_PUBLIC_DOMAIN:-thepeach.thesysm.com}"
+THEPEACH_PUBLIC_DOMAIN="${THEPEACH_PUBLIC_DOMAIN:-peach.thesysm.com}"
 THEPEACH_ORIGIN_BASE_URL="${THEPEACH_ORIGIN_BASE_URL:-http://127.0.0.1}"
 
 cd "$ROOT_DIR"
@@ -39,6 +39,8 @@ DJANGO_SECURE_SSL_REDIRECT=true
 ${database_block}
 CELERY_BROKER_URL=redis://127.0.0.1:6379/0
 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1
+CELERY_QUEUES=default,youtube_download,clip_extract,clip_upload_process
+CELERY_LOG_LEVEL=INFO
 STATIC_URL=/static/
 STATIC_ROOT=${ROOT_DIR}/staticfiles
 MEDIA_URL=/media/

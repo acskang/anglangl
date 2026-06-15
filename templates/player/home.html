@@ -79,6 +79,29 @@
   border:0;
   background:#000;
 }
+.player-subtitle-overlay{
+  position:absolute;
+  left:5%;
+  right:5%;
+  bottom:8%;
+  z-index:25;
+  display:none;
+  justify-content:center;
+  pointer-events:none;
+}
+.player-subtitle-overlay-text{
+  max-width:100%;
+  padding:.3rem .6rem;
+  border-radius:10px;
+  background:rgba(0,0,0,.48);
+  color:#fff;
+  font-size:var(--cue-size, 22px);
+  line-height:1.45;
+  font-weight:700;
+  text-align:center;
+  white-space:pre-line;
+  text-shadow:0 2px 10px rgba(0,0,0,.55);
+}
 #playerLoadOverlay,
 #playerLockOverlay,
 #playerEmptyOverlay{
@@ -178,9 +201,23 @@
 }
 .ctrl-btn:hover{border-color:var(--acc);color:var(--acc)}
 .ctrl-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.ctrl-btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  color:var(--muted);
+  border-color:var(--border);
+}
 .ctrl-btn.is-busy{
   opacity:.7;
   cursor:progress;
+}
+.embed-note-bar{
+  gap:.75rem;
+}
+.embed-note-text{
+  color:var(--muted);
+  font-size:.78rem;
+  line-height:1.6;
 }
 .ctrl-sep{width:1px;height:22px;background:var(--border)}
 .speed-select{
@@ -302,6 +339,43 @@
   font-size:.78rem;
   line-height:1.55;
 }
+.media-search-mode{
+  display:flex;
+  gap:.7rem;
+  flex-wrap:wrap;
+}
+.media-search-mode-option{
+  position:relative;
+}
+.media-search-mode-option input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.media-search-mode-option label{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:108px;
+  padding:.68rem .95rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.03);
+  color:var(--muted);
+  font-size:.8rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+.media-search-mode-option input:checked + label{
+  border-color:rgba(123, 92, 255, .55);
+  background:linear-gradient(135deg, rgba(255,79,129,.22), rgba(91,108,255,.22));
+  color:#fff;
+}
+.media-search-mode-option label:hover{
+  border-color:rgba(123, 92, 255, .35);
+  color:#fff;
+}
 .movie-search-feedback{
   display:none;
   padding:.8rem .9rem;
@@ -330,6 +404,14 @@
   display:grid;
   gap:.6rem;
 }
+.movie-search-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:.85rem;
+}
+.movie-search-section-grid.is-quad{
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+}
 .movie-search-section-title{
   margin:0;
   font-size:.82rem;
@@ -340,29 +422,117 @@
 }
 .movie-search-card{
   display:grid;
-  grid-template-columns:88px minmax(0, 1fr);
-  gap:.85rem;
-  padding:.85rem;
+  gap:.7rem;
+  padding:1rem;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.08);
   background:rgba(255,255,255,.03);
 }
 .movie-search-card img{
-  width:88px;
-  height:124px;
+  width:100%;
+  height:280px;
   object-fit:cover;
-  border-radius:10px;
+  border-radius:12px;
   background:rgba(255,255,255,.05);
 }
 .movie-search-card-body{
   min-width:0;
   display:grid;
-  gap:.45rem;
+  gap:.3rem;
 }
 .movie-search-card-title{
-  font-size:.98rem;
+  font-size:1rem;
   font-weight:700;
   line-height:1.35;
+  text-align:center;
+}
+.drama-detail-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  flex-wrap:wrap;
+}
+.drama-detail-title{
+  margin:0;
+  font-size:1rem;
+  font-weight:700;
+  color:var(--text);
+}
+.drama-back-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.45rem .8rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  font-size:.76rem;
+  font-weight:700;
+  cursor:pointer;
+}
+.drama-season-list{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+}
+.drama-season-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.52rem .78rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.03);
+  color:var(--muted);
+  font-size:.76rem;
+  font-weight:700;
+  cursor:pointer;
+}
+.drama-season-btn.active{
+  border-color:rgba(123,92,255,.55);
+  background:linear-gradient(135deg, rgba(255,79,129,.22), rgba(91,108,255,.22));
+  color:#fff;
+}
+.drama-episode-list{
+  display:grid;
+  gap:.6rem;
+}
+.drama-episode-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.8rem;
+  padding:.85rem .95rem;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+.drama-episode-label{
+  color:var(--text);
+  font-size:.86rem;
+  line-height:1.45;
+}
+.drama-episode-play{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:84px;
+  padding:.5rem .8rem;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  text-decoration:none;
+  font-size:.76rem;
+  font-weight:700;
+}
+.drama-episode-play:hover,
+.drama-back-btn:hover,
+.drama-season-btn:hover{
+  border-color:var(--acc);
+  color:var(--acc);
 }
 .movie-search-card-meta{
   color:var(--muted);
@@ -507,10 +677,12 @@
   .movie-search-card{
     grid-template-columns:1fr;
   }
+  .movie-search-section-grid.is-quad{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
   .movie-search-card img{
     width:100%;
-    max-width:132px;
-    height:auto;
+    height:260px;
   }
 }
 </style>
@@ -528,7 +700,19 @@
       {% endif %}
     </h1>
     <div class="player-page-actions">
-      <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#movieSearchModal">영화보기</button>
+      {% if selected_item %}
+        {% if selected_kind == "clip" %}
+          <a class="ctrl-btn" href="{% url 'study:create' %}?source_type=clip&clip_id={{ selected_item.id }}">학습 자료 만들기</a>
+        {% elif selected_kind == "video" %}
+          <a class="ctrl-btn" href="{% url 'study:create' %}?source_type=master_video&master_video_id={{ selected_item.id }}">학습 자료 만들기</a>
+        {% elif selected_kind == "m3u8" %}
+          <a class="ctrl-btn" href="{% url 'study:create' %}?source_type=drama_video&drama_video_id={{ selected_item.id }}">학습 자료 만들기</a>
+        {% elif selected_kind == "movie" %}
+          <a class="ctrl-btn" href="{% url 'study:create' %}?source_type=movie&imdb={{ selected_item.imdb_code|urlencode }}&title={{ selected_item.title|urlencode }}">학습 자료 만들기</a>
+        {% endif %}
+      {% endif %}
+      <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#movieSearchModal">영상찾기</button>
+      <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#imdbListModal">IMDB</button>
       <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#videoListModal">video</button>
       <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#clipListModal">clip</button>
       <button class="ctrl-btn" type="button" data-bs-toggle="modal" data-bs-target="#m3u8ListModal">HLS</button>
@@ -536,9 +720,21 @@
     </div>
   </div>
 
-  <div class="player-ratio">
-    <video id="playerVideoEl" controls playsinline crossorigin="anonymous"></video>
-    <iframe id="playerMovieFrame" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+  {% if player_notice_message %}
+  <div class="movie-search-feedback show is-info" style="margin-bottom:1rem;">{{ player_notice_message }}</div>
+  {% endif %}
+
+  <div class="player-ratio" id="playerRatioEl">
+    <video id="playerVideoEl" controls playsinline crossorigin="anonymous" controlsList="nofullscreen"></video>
+    <iframe
+      id="playerMovieFrame"
+      allowfullscreen
+      referrerpolicy="no-referrer"
+      allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+    ></iframe>
+    <div class="player-subtitle-overlay" id="playerSubtitleOverlay" aria-hidden="true">
+      <div class="player-subtitle-overlay-text" id="playerSubtitleOverlayText"></div>
+    </div>
 
     <div id="playerLoadOverlay">
       <div class="player-spinner"></div>
@@ -552,8 +748,8 @@
 
     {% if not selected_item %}
     <div id="playerEmptyOverlay">
-      <h2 style="margin:0;color:var(--text);font-size:1.1rem;">재생할 영상이 없습니다.</h2>
-      <p style="margin:0;color:var(--muted);font-size:.84rem;">이 프로젝트는 장기적으로 HLS(m3u8)를 우선합니다. `HLS`, `video`, `clip` 목록에서 재생 가능한 항목을 선택하세요.</p>
+      <h2 style="margin:0;color:var(--text);font-size:1.1rem;">{{ player_empty_title }}</h2>
+      <p style="margin:0;color:var(--muted);font-size:.84rem;">{{ player_empty_message }}</p>
     </div>
     {% endif %}
 
@@ -561,11 +757,17 @@
     <div id="playerLockOverlay">
       <h2 style="margin:0;color:var(--text);font-size:1.1rem;">로그인 후 재생할 수 있습니다.</h2>
       <p style="margin:0;color:var(--muted);font-size:.84rem;">리스트와 플레이어 화면은 볼 수 있지만 실제 스트리밍 재생은 로그인한 사용자만 사용할 수 있습니다.</p>
-      <a class="player-cta" href="{% url 'platform_auth:login' %}?next={{ request.get_full_path|urlencode }}">로그인</a>
+      <a class="player-cta" href="{% url 'platform_auth:login' %}?next={{ request.get_full_path|urlencode }}" data-auth-open="login" data-next="{{ request.get_full_path }}">로그인</a>
     </div>
     {% endif %}
   </div>
 
+  {% if player_source_type == "embed" %}
+  <div class="ctrl-bar embed-note-bar">
+    <button class="ctrl-btn" type="button" disabled aria-disabled="true">이미지 저장 불가</button>
+    <span class="embed-note-text">외부 embed 재생은 브라우저 보안 정책 때문에 정지 화면 캡처를 지원하지 않습니다. HLS 또는 로컬 영상 재생에서만 이미지 저장을 사용할 수 있습니다.</span>
+  </div>
+  {% endif %}
   <div class="ctrl-bar" {% if player_source_type == "embed" %}style="display:none;"{% endif %}>
     <button class="ctrl-btn" type="button" onclick="skipTime(-10)">&#8249;&#8249; 10초</button>
     <button class="ctrl-btn" type="button" onclick="skipTime(10)">10초 &#8250;&#8250;</button>
@@ -591,6 +793,12 @@
       <option value="26px">자막 크게</option>
       <option value="30px">자막 매우 크게</option>
     </select>
+    <div class="ctrl-sep" id="playerFullscreenSep"></div>
+    <button class="ctrl-btn" type="button" id="playerFullscreenToggleBtn" onclick="togglePlayerFullscreen()">전체화면</button>
+    <div class="ctrl-sep" id="playerPipSep"></div>
+    <button class="ctrl-btn" type="button" id="playerPipToggleBtn" onclick="togglePictureInPicture()">PiP 켜기</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" type="button" id="playerFrameSaveBtn">이미지 저장</button>
     {% if can_update_thumbnail %}
     <div class="ctrl-sep"></div>
     <button class="ctrl-btn" type="button" id="playerThumbnailCaptureBtn">썸네일 저장</button>
@@ -625,13 +833,13 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title fs-5" id="movieSearchModalLabel">영화보기</h2>
+        <h2 class="modal-title fs-5" id="movieSearchModalLabel">영상찾기</h2>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form class="movie-search-form" action="javascript:void(0);">
           <div>
-            <label class="movie-search-label" for="movieTitleSearchInput">영화 제목</label>
+            <label class="movie-search-label" for="movieTitleSearchInput" id="mediaSearchLabel">영상 제목</label>
             <input
               class="movie-search-input"
               id="movieTitleSearchInput"
@@ -641,9 +849,53 @@
               autocomplete="off"
             >
           </div>
-          <p class="movie-search-help">한글 제목이면 KOBIS로 영문명을 보정한 뒤 YTS 검색까지 이어서 결과를 보여준다.</p>
+          <div class="media-search-mode" role="radiogroup" aria-label="영상 검색 유형">
+            <div class="media-search-mode-option">
+              <input type="radio" id="mediaSearchModeMovie" name="media_search_mode" value="movie" checked>
+              <label for="mediaSearchModeMovie">영화버튼</label>
+            </div>
+            <div class="media-search-mode-option">
+              <input type="radio" id="mediaSearchModeDrama" name="media_search_mode" value="drama">
+              <label for="mediaSearchModeDrama">드라마버튼</label>
+            </div>
+          </div>
+          <p class="movie-search-help" id="mediaSearchHelp">한글 제목이면 KOBIS로 영문명을 보정한 뒤 YTS 검색까지 이어서 결과를 보여준다.</p>
           <div class="movie-search-feedback" id="movieSearchFeedback" aria-live="polite"></div>
           <div class="movie-search-result-list" id="movieSearchResults"></div>
+          <div class="d-flex justify-content-end">
+            <button class="movie-search-submit" type="submit">검색</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade player-modal" id="imdbListModal" tabindex="-1" aria-labelledby="imdbListModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="imdbListModalLabel">IMDB 드라마 선택</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form class="movie-search-form" id="playerImdbSearchForm" action="javascript:void(0);">
+          <div>
+            <label class="movie-search-label" for="playerImdbSearchInput">등록된 IMDb 드라마</label>
+            <input
+              class="movie-search-input"
+              id="playerImdbSearchInput"
+              name="imdb_title"
+              type="text"
+              placeholder="예: The Boys 또는 tt1190634"
+              autocomplete="off"
+            >
+          </div>
+          <p class="movie-search-help">IMDb 화면에서 저장된 드라마만 여기서 검색하고, 시즌/에피소드를 골라 바로 Player로 재생합니다.</p>
+          <div class="movie-search-feedback" id="playerImdbFeedback" aria-live="polite"></div>
+          <div class="movie-search-result-list" id="playerImdbResults">
+            <div class="movie-search-empty">최근 저장된 IMDb 드라마를 불러오는 중입니다.</div>
+          </div>
           <div class="d-flex justify-content-end">
             <button class="movie-search-submit" type="submit">검색</button>
           </div>
@@ -741,6 +993,9 @@ var PLAYER_CAN_PLAY = {% if can_play and selected_item %}true{% else %}false{% e
 var PLAYER_SUBTITLES = {{ subtitle_tracks_json|safe }};
 var PLAYER_PLAYBACK_PROFILE = {{ player_playback_profile_json|safe }};
 var PLAYER_THUMBNAIL_UPDATE_URL = "{% if can_update_thumbnail %}{{ thumbnail_update_url|escapejs }}{% endif %}";
+var PLAYER_IMDB_AUTO_OPEN = {% if player_imdb_auto_open %}true{% else %}false{% endif %};
+var PLAYER_IMDB_AUTO_OPEN_ID = "{{ player_imdb_auto_open_id|escapejs }}";
+var playerRatioEl = document.getElementById('playerRatioEl');
 var playerVideo = document.getElementById('playerVideoEl');
 var playerMovieFrame = document.getElementById('playerMovieFrame');
 var playerLoadOverlay = document.getElementById('playerLoadOverlay');
@@ -756,15 +1011,39 @@ var playerLoopEndInput = document.getElementById('playerLoopEndInput');
 var playerLoopToggleBtn = document.getElementById('playerLoopToggleBtn');
 var playerLoopStatus = document.getElementById('playerLoopStatus');
 var playerThumbnailCaptureBtn = document.getElementById('playerThumbnailCaptureBtn');
+var playerFrameSaveBtn = document.getElementById('playerFrameSaveBtn');
+var playerFullscreenToggleBtn = document.getElementById('playerFullscreenToggleBtn');
+var playerFullscreenSep = document.getElementById('playerFullscreenSep');
+var playerPipToggleBtn = document.getElementById('playerPipToggleBtn');
+var playerPipSep = document.getElementById('playerPipSep');
+var playerSubtitleOverlay = document.getElementById('playerSubtitleOverlay');
+var playerSubtitleOverlayText = document.getElementById('playerSubtitleOverlayText');
 var movieSearchForm = document.querySelector('.movie-search-form');
 var movieSearchInput = document.getElementById('movieTitleSearchInput');
 var movieSearchFeedback = document.getElementById('movieSearchFeedback');
 var movieSearchResults = document.getElementById('movieSearchResults');
+var mediaSearchLabel = document.getElementById('mediaSearchLabel');
+var mediaSearchHelp = document.getElementById('mediaSearchHelp');
+var mediaSearchModeInputs = document.querySelectorAll('input[name="media_search_mode"]');
+var playerImdbModalEl = document.getElementById('imdbListModal');
+var playerImdbSearchForm = document.getElementById('playerImdbSearchForm');
+var playerImdbSearchInput = document.getElementById('playerImdbSearchInput');
+var playerImdbFeedback = document.getElementById('playerImdbFeedback');
+var playerImdbResults = document.getElementById('playerImdbResults');
 var playerHls = null;
 var activeCaptionMode = 'off';
 var loopState = {enabled:false,start:null,end:null};
 var localObjectUrl = null;
-
+var currentDramaSearchPayload = null;
+var currentPlayerImdbPayload = null;
+var playerImdbHasLoaded = false;
+var playerImdbAutoOpenDetailLoaded = false;
+var playerPiPSupported = !!(document.pictureInPictureEnabled && playerVideo && typeof playerVideo.requestPictureInPicture === 'function');
+var documentPiPSupported = !!(window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function');
+var embedPiPWindow = null;
+var videoPiPWindow = null;
+var playerVideoPlaceholder = null;
+var videoPiPSubtitleOverlayText = null;
 function truncateTitle(value) {
   var text = String(value || '');
   if (text.length <= 40) return text;
@@ -792,43 +1071,67 @@ function setMovieSearchFeedback(message, type) {
   movieSearchFeedback.classList.add(type === 'error' ? 'is-error' : 'is-info');
 }
 
-function buildMovieLink(url, label) {
-  if (!url) return '';
-  return '<a class="movie-search-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label) + '</a>';
+function getSelectedMediaSearchMode() {
+  var checked = document.querySelector('input[name="media_search_mode"]:checked');
+  return checked ? checked.value : 'movie';
 }
 
-function buildMoviePlayLink(item) {
+function updateMediaSearchModeUI() {
+  var mode = getSelectedMediaSearchMode();
+  if (mediaSearchLabel) {
+    mediaSearchLabel.textContent = mode === 'drama' ? '드라마 제목' : '영상 제목';
+  }
+  if (movieSearchInput) {
+    movieSearchInput.placeholder = mode === 'drama'
+      ? '예: The Last of Us, 폭싹 속았수다, Reacher'
+      : '예: 기생충, 인터스텔라, Inception';
+  }
+  if (mediaSearchHelp) {
+    mediaSearchHelp.textContent = mode === 'drama'
+      ? '드라마 제목을 입력하면 ytstv 기준 검색 결과를 이 모달 안에 보여준다.'
+      : '한글 제목이면 KOBIS로 영문명을 보정한 뒤 YTS 검색까지 이어서 결과를 보여준다.';
+  }
+  if (movieSearchResults) movieSearchResults.innerHTML = '';
+  setMovieSearchFeedback('', 'info');
+}
+
+function buildMoviePlayHref(item) {
   if (!item || !item.imdb_code) return '';
-  var href = '{% url "player" %}?source=movie&imdb='
+  return '{% url "player" %}?source=movie&imdb='
     + encodeURIComponent(item.imdb_code)
     + '&title=' + encodeURIComponent(item.title || '영화 시청');
-  return '<a class="movie-search-link" href="' + escapeHtml(href) + '">플레이</a>';
+}
+
+function buildDramaPlayHref(item) {
+  if (!item || !item.embed_url) return '';
+  return '{% url "player" %}?source=drama&embed='
+    + encodeURIComponent(item.embed_url)
+    + '&title=' + encodeURIComponent(item.title || '드라마 시청');
 }
 
 function renderMovieCards(title, items) {
   if (!items || !items.length) return '';
+  var gridClass = 'movie-search-section-grid' + (items.length >= 9 ? ' is-quad' : '');
   return '<section class="movie-search-section">'
     + '<h3 class="movie-search-section-title">' + escapeHtml(title) + '</h3>'
+    + '<div class="' + gridClass + '">'
     + items.map(function(item) {
-      var year = item.year ? String(item.year) : '연도 미상';
-      var imdbCode = item.imdb_code ? 'IMDB ' + item.imdb_code : '';
-      var genres = Array.isArray(item.genres) && item.genres.length ? item.genres.join(', ') : '';
-      var summary = item.summary ? escapeHtml(item.summary) : '';
       var thumbnail = item.large_cover || item.thumbnail || '';
+      var playHref = buildMoviePlayHref(item);
       return '<article class="movie-search-card">'
-        + '<div>' + (thumbnail ? '<img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(item.title || 'movie cover') + '">' : '') + '</div>'
+        + '<div>'
+        + (thumbnail
+          ? (playHref
+              ? '<a href="' + escapeHtml(playHref) + '"><img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(item.title || 'movie cover') + '"></a>'
+              : '<img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(item.title || 'movie cover') + '">')
+          : '<div style="width:100%;height:280px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);"></div>')
+        + '</div>'
         + '<div class="movie-search-card-body">'
         + '<div class="movie-search-card-title">' + escapeHtml(item.title || '제목 없음') + '</div>'
-        + '<div class="movie-search-card-meta">' + escapeHtml([year, imdbCode, genres].filter(Boolean).join(' · ')) + '</div>'
-        + (summary ? '<div class="movie-search-card-summary">' + summary + '</div>' : '')
-        + '<div class="movie-search-card-actions">'
-        + buildMoviePlayLink(item)
-        + buildMovieLink(item.url, 'YTS 열기')
-        + buildMovieLink(item.imdb_url, 'IMDb 열기')
-        + '</div>'
         + '</div>'
         + '</article>';
     }).join('')
+    + '</div>'
     + '</section>';
 }
 
@@ -840,12 +1143,360 @@ function renderMovieSearchResults(payload) {
   movieSearchResults.innerHTML = html || '<div class="movie-search-empty">검색 결과가 없습니다.</div>';
 }
 
+function renderDramaCards(items) {
+  if (!items || !items.length) return '';
+  return '<section class="movie-search-section">'
+    + '<h3 class="movie-search-section-title">Drama</h3>'
+    + '<div class="movie-search-section-grid">'
+    + items.map(function(item) {
+      var thumbnail = item.thumbnail || '';
+      return '<article class="movie-search-card">'
+        + '<div>'
+        + (thumbnail
+          ? '<button type="button" data-tmdb="' + escapeHtml(item.tmdb || '') + '" data-title="' + escapeHtml(item.title || '') + '" onclick="openDramaDetailFromElement(this)" style="display:block;width:100%;padding:0;border:none;background:none;"><img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(item.title || 'drama cover') + '"></button>'
+          : '<div style="width:100%;height:280px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);"></div>')
+        + '</div>'
+        + '<div class="movie-search-card-body">'
+        + '<div class="movie-search-card-title">' + escapeHtml(item.title || '제목 없음') + '</div>'
+        + '</div>'
+        + '</article>';
+    }).join('')
+    + '</div>'
+    + '</section>';
+}
+
+function renderDramaSearchResults(payload) {
+  if (!movieSearchResults) return;
+  currentDramaSearchPayload = payload;
+  movieSearchResults.innerHTML = renderDramaCards(payload.results || []) || '<div class="movie-search-empty">검색 결과가 없습니다.</div>';
+}
+
+function buildDramaEpisodePlayHref(item) {
+  if (!item || !item.embed_url) return '';
+  return '{% url "player" %}?source=drama&embed='
+    + encodeURIComponent(item.embed_url)
+    + '&title=' + encodeURIComponent(item.title || '드라마 시청');
+}
+
+function renderDramaDetail(payload) {
+  var seasons = Array.isArray(payload.seasons) ? payload.seasons : [];
+  var episodes = Array.isArray(payload.episodes) ? payload.episodes : [];
+  movieSearchResults.innerHTML = '<section class="movie-search-section">'
+    + '<div class="drama-detail-head">'
+    + '<h3 class="drama-detail-title">' + escapeHtml(payload.title || '드라마') + '</h3>'
+    + '<button type="button" class="drama-back-btn" onclick="showDramaSearchResults()">결과로 돌아가기</button>'
+    + '</div>'
+    + '<div class="drama-season-list">'
+    + seasons.map(function(item) {
+      return '<button type="button" class="drama-season-btn' + (item.selected ? ' active' : '') + '" data-tmdb="' + escapeHtml(payload.tmdb || '') + '" data-title="' + escapeHtml(payload.title || '') + '" data-season="' + escapeHtml(item.season || '1') + '" onclick="openDramaDetailFromElement(this)">' + escapeHtml(item.label || ('Season ' + item.season)) + '</button>';
+    }).join('')
+    + '</div>'
+    + '<div class="drama-episode-list">'
+    + episodes.map(function(item) {
+      var playHref = buildDramaEpisodePlayHref(item);
+      return '<div class="drama-episode-item">'
+        + '<div class="drama-episode-label">' + escapeHtml(item.label || ('EP' + item.episode)) + '</div>'
+        + '<a class="drama-episode-play" href="' + escapeHtml(playHref) + '">재생</a>'
+        + '</div>';
+    }).join('')
+    + '</div>'
+    + '</section>';
+}
+
+function showDramaSearchResults() {
+  if (!currentDramaSearchPayload) return;
+  renderDramaSearchResults(currentDramaSearchPayload);
+}
+
+function openDramaDetailFromElement(element) {
+  if (!element) return;
+  openDramaDetail(
+    element.getAttribute('data-tmdb') || '',
+    element.getAttribute('data-title') || '',
+    element.getAttribute('data-season') || '1'
+  );
+}
+
+function openDramaDetail(tmdb, title, season) {
+  var normalizedTmdb = String(tmdb || '').trim();
+  if (!normalizedTmdb) return;
+  setMovieSearchFeedback((title || '드라마') + ' 상세를 불러오는 중...', 'info');
+  movieSearchResults.innerHTML = '';
+  fetch('{% url "player-drama-detail" %}?tmdb=' + encodeURIComponent(normalizedTmdb) + '&season=' + encodeURIComponent(season || '1') + '&episode=1', {
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+    .then(function(response) {
+      return response.json().catch(function() { return {}; }).then(function(data) {
+        if (!response.ok) throw new Error(data.error || '드라마 상세를 불러오지 못했습니다.');
+        return data;
+      });
+    })
+    .then(function(data) {
+      setMovieSearchFeedback((data.title || title || '드라마') + ' 시즌/에피소드를 선택하세요.', 'info');
+      renderDramaDetail(data);
+    })
+    .catch(function(error) {
+      setMovieSearchFeedback(error.message || '드라마 상세를 불러오지 못했습니다.', 'error');
+      movieSearchResults.innerHTML = '';
+    });
+}
+
+function setPlayerImdbFeedback(message, type) {
+  if (!playerImdbFeedback) return;
+  playerImdbFeedback.className = 'movie-search-feedback';
+  if (!message) {
+    playerImdbFeedback.textContent = '';
+    return;
+  }
+  playerImdbFeedback.textContent = message;
+  playerImdbFeedback.classList.add('show');
+  playerImdbFeedback.classList.add(type === 'error' ? 'is-error' : 'is-info');
+}
+
+function buildPlayerImdbEpisodePlayHref(seriesTitle, item) {
+  if (!item || !item.season_number || !item.episode_number) return '';
+  var episodeLabel = item.label || ('S' + item.season_number + 'E' + item.episode_number);
+  return '{% url "player" %}?source=imdb&imdb_id='
+    + encodeURIComponent(item.imdb_id || currentPlayerImdbPayload && currentPlayerImdbPayload.selected && currentPlayerImdbPayload.selected.imdb_id || '')
+    + '&season=' + encodeURIComponent(item.season_number)
+    + '&episode=' + encodeURIComponent(item.episode_number)
+    + '&title=' + encodeURIComponent((seriesTitle || 'IMDB 드라마') + ' · ' + episodeLabel);
+}
+
+function renderPlayerImdbCards(payload) {
+  if (!playerImdbResults) return;
+  currentPlayerImdbPayload = payload || {results: []};
+  var query = String((currentPlayerImdbPayload && currentPlayerImdbPayload.query) || '').trim();
+  var items = Array.isArray(currentPlayerImdbPayload.results) ? currentPlayerImdbPayload.results : [];
+  if (!items.length) {
+    playerImdbResults.innerHTML = '<div class="movie-search-empty">' + (query ? '검색된 IMDb 드라마가 없습니다.' : '아직 저장된 IMDb 드라마가 없습니다.') + '</div>';
+    return;
+  }
+
+  playerImdbResults.innerHTML = '<section class="movie-search-section">'
+    + '<h3 class="movie-search-section-title">' + escapeHtml(query ? 'Registered IMDb Drama' : 'Recent IMDb Drama') + '</h3>'
+    + '<div class="movie-search-section-grid">'
+    + items.map(function(item) {
+      var posterUrl = item.poster_url || '';
+      var meta = [item.imdb_id || '', item.season_count ? ('시즌 ' + item.season_count) : '', item.episode_count ? ('에피소드 ' + item.episode_count) : ''].filter(Boolean).join(' · ');
+      return '<article class="movie-search-card">'
+        + '<div>'
+        + (posterUrl
+          ? '<button type="button" data-imdb-id="' + escapeHtml(item.imdb_id || '') + '" data-title="' + escapeHtml(item.title || '') + '" onclick="openPlayerImdbDetailFromElement(this)" style="display:block;width:100%;padding:0;border:none;background:none;"><img src="' + escapeHtml(posterUrl) + '" alt="' + escapeHtml(item.title || 'IMDb drama poster') + '"></button>'
+          : '<div style="width:100%;height:280px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);"></div>')
+        + '</div>'
+        + '<div class="movie-search-card-body">'
+        + '<div class="movie-search-card-title">' + escapeHtml(item.title || item.imdb_id || '제목 없음') + '</div>'
+        + '<div class="movie-search-card-meta">' + escapeHtml(meta) + '</div>'
+        + '<div class="movie-search-card-summary">' + escapeHtml(item.summary || '저장된 IMDb 드라마입니다.') + '</div>'
+        + '<div class="movie-search-card-actions">'
+        + '<button class="movie-search-link" type="button" data-imdb-id="' + escapeHtml(item.imdb_id || '') + '" data-title="' + escapeHtml(item.title || '') + '" onclick="openPlayerImdbDetailFromElement(this)">에피소드 선택</button>'
+        + '</div>'
+        + '</div>'
+        + '</article>';
+    }).join('')
+    + '</div>'
+    + '</section>';
+}
+
+function renderPlayerImdbDetail(payload) {
+  if (!playerImdbResults) return;
+  var seasons = Array.isArray(payload.seasons) ? payload.seasons : [];
+  var episodes = Array.isArray(payload.episodes) ? payload.episodes : [];
+  playerImdbResults.innerHTML = '<section class="movie-search-section">'
+    + '<div class="drama-detail-head">'
+    + '<h3 class="drama-detail-title">' + escapeHtml(payload.title || payload.imdb_id || 'IMDb 드라마') + '</h3>'
+    + '<button type="button" class="drama-back-btn" onclick="showPlayerImdbSearchResults()">결과로 돌아가기</button>'
+    + '</div>'
+    + '<div class="drama-season-list">'
+    + seasons.map(function(item) {
+      return '<button type="button" class="drama-season-btn' + (String(item.value) === String(payload.selected_season) ? ' active' : '') + '" data-imdb-id="' + escapeHtml(payload.imdb_id || '') + '" data-title="' + escapeHtml(payload.title || '') + '" data-season="' + escapeHtml(item.value || '1') + '" onclick="openPlayerImdbDetailFromElement(this)">' + escapeHtml(item.label || ('Season ' + item.value)) + '</button>';
+    }).join('')
+    + '</div>'
+    + '<div class="drama-episode-list">'
+    + episodes.map(function(item) {
+      item = Object.assign({imdb_id: payload.imdb_id || ''}, item || {});
+      var playHref = buildPlayerImdbEpisodePlayHref(payload.title || 'IMDb 드라마', item);
+      return '<div class="drama-episode-item">'
+        + '<div class="drama-episode-label">' + escapeHtml(item.label || ('EP' + item.episode_number)) + '</div>'
+        + '<a class="drama-episode-play" href="' + escapeHtml(playHref) + '">재생</a>'
+        + '</div>';
+    }).join('')
+    + '</div>'
+    + '</section>';
+}
+
+function showPlayerImdbSearchResults() {
+  if (currentPlayerImdbPayload) {
+    renderPlayerImdbCards(currentPlayerImdbPayload);
+    return;
+  }
+  loadPlayerImdbResults('');
+}
+
+function openPlayerImdbDetailFromElement(element) {
+  if (!element) return;
+  openPlayerImdbDetail(
+    element.getAttribute('data-imdb-id') || '',
+    element.getAttribute('data-title') || '',
+    element.getAttribute('data-season') || '1'
+  );
+}
+
+function openPlayerImdbDetail(imdbId, title, season) {
+  var normalizedImdbId = String(imdbId || '').trim();
+  if (!normalizedImdbId) return;
+  setPlayerImdbFeedback((title || normalizedImdbId) + ' 시즌/에피소드를 불러오는 중...', 'info');
+  if (playerImdbResults) playerImdbResults.innerHTML = '';
+  fetch('{% url "player-imdb-detail" %}?imdb_id=' + encodeURIComponent(normalizedImdbId) + '&season=' + encodeURIComponent(season || '1') + '&episode=1', {
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+    .then(function(response) {
+      return response.json().catch(function() { return {}; }).then(function(data) {
+        if (!response.ok) throw new Error(data.error || 'IMDb 드라마 상세를 불러오지 못했습니다.');
+        return data;
+      });
+    })
+    .then(function(data) {
+      setPlayerImdbFeedback((data.title || title || normalizedImdbId) + ' 시즌/에피소드를 선택하세요.', 'info');
+      renderPlayerImdbDetail(data);
+    })
+    .catch(function(error) {
+      setPlayerImdbFeedback(error.message || 'IMDb 드라마 상세를 불러오지 못했습니다.', 'error');
+      if (playerImdbResults) playerImdbResults.innerHTML = '';
+    });
+}
+
+function loadPlayerImdbResults(query) {
+  var normalizedQuery = String(query || '').trim();
+  setPlayerImdbFeedback(normalizedQuery ? 'IMDb 드라마 검색 중...' : '최근 저장된 IMDb 드라마를 불러오는 중...', 'info');
+  if (playerImdbResults) playerImdbResults.innerHTML = '';
+  fetch('{% url "player-imdb-search" %}' + (normalizedQuery ? ('?query=' + encodeURIComponent(normalizedQuery)) : ''), {
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+    .then(function(response) {
+      return response.json().catch(function() { return {}; }).then(function(data) {
+        if (!response.ok) throw new Error(data.error || 'IMDb 드라마 목록을 불러오지 못했습니다.');
+        return data;
+      });
+    })
+    .then(function(data) {
+      playerImdbHasLoaded = true;
+      if (normalizedQuery) {
+        setPlayerImdbFeedback((data.query || normalizedQuery) + ' 기준으로 저장된 IMDb 드라마를 찾았습니다.', 'info');
+      } else if ((data.results || []).length) {
+        setPlayerImdbFeedback('최근 저장된 IMDb 드라마입니다.', 'info');
+      } else {
+        setPlayerImdbFeedback('아직 저장된 IMDb 드라마가 없습니다.', 'info');
+      }
+      renderPlayerImdbCards(data);
+    })
+    .catch(function(error) {
+      setPlayerImdbFeedback(error.message || 'IMDb 드라마 목록을 불러오지 못했습니다.', 'error');
+      if (playerImdbResults) {
+        playerImdbResults.innerHTML = '<div class="movie-search-empty">IMDb 드라마 목록을 불러오지 못했습니다.</div>';
+      }
+    });
+}
+
+function handlePlayerImdbSearchSubmit(event) {
+  event.preventDefault();
+  var query = String(playerImdbSearchInput && playerImdbSearchInput.value || '').trim();
+  loadPlayerImdbResults(query);
+}
+
+function renderTranslationCandidates(payload) {
+  if (!movieSearchResults) return;
+  var candidates = Array.isArray(payload.translation_candidates) ? payload.translation_candidates : [];
+  if (!candidates.length) {
+    movieSearchResults.innerHTML = '<div class="movie-search-empty">영문 제목 후보를 찾지 못했습니다.</div>';
+    return;
+  }
+
+  movieSearchResults.innerHTML = '<section class="movie-search-section">'
+    + '<h3 class="movie-search-section-title">English Title Candidates</h3>'
+    + '<div class="movie-search-section-grid">'
+    + candidates.map(function(item) {
+      var englishTitle = String(item.movieNmEn || '').trim();
+      var koreanTitle = String(item.movieNm || '').trim();
+      var meta = [koreanTitle || '', item.prdtYear || '', item.openDt || '', item.preview_year || ''].filter(Boolean).join(' · ');
+      var thumbnail = item.thumbnail || '';
+      var playHref = item.imdb_code
+        ? '{% url "player" %}?source=movie&imdb=' + encodeURIComponent(item.imdb_code) + '&title=' + encodeURIComponent(item.preview_title || englishTitle || koreanTitle || '영화 시청')
+        : '';
+      return '<article class="movie-search-card" style="grid-template-columns:minmax(0, 1fr) 92px;align-items:center;">'
+        + '<div class="movie-search-card-body">'
+        + '<button class="movie-search-link" style="background:none;border:none;padding:0;text-align:left;color:#fff;font-size:1.05rem;font-weight:700;" type="button" onclick="searchWithResolvedTitle(' + JSON.stringify(englishTitle || koreanTitle) + ')">' + escapeHtml(englishTitle || '영문명 없음') + '</button>'
+        + '<div class="movie-search-card-meta">' + escapeHtml(meta) + '</div>'
+        + '</div>'
+        + '<div>'
+        + (thumbnail
+          ? (playHref
+              ? '<a href="' + escapeHtml(playHref) + '"><img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(englishTitle || koreanTitle || 'movie cover') + '" style="width:92px;height:132px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.08);"></a>'
+              : '<button type="button" onclick="searchWithResolvedTitle(' + JSON.stringify(englishTitle || koreanTitle) + ')" style="background:none;border:none;padding:0;"><img src="' + escapeHtml(thumbnail) + '" alt="' + escapeHtml(englishTitle || koreanTitle || 'movie cover') + '" style="width:92px;height:132px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.08);"></button>')
+          : '<div style="width:92px;height:132px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);"></div>')
+        + '</div>'
+        + '</article>';
+    }).join('')
+    + '</div>'
+    + '</section>';
+}
+
+function searchWithResolvedTitle(title) {
+  var resolved = String(title || '').trim();
+  if (!resolved) return;
+  setMovieSearchFeedback('선택한 영문 제목으로 검색 중...', 'info');
+  movieSearchResults.innerHTML = '';
+
+  fetch('{% url "player-movie-search" %}?query=' + encodeURIComponent(resolved) + '&skip_korean_title_translation=1', {
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+    .then(function(response) {
+      return response.json().catch(function() { return {}; }).then(function(data) {
+        if (!response.ok) throw new Error(data.error || '영화 검색에 실패했습니다.');
+        return data;
+      });
+    })
+    .then(function(data) {
+      setMovieSearchFeedback('선택한 영문 제목 ' + data.effective_query + ' 기준으로 검색했다.', 'info');
+      renderMovieSearchResults(data);
+    })
+    .catch(function(error) {
+      setMovieSearchFeedback(error.message || '영화 검색에 실패했습니다.', 'error');
+      movieSearchResults.innerHTML = '';
+    });
+}
+
 function handleMovieSearchSubmit(event) {
   event.preventDefault();
+  var mode = getSelectedMediaSearchMode();
   var query = String(movieSearchInput && movieSearchInput.value || '').trim();
   if (!query) {
-    setMovieSearchFeedback('영화 제목을 입력해주세요.', 'error');
+    setMovieSearchFeedback(mode === 'drama' ? '드라마 제목을 입력해주세요.' : '영화 제목을 입력해주세요.', 'error');
     if (movieSearchResults) movieSearchResults.innerHTML = '';
+    return;
+  }
+
+  if (mode === 'drama') {
+    setMovieSearchFeedback('드라마 검색 중...', 'info');
+    movieSearchResults.innerHTML = '';
+    fetch('{% url "player-drama-search" %}?query=' + encodeURIComponent(query), {
+      headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+      .then(function(response) {
+        return response.json().catch(function() { return {}; }).then(function(data) {
+          if (!response.ok) throw new Error(data.error || '드라마 검색에 실패했습니다.');
+          return data;
+        });
+      })
+      .then(function(data) {
+        setMovieSearchFeedback((data.query || query) + ' 기준으로 드라마를 찾았습니다.', 'info');
+        renderDramaSearchResults(data);
+      })
+      .catch(function(error) {
+        setMovieSearchFeedback(error.message || '드라마 검색에 실패했습니다.', 'error');
+        movieSearchResults.innerHTML = '';
+      });
     return;
   }
 
@@ -862,6 +1513,11 @@ function handleMovieSearchSubmit(event) {
       });
     })
     .then(function(data) {
+      if (data.needs_title_selection) {
+        setMovieSearchFeedback('영문 제목 후보를 찾았습니다. 아래에서 하나를 선택하세요.', 'info');
+        renderTranslationCandidates(data);
+        return;
+      }
       var feedback = '';
       if (data.translated_query && data.translated_query !== data.query) {
         feedback = '한글 제목을 ' + data.translated_query + ' 로 보정해서 검색했다.';
@@ -1052,6 +1708,7 @@ function updateCaptionUI() {
     playerCaptionToggleBtn.disabled = true;
     playerCaptionToggleBtn.classList.remove('active');
     playerCaptionToggleBtn.textContent = 'CC 자막 없음';
+    updateSubtitleOverlays();
     return;
   }
 
@@ -1060,6 +1717,18 @@ function updateCaptionUI() {
   playerCaptionTrackSelect.value = activeValue || playerCaptionTrackSelect.options[0].value;
   playerCaptionToggleBtn.classList.toggle('active', activeCaptionMode === 'showing');
   playerCaptionToggleBtn.textContent = activeCaptionMode === 'showing' ? 'CC 자막 켜짐' : 'CC 자막 켜기';
+  updateSubtitleOverlays();
+}
+
+function resetCaptionState() {
+  activeCaptionMode = 'off';
+  if (playerHls && playerHls.subtitleTracks && playerHls.subtitleTracks.length) {
+    playerHls.subtitleTrack = -1;
+  }
+  Array.prototype.forEach.call(playerVideo.textTracks || [], function(track) {
+    track.mode = 'disabled';
+  });
+  updateCaptionUI();
 }
 
 function applyCaptionState(index, source) {
@@ -1067,9 +1736,10 @@ function applyCaptionState(index, source) {
     playerHls.subtitleTrack = activeCaptionMode === 'showing' && source === 'hls' ? index : -1;
   }
   Array.prototype.forEach.call(playerVideo.textTracks || [], function(track, trackIndex) {
-    track.mode = activeCaptionMode === 'showing' && source === 'native' && trackIndex === index ? 'showing' : 'disabled';
+    track.mode = activeCaptionMode === 'showing' && source === 'native' && trackIndex === index ? 'hidden' : 'disabled';
   });
   updateCaptionUI();
+  updateSubtitleOverlays();
 }
 
 function changeCaptionTrack(value) {
@@ -1079,6 +1749,7 @@ function changeCaptionTrack(value) {
   if (!source || Number.isNaN(index)) return;
   activeCaptionMode = 'showing';
   applyCaptionState(index, source);
+  updateSubtitleOverlays();
 }
 
 function toggleCaptions() {
@@ -1088,17 +1759,262 @@ function toggleCaptions() {
   var index = parseInt(parts[1], 10) || 0;
   activeCaptionMode = activeCaptionMode === 'showing' ? 'off' : 'showing';
   applyCaptionState(index, source);
+  updateSubtitleOverlays();
 }
 
 function changeCaptionStyle() {
   playerVideo.style.setProperty('--cue-size', playerCaptionSizeSelect.value);
+  if (playerSubtitleOverlayText) playerSubtitleOverlayText.style.fontSize = playerCaptionSizeSelect.value;
+  if (videoPiPSubtitleOverlayText) videoPiPSubtitleOverlayText.style.fontSize = playerCaptionSizeSelect.value;
   localStorage.setItem('player-caption-size', playerCaptionSizeSelect.value);
+}
+
+function getSubtitleOverlayText() {
+  if (activeCaptionMode !== 'showing') return '';
+  for (var i = 0; i < (playerVideo.textTracks || []).length; i += 1) {
+    var track = playerVideo.textTracks[i];
+    if (!track || track.mode === 'disabled') continue;
+    var activeCues = track.activeCues;
+    if (!activeCues || !activeCues.length) continue;
+    return Array.prototype.map.call(activeCues, function(cue) {
+      return String(cue.text || '').replace(/\r\n/g, '\n');
+    }).filter(Boolean).join('\n');
+  }
+  return '';
+}
+
+function updateSubtitleOverlays() {
+  var text = getSubtitleOverlayText();
+  if (playerSubtitleOverlay) {
+    playerSubtitleOverlay.style.display = text && playerVideo.style.display !== 'none' ? 'flex' : 'none';
+  }
+  if (playerSubtitleOverlayText) {
+    playerSubtitleOverlayText.textContent = text;
+  }
+  if (videoPiPSubtitleOverlayText) {
+    videoPiPSubtitleOverlayText.textContent = text;
+    if (videoPiPSubtitleOverlayText.parentElement) {
+      videoPiPSubtitleOverlayText.parentElement.style.display = text ? 'flex' : 'none';
+    }
+  }
+}
+
+function updatePiPUI() {
+  if (!playerPipToggleBtn) return;
+  var isEmbed = PLAYER_SOURCE_TYPE === 'embed';
+  var available = isEmbed ? documentPiPSupported : (documentPiPSupported || playerPiPSupported);
+  playerPipToggleBtn.style.display = available ? 'inline-flex' : 'none';
+  if (playerPipSep) playerPipSep.style.display = available ? 'block' : 'none';
+  playerPipToggleBtn.disabled = !available || (!isEmbed && !!playerVideo.disablePictureInPicture);
+  if (!available) return;
+  var isActive = isEmbed
+    ? !!embedPiPWindow
+    : (!!videoPiPWindow || document.pictureInPictureElement === playerVideo);
+  playerPipToggleBtn.classList.toggle('active', isActive);
+  if (isEmbed) {
+    playerPipToggleBtn.textContent = isActive ? 'PiP 닫기' : 'PiP 팝아웃';
+    return;
+  }
+  playerPipToggleBtn.textContent = isActive ? 'PiP 닫기' : 'PiP 켜기';
+}
+
+function updateFullscreenUI() {
+  if (!playerFullscreenToggleBtn) return;
+  var available = !!(playerRatioEl && playerRatioEl.requestFullscreen);
+  playerFullscreenToggleBtn.style.display = available ? 'inline-flex' : 'none';
+  if (playerFullscreenSep) playerFullscreenSep.style.display = available ? 'block' : 'none';
+  if (!available) return;
+  var isActive = document.fullscreenElement === playerRatioEl;
+  playerFullscreenToggleBtn.classList.toggle('active', isActive);
+  playerFullscreenToggleBtn.textContent = isActive ? '전체화면 종료' : '전체화면';
+}
+
+async function togglePlayerFullscreen() {
+  if (!playerRatioEl || !playerRatioEl.requestFullscreen) return;
+  try {
+    if (document.fullscreenElement === playerRatioEl) {
+      await document.exitFullscreen();
+    } else {
+      await playerRatioEl.requestFullscreen();
+    }
+  } catch (error) {
+    showPlaybackError('전체화면을 시작할 수 없습니다.');
+  } finally {
+    updateFullscreenUI();
+  }
+}
+
+function closeEmbedPictureInPicture() {
+  if (!embedPiPWindow || embedPiPWindow.closed) {
+    embedPiPWindow = null;
+    updatePiPUI();
+    return Promise.resolve();
+  }
+  var win = embedPiPWindow;
+  embedPiPWindow = null;
+  win.close();
+  updatePiPUI();
+  return Promise.resolve();
+}
+
+async function openEmbedPictureInPicture() {
+  if (!documentPiPSupported || !PLAYER_SOURCE_URL) return;
+  var pipWindow = await window.documentPictureInPicture.requestWindow({
+    width: 480,
+    height: 270,
+  });
+  embedPiPWindow = pipWindow;
+  var doc = pipWindow.document;
+  doc.head.innerHTML = '';
+  doc.body.innerHTML = '';
+  doc.title = playerTitleText ? (playerTitleText.getAttribute('title') || 'anglangl PiP') : 'anglangl PiP';
+  doc.body.style.margin = '0';
+  doc.body.style.background = '#000';
+  doc.body.style.display = 'flex';
+  doc.body.style.width = '100vw';
+  doc.body.style.height = '100vh';
+
+  var iframe = doc.createElement('iframe');
+  iframe.src = PLAYER_SOURCE_URL;
+  iframe.allow = 'autoplay; encrypted-media; gyroscope; picture-in-picture';
+  iframe.allowFullscreen = true;
+  iframe.referrerPolicy = 'no-referrer';
+  iframe.style.border = '0';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  doc.body.appendChild(iframe);
+
+  pipWindow.addEventListener('pagehide', function() {
+    embedPiPWindow = null;
+    updatePiPUI();
+  });
+  updatePiPUI();
+}
+
+function restoreVideoFromDocumentPiP() {
+  if (!playerVideoPlaceholder || !playerVideoPlaceholder.parentNode) {
+    videoPiPWindow = null;
+    videoPiPSubtitleOverlayText = null;
+    updateSubtitleOverlays();
+    updatePiPUI();
+    return;
+  }
+  playerVideoPlaceholder.parentNode.replaceChild(playerVideo, playerVideoPlaceholder);
+  playerVideoPlaceholder = null;
+  playerVideo.style.width = '100%';
+  playerVideo.style.height = '100%';
+  playerVideo.style.display = 'block';
+  videoPiPWindow = null;
+  videoPiPSubtitleOverlayText = null;
+  updateSubtitleOverlays();
+  updatePiPUI();
+}
+
+function closeVideoDocumentPiP() {
+  if (!videoPiPWindow || videoPiPWindow.closed) {
+    restoreVideoFromDocumentPiP();
+    return Promise.resolve();
+  }
+  var win = videoPiPWindow;
+  win.close();
+  restoreVideoFromDocumentPiP();
+  return Promise.resolve();
+}
+
+async function openVideoDocumentPiP() {
+  if (!documentPiPSupported || !playerVideo || !playerVideo.parentNode) return;
+  if (videoPiPWindow && !videoPiPWindow.closed) return;
+
+  var placeholder = document.createElement('div');
+  placeholder.style.display = 'none';
+  playerVideo.parentNode.insertBefore(placeholder, playerVideo);
+  playerVideoPlaceholder = placeholder;
+
+  var pipWindow = await window.documentPictureInPicture.requestWindow({
+    width: 480,
+    height: 270,
+  });
+  videoPiPWindow = pipWindow;
+  var doc = pipWindow.document;
+  doc.head.innerHTML = '';
+  doc.body.innerHTML = '';
+  doc.title = playerTitleText ? (playerTitleText.getAttribute('title') || 'anglangl PiP') : 'anglangl PiP';
+  doc.body.style.margin = '0';
+  doc.body.style.background = '#000';
+  doc.body.style.display = 'flex';
+  doc.body.style.width = '100vw';
+  doc.body.style.height = '100vh';
+  var shell = doc.createElement('div');
+  shell.style.position = 'relative';
+  shell.style.width = '100%';
+  shell.style.height = '100%';
+  shell.style.background = '#000';
+  shell.appendChild(playerVideo);
+  var subtitleOverlay = doc.createElement('div');
+  subtitleOverlay.style.position = 'absolute';
+  subtitleOverlay.style.left = '5%';
+  subtitleOverlay.style.right = '5%';
+  subtitleOverlay.style.bottom = '8%';
+  subtitleOverlay.style.zIndex = '25';
+  subtitleOverlay.style.display = 'none';
+  subtitleOverlay.style.justifyContent = 'center';
+  subtitleOverlay.style.pointerEvents = 'none';
+  var subtitleText = doc.createElement('div');
+  subtitleText.style.maxWidth = '100%';
+  subtitleText.style.padding = '.3rem .6rem';
+  subtitleText.style.borderRadius = '10px';
+  subtitleText.style.background = 'rgba(0,0,0,.48)';
+  subtitleText.style.color = '#fff';
+  subtitleText.style.fontSize = playerCaptionSizeSelect.value;
+  subtitleText.style.lineHeight = '1.45';
+  subtitleText.style.fontWeight = '700';
+  subtitleText.style.textAlign = 'center';
+  subtitleText.style.whiteSpace = 'pre-line';
+  subtitleText.style.textShadow = '0 2px 10px rgba(0,0,0,.55)';
+  subtitleOverlay.appendChild(subtitleText);
+  shell.appendChild(subtitleOverlay);
+  videoPiPSubtitleOverlayText = subtitleText;
+  doc.body.appendChild(shell);
+  playerVideo.style.width = '100%';
+  playerVideo.style.height = '100%';
+  updateSubtitleOverlays();
+
+  pipWindow.addEventListener('pagehide', function() {
+    restoreVideoFromDocumentPiP();
+  });
+  updatePiPUI();
+}
+
+async function togglePictureInPicture() {
+  if (!playerPipToggleBtn) return;
+  try {
+    if (PLAYER_SOURCE_TYPE === 'embed') {
+      if (embedPiPWindow && !embedPiPWindow.closed) {
+        await closeEmbedPictureInPicture();
+      } else {
+        await openEmbedPictureInPicture();
+      }
+    } else if (videoPiPWindow && !videoPiPWindow.closed) {
+      await closeVideoDocumentPiP();
+    } else if (documentPiPSupported) {
+      await openVideoDocumentPiP();
+    } else if (document.pictureInPictureElement === playerVideo) {
+      await document.exitPictureInPicture();
+    } else {
+      await playerVideo.requestPictureInPicture();
+    }
+  } catch (error) {
+    showPlaybackError('PiP를 시작할 수 없습니다. 현재 브라우저 또는 소스가 지원되지 않을 수 있습니다.');
+  } finally {
+    updatePiPUI();
+  }
 }
 
 function resetMovieFrame() {
   if (!playerMovieFrame) return;
   playerMovieFrame.style.display = 'none';
   playerMovieFrame.src = 'about:blank';
+  if (playerSubtitleOverlay) playerSubtitleOverlay.style.display = 'none';
 }
 
 function showPlaybackError(message) {
@@ -1129,10 +2045,16 @@ function teardownPlayerSurface() {
     playerHls.destroy();
     playerHls = null;
   }
+  closeEmbedPictureInPicture();
+  closeVideoDocumentPiP();
+  if (document.pictureInPictureElement === playerVideo && document.exitPictureInPicture) {
+    document.exitPictureInPicture().catch(function() {});
+  }
   playerVideo.pause();
   playerVideo.removeAttribute('src');
   playerVideo.load();
   playerVideo.style.display = 'block';
+  updateSubtitleOverlays();
   resetMovieFrame();
 }
 
@@ -1190,6 +2112,7 @@ function loadHls(url) {
   }
   teardownPlayerSurface();
   applyExternalSubtitles(PLAYER_SUBTITLES);
+  resetCaptionState();
   updateCaptionUI();
   hidePlaybackError();
 
@@ -1232,6 +2155,7 @@ function loadFile(url) {
   teardownPlayerSurface();
   hidePlaybackError();
   applyExternalSubtitles([]);
+  resetCaptionState();
   updateCaptionUI();
   var strategy = resolveFilePlaybackStrategy();
   if (strategy.mode !== 'direct') {
@@ -1264,6 +2188,7 @@ function loadEmbed(url) {
   }
   teardownPlayerSurface();
   hidePlaybackError();
+  resetCaptionState();
   playerVideo.style.display = 'none';
   if (playerMovieFrame) {
     playerMovieFrame.style.display = 'block';
@@ -1282,10 +2207,29 @@ function getCsrfToken() {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
-function captureThumbnailFromCurrentFrame() {
-  if (!PLAYER_THUMBNAIL_UPDATE_URL || !playerThumbnailCaptureBtn) return;
+function formatCaptureTimestamp(totalSeconds) {
+  var safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+  var hours = Math.floor(safeSeconds / 3600);
+  var minutes = Math.floor((safeSeconds % 3600) / 60);
+  var seconds = safeSeconds % 60;
+  return String(hours).padStart(2, '0') + '-' + String(minutes).padStart(2, '0') + '-' + String(seconds).padStart(2, '0');
+}
+
+function buildCurrentFrameFileName() {
+  var rawTitle = playerTitleText ? (playerTitleText.getAttribute('title') || playerTitleText.textContent || '') : '';
+  var normalizedTitle = String(rawTitle || 'player-frame')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80);
+  if (!normalizedTitle) normalizedTitle = 'player-frame';
+  return normalizedTitle + '-' + formatCaptureTimestamp(playerVideo.currentTime) + '.png';
+}
+
+function captureCurrentFrameBlob(onSuccess, onError) {
   if (!playerVideo.videoWidth || !playerVideo.videoHeight) {
     window.alert('영상 메타데이터를 먼저 불러온 뒤 시도하세요.');
+    if (onError) onError();
     return;
   }
 
@@ -1295,23 +2239,66 @@ function captureThumbnailFromCurrentFrame() {
   var context = canvas.getContext('2d');
   if (!context) {
     window.alert('현재 브라우저에서 프레임 캡처를 지원하지 않습니다.');
+    if (onError) onError();
     return;
   }
 
-  context.drawImage(playerVideo, 0, 0, canvas.width, canvas.height);
+  try {
+    context.drawImage(playerVideo, 0, 0, canvas.width, canvas.height);
+  } catch (error) {
+    window.alert('현재 소스는 보안 정책 때문에 프레임 이미지를 저장할 수 없습니다.');
+    if (onError) onError();
+    return;
+  }
+
+  try {
+    canvas.toBlob(function(blob) {
+      if (!blob) {
+        window.alert('프레임을 이미지로 변환하지 못했습니다.');
+        if (onError) onError();
+        return;
+      }
+      onSuccess(blob);
+    }, 'image/png');
+  } catch (error) {
+    window.alert('현재 소스는 보안 정책 때문에 프레임 이미지를 저장할 수 없습니다.');
+    if (onError) onError();
+  }
+}
+
+function saveCurrentFrameAsImage() {
+  if (!playerFrameSaveBtn) return;
+  captureCurrentFrameBlob(function(blob) {
+    var downloadUrl = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = buildCurrentFrameFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function() {
+      URL.revokeObjectURL(downloadUrl);
+    }, 1000);
+
+    playerFrameSaveBtn.textContent = '이미지 저장됨';
+    window.setTimeout(function() {
+      playerFrameSaveBtn.textContent = '이미지 저장';
+    }, 1600);
+  });
+}
+
+function captureThumbnailFromCurrentFrame() {
+  if (!PLAYER_THUMBNAIL_UPDATE_URL || !playerThumbnailCaptureBtn) return;
+  function restoreThumbnailButton() {
+    playerThumbnailCaptureBtn.disabled = false;
+    playerThumbnailCaptureBtn.classList.remove('is-busy');
+    playerThumbnailCaptureBtn.textContent = '썸네일 저장';
+  }
   playerThumbnailCaptureBtn.disabled = true;
   playerThumbnailCaptureBtn.classList.add('is-busy');
   playerThumbnailCaptureBtn.textContent = '저장 중...';
 
-  canvas.toBlob(function(blob) {
-    if (!blob) {
-      playerThumbnailCaptureBtn.disabled = false;
-      playerThumbnailCaptureBtn.classList.remove('is-busy');
-      playerThumbnailCaptureBtn.textContent = '썸네일 저장';
-      window.alert('프레임을 이미지로 변환하지 못했습니다.');
-      return;
-    }
-
+  captureCurrentFrameBlob(function(blob) {
     var formData = new FormData();
     formData.append('thumbnail_file', blob, 'player-frame.png');
 
@@ -1339,7 +2326,7 @@ function captureThumbnailFromCurrentFrame() {
         playerThumbnailCaptureBtn.disabled = false;
         playerThumbnailCaptureBtn.classList.remove('is-busy');
       });
-  }, 'image/png');
+  }, restoreThumbnailButton);
 }
 
 function loadLocalFile(file) {
@@ -1348,6 +2335,7 @@ function loadLocalFile(file) {
   teardownPlayerSurface();
   hidePlaybackError();
   applyExternalSubtitles([]);
+  resetCaptionState();
   updateCaptionUI();
   playerLoadOverlay.classList.remove('hidden');
   localObjectUrl = URL.createObjectURL(file);
@@ -1355,6 +2343,7 @@ function loadLocalFile(file) {
   setDisplayedTitle(file.name, 'local');
   playerVideo.addEventListener('loadedmetadata', function onLoad() {
     playerLoadOverlay.classList.add('hidden');
+    updateSubtitleOverlays();
     playerVideo.removeEventListener('loadedmetadata', onLoad);
   });
   playerVideo.addEventListener('error', function onError() {
@@ -1378,9 +2367,16 @@ function setSpeed(value) {
 }
 
 playerVideo.addEventListener('timeupdate', handleLoopPlayback);
+playerVideo.addEventListener('timeupdate', updateSubtitleOverlays);
+playerVideo.addEventListener('enterpictureinpicture', updatePiPUI);
+playerVideo.addEventListener('leavepictureinpicture', updatePiPUI);
+document.addEventListener('fullscreenchange', updateFullscreenUI);
 playerVideo.addEventListener('loadedmetadata', function() {
   if (typeof loopState.start === 'number' && typeof loopState.end === 'number') applyLoopRange();
   else updateLoopUI();
+  updatePiPUI();
+  updateFullscreenUI();
+  updateSubtitleOverlays();
 });
 playerLoopStartInput.addEventListener('input', function() {
   if (playerLoopStartInput.value.trim() && playerLoopEndInput.value.trim()) applyLoopRange();
@@ -1400,11 +2396,44 @@ if (localVideoInput) {
 if (playerThumbnailCaptureBtn) {
   playerThumbnailCaptureBtn.addEventListener('click', captureThumbnailFromCurrentFrame);
 }
+if (playerFrameSaveBtn) {
+  playerFrameSaveBtn.addEventListener('click', saveCurrentFrameAsImage);
+}
 
 playerCaptionSizeSelect.value = localStorage.getItem('player-caption-size') || playerCaptionSizeSelect.value;
 changeCaptionStyle();
 updateLoopUI();
+updatePiPUI();
+updateFullscreenUI();
+updateSubtitleOverlays();
 if (movieSearchForm) movieSearchForm.addEventListener('submit', handleMovieSearchSubmit);
+if (playerImdbSearchForm) playerImdbSearchForm.addEventListener('submit', handlePlayerImdbSearchSubmit);
+if (mediaSearchModeInputs && mediaSearchModeInputs.length) {
+  mediaSearchModeInputs.forEach(function(input) {
+    input.addEventListener('change', updateMediaSearchModeUI);
+  });
+  updateMediaSearchModeUI();
+}
+if (playerImdbModalEl) {
+  playerImdbModalEl.addEventListener('shown.bs.modal', function() {
+    if (PLAYER_IMDB_AUTO_OPEN && PLAYER_IMDB_AUTO_OPEN_ID && !playerImdbAutoOpenDetailLoaded) {
+      playerImdbAutoOpenDetailLoaded = true;
+      openPlayerImdbDetail(PLAYER_IMDB_AUTO_OPEN_ID, '', '1');
+    } else if (!playerImdbHasLoaded) {
+      loadPlayerImdbResults('');
+    }
+    if (playerImdbSearchInput) {
+      window.setTimeout(function() {
+        playerImdbSearchInput.focus();
+      }, 120);
+    }
+  });
+  if (PLAYER_IMDB_AUTO_OPEN && window.bootstrap && window.bootstrap.Modal) {
+    window.setTimeout(function() {
+      window.bootstrap.Modal.getOrCreateInstance(playerImdbModalEl).show();
+    }, 120);
+  }
+}
 setDisplayedTitle(playerTitleText ? playerTitleText.getAttribute('title') : 'Player', "{{ selected_kind|default:'' }}");
 if (PLAYER_SOURCE_TYPE === 'embed') loadEmbed(PLAYER_SOURCE_URL);
 else if (PLAYER_SOURCE_TYPE === 'hls') loadHls(PLAYER_SOURCE_URL);

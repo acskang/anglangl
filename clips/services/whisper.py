@@ -31,8 +31,15 @@ class WhisperService:
         self.task = task
 
     def _ensure_binary(self) -> None:
-        if shutil.which(self.binary) is None:
-            raise WhisperError(f"{self.binary} is not installed or not found in PATH.")
+        if shutil.which("ffmpeg") is None:
+            raise WhisperError("ffmpeg is not installed or not found in PATH.")
+
+    def _whisper_module(self):
+        try:
+            import whisper  # type: ignore
+        except ImportError as exc:
+            raise WhisperError("openai-whisper Python package is not installed.") from exc
+        return whisper
 
     def transcribe(self, source_path: Path) -> WhisperTranscript:
         self._ensure_binary()
@@ -40,45 +47,47 @@ class WhisperService:
             raise WhisperError("Clip file does not exist.")
 
         with tempfile.TemporaryDirectory(prefix="clip-whisper-") as temp_dir:
-            output_dir = Path(temp_dir)
+            temp_path = Path(temp_dir)
+            audio_path = temp_path / f"{source_path.stem}_audio.wav"
             cmd = [
-                self.binary,
+                "ffmpeg",
+                "-y",
+                "-i",
                 str(source_path),
-                "--model",
-                self.model,
-                "--task",
-                self.task,
-                "--word_timestamps",
-                "True",
-                "--output_format",
-                "json",
-                "--output_dir",
-                str(output_dir),
+                "-ar",
+                "16000",
+                "-ac",
+                "1",
+                "-vn",
+                str(audio_path),
             ]
-            if self.language:
-                cmd.extend(["--language", self.language])
             try:
                 subprocess.run(
                     cmd,
                     check=True,
                     capture_output=True,
                     text=True,
-                    timeout=3600,
+                    timeout=1800,
                 )
             except subprocess.TimeoutExpired as exc:
-                raise WhisperError("Whisper command timed out.") from exc
+                raise WhisperError("ffmpeg audio extraction timed out.") from exc
             except subprocess.CalledProcessError as exc:
-                detail = (exc.stderr or exc.stdout or "Whisper command failed.").strip()
+                detail = (exc.stderr or exc.stdout or "ffmpeg audio extraction failed.").strip()
                 raise WhisperError(detail) from exc
 
-            transcript_path = output_dir / f"{source_path.stem}.json"
-            if not transcript_path.exists():
-                raise WhisperError("Whisper finished but transcript file was not created.")
-
             try:
-                payload = json.loads(transcript_path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError as exc:
-                raise WhisperError("Whisper JSON output could not be parsed.") from exc
+                whisper = self._whisper_module()
+                model = whisper.load_model(self.model)
+                payload = model.transcribe(
+                    str(audio_path),
+                    language=self.language,
+                    task=self.task,
+                    word_timestamps=True,
+                    fp16=False,
+                )
+            except Exception as exc:  # noqa: BLE001
+                detail = str(exc).strip() or "Whisper transcription failed."
+                raise WhisperError(detail) from exc
 
             text = str(payload.get("text") or "").strip()
             segments = []

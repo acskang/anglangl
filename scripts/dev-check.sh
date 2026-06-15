@@ -52,7 +52,7 @@ export_defaults() {
   export SECRET_KEY="${SECRET_KEY:-dev-secret-key}"
   export DEBUG="${DEBUG:-True}"
   export ALLOWED_HOSTS="${ALLOWED_HOSTS:-127.0.0.1,localhost}"
-  export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/listen_practice}"
+  export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:ths5rhd@127.0.0.1:5432/listening_clips}"
   export CELERY_BROKER_URL="${CELERY_BROKER_URL:-redis://127.0.0.1:6379/0}"
   export CELERY_RESULT_BACKEND="${CELERY_RESULT_BACKEND:-redis://127.0.0.1:6379/1}"
   export STATIC_ROOT="${STATIC_ROOT:-$ROOT_DIR/staticfiles}"
@@ -122,11 +122,27 @@ parsed = urlparse(url)
 print(parsed.path.lstrip("/") or "")
 PY
 )"
+DB_USER="$(python - <<'PY'
+from urllib.parse import urlparse
+import os
+url = os.environ["DATABASE_URL"]
+parsed = urlparse(url)
+print(parsed.username or "")
+PY
+)"
+DB_PASSWORD="$(python - <<'PY'
+from urllib.parse import urlparse
+import os
+url = os.environ["DATABASE_URL"]
+parsed = urlparse(url)
+print(parsed.password or "")
+PY
+)"
 
-if pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1; then
-  pass "PostgreSQL reachable at $DB_HOST:$DB_PORT"
+if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c 'select 1;' >/dev/null 2>&1; then
+  pass "PostgreSQL login succeeded for $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME"
 else
-  fail "PostgreSQL not reachable at $DB_HOST:$DB_PORT"
+  fail "PostgreSQL login failed for $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME"
 fi
 
 if redis-cli -u "$CELERY_BROKER_URL" ping >/dev/null 2>&1; then

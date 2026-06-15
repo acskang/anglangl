@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Movies · anglangl{% endblock %}
+
+{% block content %}
+<section class="movies-shell"
+         data-translate-url="{% url 'movies:api-translate-title' %}"
+         data-search-url="{% url 'movies:api-search' %}"
+         data-recent-url="{% url 'movies:api-recent' %}"
+         data-watch-url-template="{% url 'movies:watch' tmdb_id='__TMDB__' %}">
+  <style>
+    .movies-shell {
+      margin: -1rem calc(50% - 50vw) -2rem;
+      min-height: calc(100vh - 56px);
+      padding: 3rem max(1rem, calc((100vw - 1140px) / 2)) 4rem;
+      color: #f8fafc;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(126, 87, 194, .28), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(34, 197, 94, .18), transparent 25%),
+        linear-gradient(180deg, #05070d 0%, #0d111c 56%, #070a12 100%);
+    }
+    .movies-hero {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(320px, 1.08fr);
+      gap: 2rem;
+      align-items: end;
+    }
+    .movies-kicker {
+      color: #86efac;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .movies-title {
+      margin: .7rem 0 1rem;
+      max-width: 560px;
+      color: #fff;
+      font-size: clamp(2.6rem, 5vw, 5.6rem);
+      font-weight: 900;
+      line-height: .92;
+    }
+    .movies-copy {
+      max-width: 560px;
+      color: rgba(248, 250, 252, .72);
+      line-height: 1.8;
+    }
+    .movies-panel,
+    .movies-result-panel {
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, .72);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .28);
+    }
+    .movies-panel {
+      padding: 1.25rem;
+    }
+    .movies-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: .75rem;
+      margin-top: 1rem;
+    }
+    .movies-input {
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 8px;
+      background: rgba(2, 6, 23, .82);
+      color: #fff;
+      padding: .9rem 1rem;
+    }
+    .movies-input:focus {
+      border-color: rgba(134, 239, 172, .75);
+      outline: none;
+      box-shadow: 0 0 0 .2rem rgba(34, 197, 94, .14);
+    }
+    .movies-button {
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #22c55e, #8b5cf6);
+      color: #fff;
+      font-weight: 800;
+      padding: .9rem 1.25rem;
+    }
+    .movies-button:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+    .movies-section-title {
+      color: #f8fafc;
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+    .movies-tag {
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .06);
+      color: #d1fae5;
+      padding: .45rem .8rem;
+      font-size: .88rem;
+      font-weight: 700;
+    }
+    .movies-card {
+      display: grid;
+      grid-template-columns: 3.5rem 4.5rem minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: center;
+      width: 100%;
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, .1);
+      background: transparent;
+      color: inherit;
+      padding: 1rem 0;
+      text-align: left;
+    }
+    .movies-card:hover .movies-open {
+      background: #22c55e;
+      color: #06110b;
+    }
+    .movies-number,
+    .movies-open {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-weight: 900;
+    }
+    .movies-number {
+      width: 3rem;
+      height: 3rem;
+      background: #a78bfa;
+      color: #09090b;
+    }
+    .movies-poster {
+      width: 3.8rem;
+      height: 5.3rem;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #111827;
+    }
+    .movies-card-title {
+      color: #fff;
+      font-weight: 900;
+    }
+    .movies-meta,
+    .movies-summary {
+      color: rgba(248, 250, 252, .64);
+    }
+    .movies-summary {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .movies-open {
+      width: 2.4rem;
+      height: 2.4rem;
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: #bbf7d0;
+    }
+    @media (max-width: 767.98px) {
+      .movies-hero,
+      .movies-form,
+      .movies-card {
+        grid-template-columns: 1fr;
+      }
+      .movies-poster {
+        display: none;
+      }
+      .movies-open {
+        display: none;
+      }
+    }
+  </style>
+
+  <div class="movies-hero">
+    <div>
+      <p class="movies-kicker">TMDB Movie Search</p>
+      <h1 class="movies-title">Movie picks.</h1>
+      <p class="movies-copy">
+        영화와 대사를 영어 학습 자료의 입력 소스로 탐색합니다. 한국영화는 한글로, 외국영화는 영어로 검색하고 TMDB ID 기반 플레이어로 바로 확인하세요.
+      </p>
+    </div>
+    <div class="movies-panel">
+      <div class="d-flex align-items-center justify-content-between gap-3">
+        <h2 class="h6 m-0 fw-bold text-white">Search preferences</h2>
+        <span class="badge rounded-pill text-bg-success">Live</span>
+      </div>
+      <form id="movieSearchForm" class="movies-form">
+        <input id="searchInput" class="movies-input" type="text" placeholder="영화 제목을 입력하세요..." autocomplete="off">
+        <button id="searchButton" class="movies-button" type="submit">검색</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="statusBox" class="alert mt-4 d-none" role="status"></div>
+
+  <section class="mt-4 text-center">
+    <h2 class="h6 fw-bold text-white">최근 검색어</h2>
+    <div id="recentTags" class="mt-3 d-flex flex-wrap justify-content-center gap-2">
+      {% for recent in recent_queries %}
+        <button type="button" class="movies-tag recent-search-button" data-query="{{ recent.query }}">{{ recent.query }} ({{ recent.search_count }})</button>
+      {% empty %}
+        <span class="text-white-50">최근 검색어가 없습니다.</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div id="loadingBox" class="mt-5 d-none text-center h4 fw-bold text-success">검색 중...</div>
+  <div id="cacheIndicator" class="movies-result-panel mt-4 d-none p-3 text-center fw-bold text-success">저장된 데이터에서 빠르게 불러왔습니다.</div>
+
+  <section id="translationBox" class="movies-result-panel mt-4 d-none p-4">
+    <p class="mb-2 fw-bold text-success">한글 제목을 영어로 변환했습니다.</p>
+    <div class="rounded border border-secondary-subtle bg-dark p-3">
+      <p class="mb-1 small text-white-50">추천 영문 제목</p>
+      <h2 id="translationTitle" class="h3 mb-0 text-white"></h2>
+    </div>
+    <div id="candidateGrid" class="mt-3 row g-3"></div>
+  </section>
+
+  <section id="moviesSection" class="mt-5 d-none">
+    <div class="mb-3 d-flex align-items-center justify-content-between gap-3">
+      <h2 class="movies-section-title m-0">TMDB 검색 결과</h2>
+      <span id="movieCount" class="movies-tag"></span>
+    </div>
+    <div id="moviesGrid" class="movies-result-panel px-3"></div>
+  </section>
+
+  <section id="legacySection" class="mt-5 d-none">
+    <h2 class="movies-section-title">이전 캐시 결과</h2>
+    <div id="legacyGrid" class="movies-result-panel px-3"></div>
+  </section>
+
+  <div id="emptyResults" class="movies-result-panel mt-5 d-none p-5 text-center h5 fw-bold text-white">검색 결과가 없습니다.</div>
+
+  <script>
+  (function () {
+    const root = document.querySelector('[data-search-url]');
+    if (!root) return;
+
+    const urls = {
+      translate: root.dataset.translateUrl,
+      search: root.dataset.searchUrl,
+      recent: root.dataset.recentUrl,
+      watchTemplate: root.dataset.watchUrlTemplate,
+    };
+    const els = {
+      form: document.getElementById('movieSearchForm'),
+      input: document.getElementById('searchInput'),
+      button: document.getElementById('searchButton'),
+      status: document.getElementById('statusBox'),
+      loading: document.getElementById('loadingBox'),
+      cache: document.getElementById('cacheIndicator'),
+      recent: document.getElementById('recentTags'),
+      translation: document.getElementById('translationBox'),
+      translationTitle: document.getElementById('translationTitle'),
+      candidates: document.getElementById('candidateGrid'),
+      moviesSection: document.getElementById('moviesSection'),
+      moviesGrid: document.getElementById('moviesGrid'),
+      movieCount: document.getElementById('movieCount'),
+      legacySection: document.getElementById('legacySection'),
+      legacyGrid: document.getElementById('legacyGrid'),
+      empty: document.getElementById('emptyResults'),
+    };
+
+    function containsHangul(text) {
+      return /[가-힣]/.test(text);
+    }
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[ch]));
+    }
+    function safeUrl(value) {
+      const url = String(value || '');
+      return (url.startsWith('https://') || url.startsWith('http://')) ? url : '';
+    }
+    function setStatus(message, isError) {
+      els.status.className = `alert mt-4 ${message ? '' : 'd-none'} ${isError ? 'alert-danger' : 'alert-success'}`;
+      els.status.textContent = message || '';
+    }
+    function setLoading(isLoading) {
+      els.loading.classList.toggle('d-none', !isLoading);
+      els.button.disabled = isLoading;
+      els.button.textContent = isLoading ? '검색 중...' : '검색';
+    }
+    function resetResults(keepTranslation) {
+      setStatus('', false);
+      els.cache.classList.add('d-none');
+      els.moviesSection.classList.add('d-none');
+      els.legacySection.classList.add('d-none');
+      els.empty.classList.add('d-none');
+      els.moviesGrid.innerHTML = '';
+      els.legacyGrid.innerHTML = '';
+      if (!keepTranslation) {
+        els.translation.classList.add('d-none');
+        els.translationTitle.textContent = '';
+        els.candidates.innerHTML = '';
+      }
+    }
+    async function searchMovies(query, options = {}) {
+      const nextQuery = String(query || els.input.value || '').trim();
+      if (!nextQuery) {
+        setStatus('검색어를 입력해주세요.', true);
+        return;
+      }
+      els.input.value = nextQuery;
+      if (!options.skipKoreanCheck && containsHangul(nextQuery)) {
+        await handleKoreanSearch(nextQuery);
+        return;
+      }
+      await runSearch(nextQuery);
+    }
+    async function handleKoreanSearch(query) {
+      resetResults(false);
+      setLoading(true);
+      setStatus('한글 제목을 영어로 변환하는 중입니다...', false);
+      try {
+        const response = await fetch(`${urls.translate}?title=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          setStatus(data.error || '한글 제목 변환에 실패했습니다.', true);
+          return;
+        }
+        renderTranslation(data, query);
+        await runSearch(data.en_title || query, { keepTranslation: true });
+        setStatus('', false);
+      } catch (error) {
+        setStatus(`번역 과정에서 오류가 발생했습니다: ${error.message}`, true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    function renderTranslation(data, originalQuery) {
+      els.translationTitle.textContent = data.en_title || originalQuery;
+      els.candidates.innerHTML = '';
+      (data.candidates || []).forEach((candidate) => {
+        const title = candidate.movieNmEn || candidate.movieNm || originalQuery;
+        const column = document.createElement('div');
+        column.className = 'col-md-4';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'w-100 h-100 rounded border border-secondary-subtle bg-dark p-3 text-start text-white';
+        button.innerHTML = `
+          <span class="d-block fw-bold">${escapeHtml(title || '제목 정보 없음')}</span>
+          <span class="d-block small text-white-50">${escapeHtml(candidate.movieNm || '')}</span>
+          <span class="d-block mt-2 small text-white-50">${escapeHtml(candidate.openDt || candidate.prdtYear || '')}</span>
+        `;
+        button.addEventListener('click', () => searchMovies(title, { skipKoreanCheck: true }));
+        column.appendChild(button);
+        els.candidates.appendChild(column);
+      });
+      els.translation.classList.remove('d-none');
+    }
+    async function runSearch(query, options = {}) {
+      resetResults(Boolean(options.keepTranslation));
+      setLoading(true);
+      try {
+        const response = await fetch(`${urls.search}?query=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          setStatus(data.error || '검색 중 오류가 발생했습니다.', true);
+          return;
+        }
+        els.cache.classList.toggle('d-none', !data.from_cache);
+        renderMovies(data.tmdb || []);
+        renderLegacy([...(data.official || []), ...(data.api || [])]);
+        await loadRecentSearches();
+        if (!(data.tmdb || []).length && !(data.official || []).length && !(data.api || []).length) {
+          els.empty.classList.remove('d-none');
+        }
+      } catch (error) {
+        setStatus(`검색 중 오류가 발생했습니다: ${error.message}`, true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    function movieCard(movie, isLegacy) {
+      const image = safeUrl(movie.thumbnail) || 'https://via.placeholder.com/300x450?text=No+Image';
+      const title = escapeHtml(movie.title || '제목 없음');
+      const year = escapeHtml(movie.year || '');
+      const summary = escapeHtml(movie.summary || '줄거리 정보 없음');
+      const tmdbId = escapeHtml(movie.tmdb_id || movie.id || '');
+      const listNumber = tmdbId ? tmdbId.slice(-2).padStart(2, '0') : 'go';
+      const article = document.createElement('article');
+      article.innerHTML = `
+        <button type="button" class="movies-card">
+          <span class="movies-number">${listNumber}</span>
+          <img class="movies-poster" src="${image}" alt="${title}">
+          <span class="min-w-0">
+            <span class="movies-card-title d-block">${title}</span>
+            <span class="movies-meta d-block small">TMDB ${tmdbId || 'N/A'} · ${year || '연도 없음'} · ${isLegacy ? '외부 열기' : '바로 보기'}</span>
+            <span class="movies-summary d-block mt-2 small">${summary}</span>
+          </span>
+          <span class="movies-open">↗</span>
+        </button>
+      `;
+      article.querySelector('img').addEventListener('error', (event) => {
+        event.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
+      });
+      article.querySelector('button').addEventListener('click', () => {
+        if (!isLegacy && movie.tmdb_id) {
+          window.location.href = urls.watchTemplate.replace('__TMDB__', movie.tmdb_id);
+          return;
+        }
+        if (movie.url) window.open(movie.url, '_blank');
+      });
+      return article;
+    }
+    function renderMovies(movies) {
+      els.moviesGrid.innerHTML = '';
+      movies.forEach((movie) => els.moviesGrid.appendChild(movieCard(movie, false)));
+      els.movieCount.textContent = `${movies.length}개`;
+      els.moviesSection.classList.toggle('d-none', movies.length === 0);
+    }
+    function renderLegacy(movies) {
+      els.legacyGrid.innerHTML = '';
+      movies.forEach((movie) => els.legacyGrid.appendChild(movieCard(movie, true)));
+      els.legacySection.classList.toggle('d-none', movies.length === 0);
+    }
+    async function loadRecentSearches() {
+      try {
+        const response = await fetch(urls.recent);
+        const items = await response.json();
+        els.recent.innerHTML = '';
+        if (!items.length) {
+          els.recent.innerHTML = '<span class="text-white-50">최근 검색어가 없습니다.</span>';
+          return;
+        }
+        items.forEach((item) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'movies-tag recent-search-button';
+          button.dataset.query = item.query;
+          button.textContent = `${item.query} (${item.count})`;
+          els.recent.appendChild(button);
+        });
+      } catch (error) {
+        console.error('최근 검색어 로드 실패:', error);
+      }
+    }
+    els.form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      searchMovies();
+    });
+    els.recent.addEventListener('click', (event) => {
+      const button = event.target.closest('.recent-search-button');
+      if (button) searchMovies(button.dataset.query);
+    });
+    els.input.focus();
+  })();
+  </script>
+</section>
+{% endblock %}

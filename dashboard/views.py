@@ -8,7 +8,7 @@ from django.views.generic import TemplateView
 
 from clips.models import Clip, ClipUploadBatch
 from core.models import BackgroundJobState, ProcessingState
-from study.models import ClipStudyHistory
+from study.models import ClipStudyHistory, StudyMaterial
 from videos.models import MasterVideo
 from workers.models import BackgroundJob
 
@@ -21,6 +21,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     recent_jobs_limit = 8
     recent_batches_limit = 5
     recent_videos_limit = 5
+    recent_materials_limit = 5
     attention_limit = 8
 
     def get_context_data(self, **kwargs):
@@ -51,12 +52,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             MasterVideo.objects.filter(owner=user, is_active=True)
             .order_by("-created_at")[: self.recent_videos_limit]
         )
+        recent_study_materials = list(
+            StudyMaterial.objects.filter(owner=user)
+            .select_related("copied_from", "source_clip", "source_master_video", "source_drama_video")
+            .order_by("-updated_at", "-created_at")[: self.recent_materials_limit]
+        )
 
         self._decorate_study_items(recent_study_items)
         self._decorate_clips(quick_start_clips)
         self._decorate_jobs(recent_jobs)
         self._decorate_batches(recent_batches)
         self._decorate_master_videos(recent_master_videos)
+        self._decorate_study_materials(recent_study_materials)
 
         attention_items = self._get_attention_items(user)
 
@@ -65,6 +72,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "stats": {
                     "master_video_count": MasterVideo.objects.filter(owner=user, is_active=True).count(),
                     "clip_count": Clip.objects.filter(owner=user, is_active=True).count(),
+                    "study_material_count": StudyMaterial.objects.filter(owner=user).count(),
                     "recent_study_count": ClipStudyHistory.objects.filter(
                         user=user,
                         last_studied_at__gte=recent_threshold,
@@ -87,6 +95,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "recent_jobs": recent_jobs,
                 "recent_batches": recent_batches,
                 "recent_master_videos": recent_master_videos,
+                "recent_study_materials": recent_study_materials,
                 "attention_items": attention_items,
             }
         )
@@ -158,6 +167,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             video.formatted_duration = self._format_duration(video.duration_seconds)
             video.detail_url = reverse("videos:detail", kwargs={"pk": video.id})
             video.clip_create_url = f"{reverse('clips:create')}?master_video={video.id}"
+
+    def _decorate_study_materials(self, materials):
+        for material in materials:
+            material.detail_url = reverse("study:detail", kwargs={"pk": material.id})
+            material.edit_url = reverse("study:edit", kwargs={"pk": material.id})
+            material.source_summary = material.source_title or material.get_source_type_display()
 
     def _get_attention_items(self, user):
         items = []

@@ -510,6 +510,12 @@
             <button type="button" class="tool-btn speed-btn" data-speed="1.25">1.25x</button>
             <button type="button" class="tool-btn speed-btn" data-speed="1.5">1.5x</button>
           </div>
+          {% if can_manage %}
+          <div class="tool-group">
+            <span class="tool-label">Capture</span>
+            <button type="button" class="tool-btn" id="captureFrameBtn">Capture Frame</button>
+          </div>
+          {% endif %}
         </div>
       </div>
       <div class="subtitle-panel">
@@ -603,8 +609,15 @@
       {% if can_manage %}
       <a href="{% url 'workers:clip-job-history' clip.id %}" class="btn-secondary-dark">Job History</a>
       {% endif %}
-      <a href="{% url 'clips:list' %}" class="btn-secondary-dark">Back to Clips</a>
+      {% if clip.master_video_id %}
+      <a href="{% url 'videos:detail' clip.master_video_id %}" class="btn-secondary-dark">Back to Video</a>
+      {% else %}
+      <a href="{% url 'dashboard:home' %}" class="btn-secondary-dark">Back to Dashboard</a>
+      {% endif %}
       {% if can_manage %}
+      {% if download_url %}
+      <a href="{{ download_url }}" class="btn-secondary-dark">Download</a>
+      {% endif %}
       <a href="{% url 'clips:edit' clip.id %}" class="btn-primary-dark">Edit</a>
       <a href="{% url 'clips:delete' clip.id %}" class="btn-danger-dark">Delete</a>
       {% if clip.file_status == 'failed' %}
@@ -616,6 +629,28 @@
       {% endif %}
     </div>
   </div>
+
+  {% if clip_images %}
+  <div class="detail-card" style="margin-bottom:1rem">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <div>
+        <h2 class="section-title" style="margin-bottom:.2rem">Captured Images</h2>
+        <div style="color:var(--muted);font-size:.82rem">플레이어에서 캡처한 정지 이미지입니다.</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem">
+      {% for image in clip_images %}
+      <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:.75rem">
+        <a href="{% url 'clips:image-edit' image.id %}" style="display:block;text-decoration:none">
+          <img src="{{ image.image.url }}" alt="{{ image.title }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.06);margin-bottom:.6rem">
+          <div style="color:var(--text);font-weight:600;font-size:.86rem">{{ image.title }}</div>
+          <div style="color:var(--muted);font-size:.76rem;margin-top:.2rem">{{ image.capture_time_seconds|floatformat:1 }}s</div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <div class="detail-grid">
     <div class="stat-card">
@@ -708,6 +743,21 @@
         </form>
       </div>
       {% endif %}
+
+      {% if album_preview_images %}
+      <div class="detail-card">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem">
+          <h2 class="section-title" style="margin-bottom:0">Album Links</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem">
+          {% for image in album_preview_images %}
+          <a href="{% url 'clips:album-detail' image.id %}" style="display:block">
+            <img src="{{ image.image.url }}" alt="{{ image.title }}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -717,6 +767,7 @@
   const CLIP_PLAYBACK_URL = "{{ playback_url|escapejs }}";
   const CLIP_PLAYBACK_TYPE = "{{ playback_type }}";
   const CLIP_SUBTITLE_TIMING = {{ subtitle_timing_json|safe }};
+  const CLIP_CAPTURE_URL = "{{ capture_image_url|escapejs }}";
 
   (function () {
     const player = document.getElementById("clipDetailPlayer");
@@ -735,6 +786,7 @@
     player.volume = 0.1;
     const loopToggleBtn = document.getElementById("loopToggleBtn");
     const speedButtons = Array.from(document.querySelectorAll(".speed-btn"));
+    const captureFrameBtn = document.getElementById("captureFrameBtn");
 
     function syncLoopButton() {
       if (!loopToggleBtn) return;
@@ -753,6 +805,48 @@
       loopToggleBtn.addEventListener("click", function () {
         player.loop = !player.loop;
         syncLoopButton();
+      });
+    }
+
+    if (captureFrameBtn) {
+      captureFrameBtn.addEventListener("click", async function () {
+        if (!player.videoWidth || !player.videoHeight) {
+          window.alert("영상 프레임을 아직 읽을 수 없습니다.");
+          return;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = player.videoWidth;
+        canvas.height = player.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+
+        captureFrameBtn.disabled = true;
+        const originalLabel = captureFrameBtn.textContent;
+        captureFrameBtn.textContent = "Saving...";
+        try {
+          const response = await fetch(CLIP_CAPTURE_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": "{{ csrf_token }}",
+            },
+            body: JSON.stringify({
+              image_data: canvas.toDataURL("image/png"),
+              capture_time: player.currentTime,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error((data && data.error) || "Capture failed.");
+          }
+          window.location.reload();
+        } catch (error) {
+          window.alert(error.message || "Capture failed.");
+        } finally {
+          captureFrameBtn.disabled = false;
+          captureFrameBtn.textContent = originalLabel;
+        }
       });
     }
 

@@ -8,6 +8,7 @@ from dramaNlearn.services.title_ko2en import ko_title_to_en_title
 
 
 KOREAN_RE = re.compile(r"[가-힣]")
+DEFAULT_KOBIS_API_KEY = "05955d0620d1e271b88e8ea747711a78"
 YTS_OFFICIAL_BASE_URL = "https://www.yts-official.cc"
 YTS_API_URLS = (
     "https://yts.mx/api/v2/list_movies.json",
@@ -19,7 +20,46 @@ REQUEST_HEADERS = {
 }
 
 
-def search_movies(query: str) -> dict:
+def _normalize_movie_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _pick_candidate_preview(title_en: str, prdt_year: str = "") -> dict:
+    if not title_en:
+        return {}
+
+    candidates = search_yts_api(title_en)
+    if not candidates:
+        return {}
+
+    target_key = _normalize_movie_key(title_en)
+    target_year = str(prdt_year or "").strip()
+    scored = []
+    for item in candidates[:10]:
+        movie_title = str(item.get("title") or "")
+        movie_key = _normalize_movie_key(movie_title)
+        score = 0
+        if movie_key == target_key:
+            score += 300
+        elif target_key and (target_key in movie_key or movie_key in target_key):
+            score += 200
+        if target_year and str(item.get("year") or "") == target_year:
+            score += 80
+        if item.get("imdb_code"):
+            score += 10
+        scored.append((score, item))
+
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    best = scored[0][1] if scored else {}
+    return {
+        "preview_title": best.get("title") or title_en,
+        "thumbnail": best.get("large_cover") or best.get("thumbnail") or "",
+        "imdb_code": best.get("imdb_code") or "",
+        "preview_year": best.get("year"),
+    }
+
+
+def search_movies(query: str, *, skip_korean_title_translation: bool = False) -> dict:
     normalized_query = (query or "").strip()
     if not normalized_query:
         raise ValueError("검색어를 입력해주세요.")
@@ -27,28 +67,40 @@ def search_movies(query: str) -> dict:
     effective_query = normalized_query
     translated_title = None
     translation_candidates = []
-    official_results = search_yts_official(normalized_query)
-    api_results = search_yts_api(normalized_query)
+    search_query = normalized_query
+    needs_title_selection = False
 
-    if not official_results and not api_results and KOREAN_RE.search(normalized_query):
+    if KOREAN_RE.search(normalized_query) and not skip_korean_title_translation:
         translated_title, translation_candidates = translate_title_ko2en(normalized_query)
-        if translated_title:
-            effective_query = translated_title
-            official_results = search_yts_official(translated_title)
-            api_results = search_yts_api(translated_title)
+        if translation_candidates:
+            needs_title_selection = True
+            effective_query = normalized_query
+            return {
+                "query": normalized_query,
+                "effective_query": effective_query,
+                "translated_query": translated_title,
+                "translation_candidates": translation_candidates[:5],
+                "needs_title_selection": needs_title_selection,
+                "official": [],
+                "api": [],
+            }
+
+    official_results = search_yts_official(search_query)
+    api_results = search_yts_api(search_query)
 
     return {
         "query": normalized_query,
         "effective_query": effective_query,
         "translated_query": translated_title,
         "translation_candidates": translation_candidates[:5],
+        "needs_title_selection": needs_title_selection,
         "official": official_results,
         "api": api_results,
     }
 
 
 def translate_title_ko2en(movie_nm_ko: str):
-    api_key = getattr(settings, "KOBIS_API_KEY", "")
+    api_key = getattr(settings, "KOBIS_API_KEY", "") or DEFAULT_KOBIS_API_KEY
     if not api_key:
         return None, []
 
@@ -56,15 +108,23 @@ def translate_title_ko2en(movie_nm_ko: str):
         api_key=api_key,
         movie_nm_ko=movie_nm_ko,
     )
-    return en_title, [
-        {
-            "movieNm": movie.get("movieNm"),
-            "movieNmEn": movie.get("movieNmEn"),
-            "openDt": movie.get("openDt"),
-            "prdtYear": movie.get("prdtYear"),
-        }
-        for movie in candidates
-    ]
+    translated_candidates = []
+    for movie in candidates[:5]:
+        movie_nm_en = str(movie.get("movieNmEn") or "").strip()
+        preview = _pick_candidate_preview(movie_nm_en, str(movie.get("prdtYear") or "").strip()) if movie_nm_en else {}
+        translated_candidates.append(
+            {
+                "movieNm": movie.get("movieNm"),
+                "movieNmEn": movie_nm_en,
+                "openDt": movie.get("openDt"),
+                "prdtYear": movie.get("prdtYear"),
+                "thumbnail": preview.get("thumbnail", ""),
+                "imdb_code": preview.get("imdb_code", ""),
+                "preview_title": preview.get("preview_title", movie_nm_en),
+                "preview_year": preview.get("preview_year"),
+            }
+        )
+    return en_title, translated_candidates
 
 
 def search_yts_official(query: str):

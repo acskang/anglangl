@@ -1,0 +1,806 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}클립 편집{% endblock %}
+
+{% block extra_css %}
+<style>
+.edit-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2rem 1.2rem 3rem;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+}
+.thumb-panel {
+  position: sticky;
+  top: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.thumb-card,
+.mini-player-card,
+.section-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+}
+.page-header {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.6rem 1.2rem .4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.9rem;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.btn-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: .9rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-inline.primary {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+.btn-inline.secondary {
+  background: transparent;
+  color: var(--text);
+}
+.thumb-preview-wrap {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #000;
+  overflow: hidden;
+  cursor: pointer;
+}
+.thumb-preview-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter .25s;
+}
+.thumb-preview-wrap:hover img {
+  filter: brightness(.5);
+}
+.thumb-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity .25s;
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.thumb-preview-wrap:hover .thumb-overlay {
+  opacity: 1;
+}
+.thumb-card-body {
+  padding: .9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.thumb-action-row {
+  display: flex;
+  gap: 6px;
+}
+.reset-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: .78rem;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+.reset-btn:hover {
+  color: #fca5a5;
+}
+.mini-player-head,
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .85rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, .02);
+}
+.mini-player-head,
+.section-head-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.08rem;
+  letter-spacing: 1.4px;
+  color: var(--text);
+}
+.mini-player-body,
+.section-body {
+  padding: 1.2rem;
+}
+#clipVideo {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 10px;
+  background: #000;
+  display: block;
+}
+.player-empty {
+  aspect-ratio: 16/9;
+  border-radius: 10px;
+  background: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.player-btns {
+  display: flex;
+  gap: 5px;
+  margin-top: .85rem;
+}
+.ctrl-btn {
+  flex: 1;
+  padding: 6px 3px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--s2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .74rem;
+  cursor: pointer;
+  transition: all .18s;
+  text-align: center;
+  white-space: nowrap;
+}
+.ctrl-btn:hover {
+  border-color: var(--acc);
+  color: var(--acc);
+}
+.ctrl-btn.active {
+  background: rgba(255, 60, 95, .12);
+  border-color: var(--acc);
+  color: var(--acc);
+}
+.capture-time-bar {
+  margin-top: .7rem;
+  min-height: 1em;
+  text-align: center;
+  font-family: monospace;
+  font-size: .8rem;
+  color: var(--acc2, #7dd3fc);
+}
+.meta-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: .9rem;
+}
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: .73rem;
+  font-family: monospace;
+  color: var(--muted);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field input[type=text],
+.field textarea,
+.field select {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: .95rem;
+  outline: none;
+}
+.field textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+.field-static {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-family: monospace;
+  font-size: .95rem;
+}
+.subtitle-grid {
+  display: grid;
+  gap: 1rem;
+}
+.subtitle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: .75rem;
+  align-items: end;
+}
+.subtitle-box {
+  min-height: 160px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--s2);
+  color: var(--text);
+  padding: 1rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.subtitle-note {
+  font-size: .78rem;
+  color: var(--muted);
+}
+.captured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: .75rem;
+}
+.captured-item {
+  position: relative;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--s2);
+}
+.captured-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.captured-item .del-btn,
+.captured-item .edit-link {
+  position: absolute;
+  display: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: .7rem;
+}
+.captured-item .del-btn {
+  top: 4px;
+  right: 4px;
+  background: rgba(255, 60, 95, .88);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+.captured-item .edit-link {
+  left: 4px;
+  bottom: 4px;
+  background: rgba(0, 0, 0, .72);
+  color: #fff;
+  text-decoration: none;
+}
+.captured-item:hover .del-btn,
+.captured-item:hover .edit-link {
+  display: inline-flex;
+}
+.save-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#thumbFileInput {
+  display: none;
+}
+@media (max-width: 960px) {
+  .edit-wrap {
+    grid-template-columns: 1fr;
+  }
+  .thumb-panel {
+    position: static;
+  }
+}
+@media (max-width: 720px) {
+  .subtitle-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'clips:detail' clip.pk %}" style="color:var(--muted);font-size:.85rem;text-decoration:none;">← 클립 상세로 돌아가기</a>
+    <div class="page-title">✂️ 클립 편집</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% if clip.master_video %}
+    <a href="{% url 'videos:detail' clip.master_video.pk %}" class="btn-inline secondary">🎬 원본 영상</a>
+    {% endif %}
+    <a href="{% url 'clips:detail' clip.pk %}" class="btn-inline secondary">📄 상세 보기</a>
+  </div>
+</div>
+
+<div class="edit-wrap">
+  <div class="thumb-panel">
+    <div class="thumb-card">
+      <div class="thumb-preview-wrap" onclick="document.getElementById('thumbFileInput').click()">
+        <img
+          id="thumbPreviewImg"
+          src="{% url 'clips:thumb-proxy' clip.pk %}?t={{ clip.updated_at|date:'U' }}"
+          alt="{{ clip.title }}"
+          onerror="setPlaceholderThumbnail(this)"
+        >
+        <div class="thumb-overlay">
+          <div style="font-size:1.8rem;">📷</div>
+          <div>클릭하여 썸네일 변경</div>
+        </div>
+      </div>
+      <div class="thumb-card-body">
+        <div class="thumb-action-row">
+          <button class="btn-inline secondary" style="flex:1;" type="button" onclick="showThumbLarge()">🔍 크게 보기</button>
+          <button class="btn-inline secondary" style="flex:1;" type="button" id="copyThumbBtn" onclick="copyThumbToClipboard(this)">📋 복사</button>
+        </div>
+        <button class="btn-inline secondary" style="width:100%;" type="button" onclick="document.getElementById('thumbFileInput').click()">📁 이미지 파일 선택</button>
+        <button class="reset-btn" id="resetThumbBtn" type="button" onclick="resetThumbnail()" {% if not clip.custom_thumbnail_file %}style="display:none;"{% endif %}>↩ 원본 썸네일로 초기화</button>
+        <input type="file" id="thumbFileInput" accept="image/*" onchange="onThumbSelected(event)">
+        <div id="thumbFileName" style="font-size:.75rem;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <div class="mini-player-card">
+      <div class="mini-player-head">🎬 클립 플레이어</div>
+      <div class="mini-player-body">
+        {% if clip.file_exists and download_url %}
+        <video id="clipVideo" controls preload="metadata" src="{{ download_url }}"></video>
+        {% else %}
+        <div class="player-empty">클립 파일이 아직 준비되지 않았습니다.</div>
+        {% endif %}
+
+        <div class="player-btns">
+          <button class="ctrl-btn" id="loopBtn" type="button" onclick="toggleLoop()">🔁 반복</button>
+          <button class="ctrl-btn" id="pipBtn" type="button" onclick="togglePip()">⧉ PiP</button>
+          {% if clip.file_exists and download_url %}
+          <button class="ctrl-btn" type="button" onclick="captureFrame()">📷 캡처</button>
+          {% endif %}
+        </div>
+        <div class="capture-time-bar" id="captureTimeBar"></div>
+        <div class="meta-chips">
+          <span class="meta-chip">⏱ {{ clip.start_time }}s → {{ clip.end_time }}s</span>
+          <span class="meta-chip">⌛ {{ clip.duration }}s</span>
+          {% if clip.master_video %}
+          <span class="meta-chip">🎞 {{ clip.master_video.title|truncatechars:28 }}</span>
+          {% endif %}
+        </div>
+
+        <div style="font-size:.74rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:1rem;">캡처 이미지</div>
+        <div class="captured-grid" id="capturedGrid">
+          {% for img in images %}
+          <div class="captured-item" id="capItem-{{ img.pk }}">
+            <img src="{{ img.image.url }}" alt="{{ img.title }}">
+            <a href="{% url 'clips:image-edit' img.pk %}" class="edit-link">✏️ 편집</a>
+            <button class="del-btn" type="button" onclick="deleteCapturedImage({{ img.pk }})">✕</button>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-head-title">📝 클립 정보</div>
+      </div>
+      <div class="section-body" style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="field">
+          <label>클립 제목</label>
+          <input type="text" id="titleInput" value="{{ clip.title }}" maxlength="255">
+        </div>
+        <div class="field">
+          <label>클립 추출 시간</label>
+          <div class="field-static">{{ clip_extract_time_display }}</div>
+        </div>
+        <div class="field">
+          <label>클립 설명</label>
+          <textarea id="descInput">{{ clip.description }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-head-title">🎤 자막 / Transcript</div>
+        <a href="{% url 'clips:detail' clip.pk %}" class="btn-inline secondary" style="padding:6px 12px;font-size:.78rem;">상세 작업실로 열기</a>
+      </div>
+      <div class="section-body">
+        <div class="subtitle-grid">
+          <form method="post" action="{% url 'clips:subtitle-extract' clip.pk %}" class="subtitle-row" onsubmit="return startSubtitleExtract(event, this)">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'clips:edit' clip.pk %}">
+            <div class="field">
+              <label>Model</label>
+              <select name="whisper_model">
+                <option value="tiny">tiny</option>
+                <option value="base" selected>base</option>
+                <option value="small">small</option>
+                <option value="medium">medium</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Language</label>
+              <select name="whisper_language">
+                <option value="en" selected>English</option>
+                <option value="auto">Auto</option>
+                <option value="ko">Korean</option>
+              </select>
+            </div>
+            <button class="btn-inline primary" type="submit" id="subtitleExtractBtn">🎤 자막 추출</button>
+          </form>
+
+          <form method="post" action="{% url 'clips:subtitle-save' clip.pk %}" style="display:flex;flex-direction:column;gap:.8rem;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'clips:edit' clip.pk %}">
+            <div class="subtitle-note" id="subtitleNote">
+              {% if subtitle_preview %}
+              새로 추출한 미리보기가 준비되었습니다. 내용을 검토한 뒤 저장하세요.
+              {% else %}
+              현재 저장된 자막 또는 최근 추출 결과가 여기에 표시됩니다.
+              {% endif %}
+            </div>
+            <textarea name="subtitle_text" class="subtitle-box">{{ subtitle_source_text }}</textarea>
+            <div class="save-bar" style="justify-content:space-between;">
+              <button class="btn-inline secondary" type="button" onclick="copySubtitle()">📋 텍스트 복사</button>
+              <button class="btn-inline primary" type="submit">💾 자막 저장</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <a href="{% url 'clips:detail' clip.pk %}" class="btn-inline secondary">취소</a>
+      <button class="btn-inline primary" type="button" id="saveBtn" onclick="saveClip()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="thumbModal" onclick="if(event.target===this)closeThumbModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center;">
+  <div style="position:relative;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <img id="thumbLargeImg" src="" alt="" style="max-width:88vw;max-height:80vh;border-radius:12px;box-shadow:0 8px 48px rgba(0,0,0,.9);display:block;object-fit:contain;">
+    <div style="display:flex;gap:8px;">
+      <button class="btn-inline secondary" type="button" onclick="copyThumbToClipboard(this)">📋 이미지 복사</button>
+      <button class="btn-inline secondary" type="button" onclick="closeThumbModal()">✕ 닫기</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CLIP_PK = {{ clip.pk }};
+const CLIP_UPDATE_URL = "{% url 'clips:api-update' clip.pk %}";
+const CLIP_THUMB_PROXY_URL = "{% url 'clips:thumb-proxy' clip.pk %}";
+const CAPTURE_IMAGE_URL = "{% url 'clips:image-capture' clip.pk %}";
+const IMAGE_EDIT_TEMPLATE = "{% url 'clips:image-edit' 999999 %}";
+const IMAGE_DELETE_TEMPLATE = "{% url 'clips:image-delete' 999999 %}";
+
+const clipVideo = document.getElementById('clipVideo');
+let pendingThumbFile = null;
+let resetThumbPending = false;
+let loopOn = false;
+
+function fmt(seconds) {
+  let s = Math.max(0, Math.floor(seconds || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+if (clipVideo) {
+  clipVideo.addEventListener('ended', () => {
+    if (loopOn) {
+      clipVideo.currentTime = 0;
+      clipVideo.play();
+    }
+  });
+  clipVideo.addEventListener('timeupdate', () => {
+    document.getElementById('captureTimeBar').textContent = `▶ ${fmt(clipVideo.currentTime)}`;
+  });
+  clipVideo.addEventListener('leavepictureinpicture', () => {
+    document.getElementById('pipBtn').classList.remove('active');
+  });
+}
+
+function toggleLoop() {
+  loopOn = !loopOn;
+  const button = document.getElementById('loopBtn');
+  button.classList.toggle('active', loopOn);
+}
+
+async function togglePip() {
+  if (!clipVideo) {
+    toast('재생 가능한 클립이 없습니다.', 'error');
+    return;
+  }
+  if (!document.pictureInPictureEnabled) {
+    toast('이 브라우저는 PiP를 지원하지 않습니다.', 'error');
+    return;
+  }
+
+  const button = document.getElementById('pipBtn');
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+      button.classList.remove('active');
+    } else {
+      await clipVideo.requestPictureInPicture();
+      button.classList.add('active');
+    }
+  } catch (error) {
+    toast('PiP 오류: ' + error.message, 'error');
+  }
+}
+
+function onThumbSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  pendingThumbFile = file;
+  resetThumbPending = false;
+  const reader = new FileReader();
+  reader.onload = (fileEvent) => {
+    document.getElementById('thumbPreviewImg').src = fileEvent.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('thumbFileName').textContent = '선택: ' + file.name;
+  document.getElementById('resetThumbBtn').style.display = '';
+}
+
+function resetThumbnail() {
+  pendingThumbFile = null;
+  resetThumbPending = true;
+  document.getElementById('thumbPreviewImg').src = CLIP_THUMB_PROXY_URL + '?t=' + Date.now();
+  document.getElementById('thumbFileInput').value = '';
+  document.getElementById('thumbFileName').textContent = '(원본 썸네일 사용)';
+  document.getElementById('resetThumbBtn').style.display = 'none';
+}
+
+function showThumbLarge() {
+  document.getElementById('thumbLargeImg').src = document.getElementById('thumbPreviewImg').src;
+  document.getElementById('thumbModal').style.display = 'flex';
+}
+
+function closeThumbModal() {
+  document.getElementById('thumbModal').style.display = 'none';
+}
+
+async function copyThumbToClipboard(button) {
+  const originalText = button?.textContent;
+  if (button) {
+    button.textContent = '⏳...';
+    button.disabled = true;
+  }
+  try {
+    const response = await fetch(CLIP_THUMB_PROXY_URL);
+    if (!response.ok) throw new Error('이미지 로드 실패');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    await new Promise((resolve) => {
+      canvas.toBlob(async (pngBlob) => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({'image/png': pngBlob})]);
+          toast('📋 썸네일을 복사했습니다.', 'success');
+        } catch (_error) {
+          toast('클립보드 복사를 지원하지 않습니다.', 'info');
+        }
+        resolve();
+      }, 'image/png');
+    });
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    if (button) {
+      button.textContent = originalText || '📋 복사';
+      button.disabled = false;
+    }
+  }
+}
+
+async function saveClip() {
+  const button = document.getElementById('saveBtn');
+  button.disabled = true;
+  button.textContent = '⏳ 저장 중...';
+  const formData = new FormData();
+  formData.append('title', document.getElementById('titleInput').value.trim());
+  formData.append('description', document.getElementById('descInput').value.trim());
+  if (pendingThumbFile) formData.append('custom_thumbnail', pendingThumbFile);
+  if (resetThumbPending) formData.append('reset_thumbnail', '1');
+
+  try {
+    const response = await fetch(CLIP_UPDATE_URL, {
+      method: 'POST',
+      headers: {'X-CSRFToken': getCookie('csrftoken')},
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      toast(data.error || '저장 실패', 'error');
+      return;
+    }
+    document.getElementById('thumbPreviewImg').src = CLIP_THUMB_PROXY_URL + '?t=' + Date.now();
+    document.getElementById('resetThumbBtn').style.display = resetThumbPending ? 'none' : '';
+    pendingThumbFile = null;
+    resetThumbPending = false;
+    document.getElementById('thumbFileName').textContent = '';
+    toast('✅ 저장되었습니다.', 'success');
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = '💾 저장';
+  }
+}
+
+async function captureFrame() {
+  if (!clipVideo) {
+    toast('재생 가능한 클립이 없습니다.', 'error');
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = clipVideo.videoWidth || 640;
+  canvas.height = clipVideo.videoHeight || 360;
+  canvas.getContext('2d').drawImage(clipVideo, 0, 0);
+  const captureTime = clipVideo.currentTime;
+  canvas.toBlob(async (blob) => {
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const response = await fetch(CAPTURE_IMAGE_URL, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+          body: JSON.stringify({image_data: event.target.result, capture_time: captureTime}),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          toast(data.error || '캡처 저장 실패', 'error');
+          return;
+        }
+        addCapturedItem(data.image_id, data.image_url, data.title);
+        toast('📷 캡처 이미지를 저장했습니다.', 'success');
+      } catch (error) {
+        toast('오류: ' + error.message, 'error');
+      }
+    };
+    reader.readAsDataURL(blob);
+  }, 'image/png');
+}
+
+function addCapturedItem(id, imageUrl, title) {
+  const grid = document.getElementById('capturedGrid');
+  const item = document.createElement('div');
+  item.className = 'captured-item';
+  item.id = 'capItem-' + id;
+  item.innerHTML = `
+    <img src="${imageUrl}" alt="${title}">
+    <a href="${IMAGE_EDIT_TEMPLATE.replace('999999', String(id))}" class="edit-link">✏️ 편집</a>
+    <button class="del-btn" type="button" onclick="deleteCapturedImage(${id})">✕</button>
+  `;
+  grid.prepend(item);
+}
+
+async function deleteCapturedImage(id) {
+  if (!confirm('이 이미지를 삭제하시겠습니까?')) return;
+  try {
+    const response = await fetch(IMAGE_DELETE_TEMPLATE.replace('999999', String(id)), {
+      method: 'POST',
+      headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'},
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      toast(data.error || '삭제 실패', 'error');
+      return;
+    }
+    document.getElementById('capItem-' + id)?.remove();
+    toast('이미지를 삭제했습니다.', 'success');
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  }
+}
+
+async function startSubtitleExtract(event, form) {
+  event.preventDefault();
+  const button = document.getElementById('subtitleExtractBtn');
+  const note = document.getElementById('subtitleNote');
+  button.disabled = true;
+  button.textContent = '⏳ 추출 중...';
+  try {
+    const response = await fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new FormData(form),
+      credentials: 'same-origin',
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || '자막 추출에 실패했습니다.');
+    }
+    const box = document.querySelector('textarea[name="subtitle_text"]');
+    if (box) {
+      box.value = payload.text || '';
+    }
+    if (note) {
+      note.textContent = payload.message || '새로 추출한 미리보기가 준비되었습니다. 내용을 검토한 뒤 저장하세요.';
+    }
+    toast('자막을 추출했습니다. 내용을 확인한 뒤 저장하세요.', 'success');
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = '🎤 자막 추출';
+  }
+  return false;
+}
+
+function copySubtitle() {
+  const box = document.querySelector('textarea[name="subtitle_text"]');
+  const text = (box?.value || '').trim();
+  if (!text) {
+    toast('복사할 자막이 없습니다.', 'info');
+    return;
+  }
+  navigator.clipboard.writeText(text).then(
+    () => toast('📋 자막을 복사했습니다.', 'success'),
+    () => toast('클립보드 복사에 실패했습니다.', 'error')
+  );
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeThumbModal();
+  }
+});
+</script>
+{% endblock %}

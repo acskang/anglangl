@@ -1,6 +1,6 @@
-# ListenTube Foundation (Step 4)
+# anglangl
 
-Step 4 adds bulk local clip upload on top of YouTube download + extracted clip workflows.
+AI · LLM 기반 영어 학습 자료 생성 및 공유 플랫폼.
 
 ## New in this step
 - Bulk upload page for multiple local video files
@@ -18,9 +18,10 @@ Step 4 adds bulk local clip upload on top of YouTube download + extracted clip w
 - Upload batch list/detail pages
 
 ## Existing features preserved
-- YouTube MasterVideo registration and async download
+- Linked source video registration and async import
 - Extracted clip creation and async ffmpeg extraction
 - Clip detail/playback pages
+- Image album and clip capture management
 
 ## Playback direction
 - This project should favor HLS (`m3u8`) as the long-term playback path.
@@ -68,7 +69,7 @@ export DEBUG='True'
 export ALLOWED_HOSTS='127.0.0.1,localhost'
 
 # Database
-export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/listen_practice'
+export DATABASE_URL='postgresql://postgres:ths5rhd@127.0.0.1:5432/listening_clips'
 
 # Redis / Celery
 export CELERY_BROKER_URL='redis://127.0.0.1:6379/0'
@@ -107,6 +108,46 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+## Clipmaster import
+When clipmaster data is available locally, import it into an existing anglangl owner account with:
+
+```bash
+python manage.py import_clipmaster_data --owner <username-or-email-or-id> --source-root /home/cskang/ganzskang/clipmaster
+```
+
+Useful options:
+- `--dry-run`
+- `--source-db /path/to/db.sqlite3`
+- `--source-media-root /path/to/media`
+
+## PostgreSQL minimum regression
+Use the dedicated smoke/regression path when you want to validate the core product flow on PostgreSQL instead of SQLite.
+
+```bash
+scripts/test-postgres-min.sh
+```
+
+Default suites:
+- `core.tests`
+- `study.tests`
+- `dashboard.tests`
+- `dramaNlearn.tests`
+
+If migrations are already up to date:
+
+```bash
+scripts/test-postgres-min.sh --skip-migrate
+```
+
+## Manual QA
+For browser-side validation of the current product-critical flows, use:
+
+[`docs/manual-qa-checklist.md`](docs/manual-qa-checklist.md)
+
+To record actual execution results, use:
+
+[`docs/manual-qa-execution-log.md`](docs/manual-qa-execution-log.md)
+
 ## Celery workers
 Start Redis first, then workers:
 
@@ -140,7 +181,6 @@ celery -A config worker -l info -Q clip_upload_process
 
 ## Notes
 - Private clips are owner-only; public clips are publicly viewable.
-- Existing legacy routes stay at `/legacy/`.
 - The shared player already prioritizes `m3u8` items before direct file sources when auto-selecting playable media.
 
 ## Internal API + MCP integration

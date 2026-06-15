@@ -1,0 +1,137 @@
+{% if request.user.is_authenticated %}
+<div class="auth-modal-backdrop" id="logoutModalBackdrop" aria-hidden="true">
+  <div class="logout-modal-shell" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <button class="auth-modal-close" type="button" data-logout-close aria-label="닫기">&times;</button>
+    <p class="auth-modal-kicker">Session</p>
+    <h2 class="logout-modal-title" id="logoutModalTitle">로그아웃</h2>
+    <p class="logout-modal-copy">지금 세션을 종료하고 첫 화면으로 이동합니다. 현재 열어 둔 작업은 저장된 내용만 유지됩니다.</p>
+    <form method="post" action="{% url 'platform_auth:logout' %}" id="logoutModalForm" class="auth-modal-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'landing' %}">
+      <div class="auth-modal-actions">
+        <button type="submit" class="auth-modal-submit">로그아웃</button>
+        <button type="button" class="auth-modal-secondary" data-logout-close>취소</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% else %}
+<div
+  class="auth-modal-backdrop{% if auth_modal_open %} is-open{% endif %}"
+  id="authModalBackdrop"
+  aria-hidden="{% if auth_modal_open %}false{% else %}true{% endif %}"
+  data-auth-route="{% if auth_modal_route %}1{% else %}0{% endif %}"
+  data-auth-mode="{{ auth_modal_mode|default:'login' }}"
+  data-auth-next="{{ auth_modal_next|default:request.get_full_path }}"
+  data-auth-cancel-url="{{ auth_modal_cancel_url|default:'/' }}"
+>
+  <div class="auth-modal-shell" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <button class="auth-modal-close" type="button" data-auth-close aria-label="닫기">&times;</button>
+    <div class="auth-modal-grid">
+      <section class="auth-modal-brand">
+        <div class="auth-brand-pill">anglangl</div>
+        <h1 class="auth-brand-title">영어 학습 자료를 <strong>직접 만들고 쌓아보세요.</strong></h1>
+        <p class="auth-brand-copy">로그인하면 영상, 클립, 학습 자료를 저장하고 다시 열어 이어서 작업할 수 있습니다.</p>
+        <div class="auth-brand-points" aria-hidden="true">
+          <div class="auth-brand-point">
+            <span class="auth-brand-icon">✦</span>
+            <div>
+              <strong>자료를 저장</strong>
+              <span>생성한 학습 자료와 영상 작업을 내 라이브러리에 구조적으로 보관합니다.</span>
+            </div>
+          </div>
+          <div class="auth-brand-point">
+            <span class="auth-brand-icon">✦</span>
+            <div>
+              <strong>작업을 이어서</strong>
+              <span>클립 생성, 편집, 학습 자료 정리를 같은 계정에서 이어서 진행할 수 있습니다.</span>
+            </div>
+          </div>
+          <div class="auth-brand-point">
+            <span class="auth-brand-icon">✦</span>
+            <div>
+              <strong>자료를 공유</strong>
+              <span>내가 만든 자료를 다시 열고, 정리하고, 공개 자료 흐름으로 확장할 수 있습니다.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-modal-panel-wrap">
+        <div class="auth-modal-tabs" role="tablist" aria-label="인증 메뉴">
+          <button class="auth-modal-tab{% if auth_modal_mode != 'signup' %} is-active{% endif %}" type="button" data-auth-switch="login">로그인</button>
+          <button class="auth-modal-tab{% if auth_modal_mode == 'signup' %} is-active{% endif %}" type="button" data-auth-switch="signup">회원가입</button>
+        </div>
+
+        <section class="auth-modal-panel{% if auth_modal_mode != 'signup' %} is-active{% endif %}" data-auth-panel="login">
+          <p class="auth-modal-kicker">Welcome Back</p>
+          <h2 class="auth-modal-title" id="authModalTitle">다시 이어서 작업하기</h2>
+          <p class="auth-modal-copy">저장한 영상과 학습 자료를 열어 작업을 계속하려면 로그인하세요.</p>
+          <div class="auth-modal-alert{% if auth_modal_mode == 'login' and auth_modal_error %} is-visible{% endif %}" id="loginAuthError">
+            {% if auth_modal_mode == 'login' %}{{ auth_modal_error }}{% endif %}
+          </div>
+          <div class="auth-modal-hint{% if auth_modal_mode == 'login' and auth_suggest_signup %} is-visible{% endif %}" id="loginSignupHint">
+            <span>계정이 없다면 회원가입 후 시작하세요.</span>
+            <button type="button" data-auth-switch="signup">회원가입</button>
+          </div>
+          <form method="post" action="{% url 'platform_auth:login' %}" class="auth-modal-form" id="loginModalForm" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ auth_modal_next|default:request.get_full_path }}">
+            <div class="auth-modal-field">
+              <label for="authLoginEmail">이메일</label>
+              <input id="authLoginEmail" type="email" name="email" value="{{ auth_login_initial.email|default:'' }}" autocomplete="email" placeholder="you@example.com" required>
+            </div>
+            <div class="auth-modal-field">
+              <label for="authLoginPassword">비밀번호</label>
+              <input id="authLoginPassword" type="password" name="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요" required>
+            </div>
+            <div class="auth-modal-actions">
+              <button type="submit" class="auth-modal-submit">로그인</button>
+              <button type="button" class="auth-modal-secondary" data-auth-switch="signup">회원가입</button>
+            </div>
+          </form>
+          <p class="auth-modal-footer">내 자료를 저장하고 다시 열어 작업을 이어가기 위해 로그인이 필요합니다.</p>
+        </section>
+
+        <section class="auth-modal-panel{% if auth_modal_mode == 'signup' %} is-active{% endif %}" data-auth-panel="signup">
+          <p class="auth-modal-kicker">Create Account</p>
+          <h2 class="auth-modal-title">새 계정 만들기</h2>
+          <p class="auth-modal-copy">바로 자료를 만들고 저장할 수 있도록 기본 정보를 입력하세요.</p>
+          <div class="auth-modal-alert{% if auth_modal_mode == 'signup' and auth_modal_error %} is-visible{% endif %}" id="signupAuthError">
+            {% if auth_modal_mode == 'signup' %}{{ auth_modal_error }}{% endif %}
+          </div>
+          <form method="post" action="{% url 'platform_auth:signup' %}" class="auth-modal-form" id="signupModalForm" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ auth_modal_next|default:request.get_full_path }}">
+            <div class="auth-modal-field">
+              <label for="authSignupEmail">이메일</label>
+              <input id="authSignupEmail" type="email" name="email" value="{{ auth_signup_initial.email|default:'' }}" autocomplete="email" placeholder="you@example.com" required>
+            </div>
+            <div class="auth-modal-field">
+              <label for="authSignupFullName">이름</label>
+              <input id="authSignupFullName" type="text" name="full_name" value="{{ auth_signup_initial.full_name|default:'' }}" autocomplete="name" placeholder="이름을 입력하세요" required>
+            </div>
+            <div class="auth-modal-field">
+              <label for="authSignupPhone">휴대전화</label>
+              <input id="authSignupPhone" type="text" name="smartphone_number" value="{{ auth_signup_initial.smartphone_number|default:'' }}" autocomplete="tel" placeholder="01012341234 또는 +821012341234" required>
+            </div>
+            <div class="auth-modal-field">
+              <label for="authSignupPassword">비밀번호</label>
+              <input id="authSignupPassword" type="password" name="password" autocomplete="new-password" placeholder="8자 이상 비밀번호" required>
+            </div>
+            <div class="auth-modal-field">
+              <label for="authSignupPasswordConfirm">비밀번호 확인</label>
+              <input id="authSignupPasswordConfirm" type="password" name="password_confirm" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력하세요" required>
+            </div>
+            <div class="auth-modal-actions">
+              <button type="submit" class="auth-modal-submit">회원가입</button>
+              <button type="button" class="auth-modal-secondary" data-auth-switch="login">로그인</button>
+            </div>
+          </form>
+          <p class="auth-modal-footer">가입이 완료되면 바로 로그인되어 현재 작업으로 돌아갑니다.</p>
+        </section>
+      </section>
+    </div>
+  </div>
+</div>
+{% endif %}

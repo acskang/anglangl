@@ -17,5 +17,6 @@ export DJANGO_SETTINGS_MODULE=config.settings.prod
 "$PYTHON_BIN" manage.py check --deploy
 curl --silent --show-error --fail --unix-socket /run/gunicorn_anglangl.sock -H 'Host: anglangl.thesysm.com' -H 'X-Forwarded-Proto: https' http://localhost/api/v1/health/
 sudo systemctl status gunicorn_anglangl.service --no-pager --lines=0
+sudo systemctl status celery_anglangl.service --no-pager --lines=0
 sudo systemctl status nginx --no-pager --lines=0
 sudo systemctl status cloudflared --no-pager --lines=0

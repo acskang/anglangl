@@ -1,0 +1,862 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}IMDB{% endblock %}
+
+{% block extra_css %}
+<style>
+.imdb-page{
+  width:min(1180px, calc(100vw - 2rem));
+  margin:0 auto;
+  padding:2.4rem 0 3rem;
+}
+.imdb-hero{
+  margin-bottom:1.4rem;
+  text-align:center;
+}
+.imdb-hero h1{
+  margin:0;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2.4rem, 5vw, 4rem);
+  letter-spacing:.16em;
+  color:var(--text);
+}
+.imdb-hero p{
+  margin:.6rem auto 0;
+  max-width:720px;
+  color:var(--muted);
+  font-size:.92rem;
+}
+.imdb-search-card,
+.imdb-detail-card,
+.imdb-result-card,
+.imdb-empty-card,
+.imdb-error-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 18px 60px rgba(0,0,0,.22);
+}
+.imdb-search-card{
+  padding:1rem;
+  margin-bottom:1.2rem;
+}
+.imdb-search-form{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:.75rem;
+}
+.imdb-search-input{
+  width:100%;
+  padding:.95rem 1rem;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.96rem;
+  outline:none;
+}
+.imdb-search-input:focus{
+  border-color:var(--acc);
+  box-shadow:0 0 0 3px rgba(255,61,90,.12);
+}
+.imdb-search-submit{
+  padding:.95rem 1.3rem;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg, var(--acc), #8e44ff);
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+}
+.imdb-search-help{
+  margin:.7rem 0 0;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.imdb-error-card,
+.imdb-empty-card{
+  padding:1rem 1.1rem;
+  margin-bottom:1.2rem;
+}
+.imdb-error-card{
+  border-color:#7f1d1d;
+  color:#fecaca;
+}
+.imdb-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap:1rem;
+  align-items:start;
+}
+.imdb-detail-card{
+  padding:1.1rem;
+}
+.imdb-detail-head{
+  display:grid;
+  grid-template-columns:220px minmax(0, 1fr);
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.imdb-poster{
+  width:100%;
+  aspect-ratio:2/3;
+  object-fit:cover;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--s2);
+}
+.imdb-meta{
+  min-width:0;
+  display:grid;
+  gap:.75rem;
+}
+.imdb-badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.45rem;
+}
+.imdb-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:.28rem .62rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--s2);
+  color:var(--muted);
+  font-size:.74rem;
+  font-weight:700;
+}
+.imdb-badge.is-accent{
+  border-color:rgba(255,61,90,.24);
+  color:#ffd2da;
+  background:rgba(255,61,90,.12);
+}
+.imdb-title{
+  margin:0;
+  font-size:1.8rem;
+  line-height:1.2;
+}
+.imdb-summary{
+  margin:0;
+  color:#d3d8e5;
+  font-size:.92rem;
+  line-height:1.7;
+}
+.imdb-controls{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:.8rem;
+  margin-bottom:1rem;
+}
+.imdb-field{
+  display:grid;
+  gap:.35rem;
+}
+.imdb-field label{
+  color:var(--muted);
+  font-size:.78rem;
+  font-weight:700;
+}
+.imdb-select{
+  width:100%;
+  padding:.8rem .9rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.9rem;
+  outline:none;
+}
+.imdb-select:focus{
+  border-color:var(--acc);
+}
+.imdb-episode-card{
+  display:grid;
+  gap:.6rem;
+  padding:1rem;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+}
+.imdb-episode-title{
+  margin:0;
+  font-size:1rem;
+}
+.imdb-stream-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.6rem;
+  align-items:center;
+}
+.imdb-play-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.62rem .95rem;
+  border-radius:10px;
+  background:var(--acc);
+  color:#fff;
+  font-size:.84rem;
+  font-weight:700;
+  text-decoration:none;
+}
+.imdb-stream-url{
+  color:var(--muted);
+  font-size:.76rem;
+  word-break:break-all;
+}
+.imdb-player-wrap{
+  position:relative;
+  width:100%;
+  padding-top:56.25%;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:#000;
+  box-shadow:0 18px 60px rgba(0,0,0,.26);
+}
+.imdb-player-wrap iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#000;
+}
+.imdb-section-stack{
+  display:grid;
+  gap:1rem;
+}
+.imdb-results-section{
+  display:grid;
+  gap:.8rem;
+}
+.imdb-section-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+}
+.imdb-results-title{
+  margin:0;
+  color:var(--text);
+  font-size:1rem;
+}
+.imdb-sort-bar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+}
+.imdb-sort-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:.55rem .9rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s1);
+  color:var(--muted);
+  text-decoration:none;
+  font-size:.8rem;
+  font-weight:700;
+  transition:border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.imdb-sort-chip:hover{
+  border-color:var(--acc);
+  color:#fff;
+  transform:translateY(-1px);
+}
+.imdb-sort-chip.is-active{
+  border-color:rgba(255,61,90,.32);
+  background:rgba(255,61,90,.14);
+  color:#ffe0e6;
+}
+.imdb-results-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:.85rem;
+}
+.imdb-result-card{
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:.72rem;
+  padding:.8rem;
+  min-height:100%;
+  transition:border-color .18s ease, transform .18s ease;
+}
+.imdb-result-card:hover{
+  border-color:var(--acc);
+  transform:translateY(-2px);
+}
+.imdb-result-card.is-active{
+  border-color:rgba(255,61,90,.35);
+  box-shadow:0 0 0 1px rgba(255,61,90,.18) inset;
+}
+.imdb-result-card.is-draggable{
+  cursor:grab;
+}
+.imdb-result-card.is-dragging{
+  opacity:.5;
+  transform:scale(.98);
+}
+.imdb-result-card.is-drop-target{
+  border-color:rgba(92,230,169,.44);
+  box-shadow:0 0 0 1px rgba(92,230,169,.22) inset;
+}
+.imdb-result-poster-link{
+  display:block;
+}
+.imdb-result-thumb{
+  width:100%;
+  aspect-ratio:2/3;
+  object-fit:cover;
+  border-radius:12px;
+  background:var(--s2);
+}
+.imdb-result-body{
+  min-width:0;
+  display:grid;
+  gap:.48rem;
+  align-content:start;
+}
+.imdb-result-name{
+  margin:0;
+  font-size:.98rem;
+  line-height:1.35;
+}
+.imdb-result-summary{
+  margin:0;
+  color:var(--muted);
+  font-size:.8rem;
+  line-height:1.55;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.imdb-result-meta{
+  color:var(--muted);
+  font-size:.74rem;
+}
+.imdb-card-top{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  min-height:20px;
+}
+.imdb-drag-handle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.25rem .5rem;
+  border-radius:999px;
+  border:1px dashed rgba(255,255,255,.12);
+  background:rgba(255,255,255,.02);
+  color:var(--muted);
+  font-size:.7rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  user-select:none;
+}
+.imdb-order-note{
+  margin:0;
+  color:var(--muted);
+  font-size:.76rem;
+}
+.imdb-order-note.is-error{
+  color:#fecaca;
+}
+.imdb-card-actions{
+  display:flex;
+  gap:.55rem;
+  margin-top:auto;
+}
+.imdb-card-link,
+.imdb-card-delete-btn{
+  display:inline-flex;
+  flex:1 1 0;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:.65rem .8rem;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:#fff;
+  text-decoration:none;
+  font-size:.82rem;
+  font-weight:700;
+  cursor:pointer;
+}
+.imdb-card-link{
+  border-color:rgba(92,230,169,.28);
+  background:rgba(92,230,169,.12);
+  color:#d5ffef;
+}
+.imdb-card-delete-form{
+  flex:1 1 0;
+  display:flex;
+}
+.imdb-card-delete-btn{
+  width:100%;
+  border-color:rgba(255,61,90,.26);
+  background:rgba(255,61,90,.1);
+  color:#ffd4dc;
+}
+.imdb-card-delete-btn[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
+}
+@media (max-width: 1180px){
+  .imdb-results-grid{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 960px){
+  .imdb-results-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px){
+  .imdb-page{
+    width:min(100vw - 1rem, 1180px);
+    padding:1.2rem 0 2rem;
+  }
+  .imdb-search-form,
+  .imdb-detail-head{
+    grid-template-columns:1fr;
+  }
+  .imdb-controls{
+    grid-template-columns:1fr;
+  }
+}
+@media (max-width: 560px){
+  .imdb-results-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="imdb-page">
+  <section class="imdb-hero">
+    <h1>IMDB DRAMA</h1>
+    <p>드라마 제목 또는 IMDb ID를 검색하고, 저장된 메타데이터와 시즌/에피소드 정보를 바로 재생에 연결합니다.</p>
+  </section>
+
+  <section class="imdb-search-card">
+    <form class="imdb-search-form" method="get" action="{% url 'dramaNlearn:imdb' %}">
+      <input
+        class="imdb-search-input"
+        type="text"
+        name="query"
+        value="{{ query }}"
+        placeholder="예: The Boys 또는 tt1190634"
+        aria-label="드라마 제목 또는 IMDb ID"
+      >
+      <button class="imdb-search-submit" type="submit">검색</button>
+    </form>
+    <p class="imdb-search-help">DB에 저장된 드라마는 저장값을 바로 보여주고, 처음 보는 드라마만 외부 메타데이터를 가져와 저장합니다.</p>
+  </section>
+
+  {% if error_message %}
+  <section class="imdb-error-card">
+    {{ error_message }}
+  </section>
+  {% endif %}
+
+  {% if selected %}
+    {{ selected.episodes_by_season|json_script:"imdbEpisodesBySeason" }}
+  {% endif %}
+
+  <div class="imdb-section-stack">
+    {% if selected %}
+    <section class="imdb-detail-card">
+      <div class="imdb-detail-head">
+        <img
+          class="imdb-poster"
+          src="{{ selected.poster_url|default:'' }}"
+          alt="{{ selected.title }}"
+          loading="lazy"
+          onerror="setPlaceholderThumbnail(this)"
+        >
+        <div class="imdb-meta">
+          <div class="imdb-badges">
+            <span class="imdb-badge is-accent">{{ selected.imdb_id }}</span>
+            {% if selected_source == "cache" %}
+            <span class="imdb-badge">DB 저장본</span>
+            {% elif selected_source == "fetched" %}
+            <span class="imdb-badge">외부 조회 후 저장됨</span>
+            {% endif %}
+          </div>
+          <h2 class="imdb-title">{{ selected.title }}</h2>
+          <p class="imdb-summary">{{ selected.summary|default:"소개 정보가 없습니다." }}</p>
+        </div>
+      </div>
+
+      <div class="imdb-controls">
+        <div class="imdb-field">
+          <label for="seasonSelect">Season</label>
+          <select class="imdb-select" id="seasonSelect">
+            {% for season in selected.seasons %}
+            <option value="{{ season.value }}"{% if season.value == selected.selected_season %} selected{% endif %}>{{ season.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="imdb-field">
+          <label for="episodeSelect">Episode</label>
+          <select class="imdb-select" id="episodeSelect">
+            {% for episode in selected.episodes %}
+            <option value="{{ episode.episode_number }}"{% if episode.episode_number == selected.selected_episode %} selected{% endif %}>{{ episode.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="imdb-episode-card">
+        <h3 class="imdb-episode-title" id="episodeTitle">{{ selected.selected_episode_title }}</h3>
+        <div class="imdb-stream-row">
+          <a class="imdb-play-link" id="streamLink" href="{{ selected.selected_stream_url }}" target="_blank" rel="noopener">새 탭에서 재생</a>
+          <div class="imdb-stream-url" id="streamUrlText">{{ selected.selected_stream_url }}</div>
+        </div>
+        <div class="imdb-player-wrap">
+          <iframe
+            id="streamFrame"
+            src="{{ selected.selected_stream_url }}"
+            allowfullscreen
+            referrerpolicy="no-referrer"
+            allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="imdb-results-section">
+      <div class="imdb-section-head">
+        <h3 class="imdb-results-title">저장된 드라마</h3>
+        <div>
+          <div class="imdb-sort-bar">
+            {% for option in saved_sort_options %}
+            <a class="imdb-sort-chip{% if option.active %} is-active{% endif %}" href="{{ option.url }}">{{ option.label }}</a>
+            {% endfor %}
+          </div>
+          <p class="imdb-order-note" id="imdbOrderFeedback">
+            {% if can_reorder_saved_series %}
+            카드를 드래그해서 보이는 순서를 바꿀 수 있습니다.
+            {% elif saved_sort == "manual" %}
+            로그인하면 카드 순서를 직접 저장할 수 있습니다.
+            {% else %}
+            직접 순서 탭에서 드래그로 카드 위치를 바꿀 수 있습니다.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      {% if saved_series %}
+      <div
+        class="imdb-results-grid"
+        id="imdbSavedGrid"
+        data-reorder-url="{% url 'dramaNlearn:reorder_imdb_series' %}"
+        data-can-reorder="{% if can_reorder_saved_series %}1{% else %}0{% endif %}"
+        data-csrf-token="{{ csrf_token }}"
+      >
+        {% for series in saved_series %}
+        <article
+          class="imdb-result-card{% if selected and series.imdb_id == selected.imdb_id %} is-active{% endif %}{% if can_reorder_saved_series %} is-draggable{% endif %}"
+          data-imdb-id="{{ series.imdb_id }}"
+          {% if can_reorder_saved_series %}draggable="true"{% endif %}
+        >
+          <div class="imdb-card-top">
+            {% if can_reorder_saved_series %}
+            <div class="imdb-drag-handle" aria-label="드래그해서 순서 이동">MOVE</div>
+            {% endif %}
+          </div>
+          <a class="imdb-result-poster-link" href="{{ series.query_url }}">
+            <img
+              class="imdb-result-thumb"
+              src="{{ series.poster_url|default:'' }}"
+              alt="{{ series.title }}"
+              loading="lazy"
+              onerror="setPlaceholderThumbnail(this)"
+            >
+          </a>
+          <div class="imdb-result-body">
+            <h4 class="imdb-result-name">{{ series.title }}</h4>
+            <p class="imdb-result-summary">{{ series.summary|default:"설명 정보가 없습니다." }}</p>
+            <div class="imdb-result-meta">
+              {{ series.season_count }}개 시즌 · {{ series.episode_count }}개 에피소드
+              {% if series.last_played_at %}
+              · {{ series.last_played_at|date:"Y-m-d H:i" }} 재생
+              {% endif %}
+            </div>
+          </div>
+          <div class="imdb-card-actions">
+            <a class="imdb-card-link" href="{{ series.player_open_url }}">열기</a>
+            <form class="imdb-card-delete-form" method="post" action="{{ series.delete_url }}" onsubmit="return confirm('저장된 IMDb 드라마를 삭제할까요?');">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ saved_series_return_url }}">
+              <button class="imdb-card-delete-btn" type="submit"{% if not can_delete_saved_series %} disabled title="로그인 후 삭제할 수 있습니다."{% endif %}>삭제</button>
+            </form>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <section class="imdb-empty-card">
+        저장된 드라마가 없습니다.
+      </section>
+      {% endif %}
+    </section>
+
+    {% if results %}
+    <section class="imdb-results-section">
+      <div class="imdb-section-head">
+        <h3 class="imdb-results-title">검색 후보</h3>
+      </div>
+      <div class="imdb-results-grid">
+        {% for result in results %}
+        <article class="imdb-result-card{% if selected and result.imdb_id == selected.imdb_id %} is-active{% endif %}">
+          <a class="imdb-result-poster-link" href="{% url 'dramaNlearn:imdb' %}?query={{ result.imdb_id|urlencode }}&saved_sort={{ saved_sort|urlencode }}">
+            <img
+              class="imdb-result-thumb"
+              src="{{ result.poster_url|default:'' }}"
+              alt="{{ result.title }}"
+              loading="lazy"
+              onerror="setPlaceholderThumbnail(this)"
+            >
+          </a>
+          <div class="imdb-result-body">
+            <div class="imdb-badges">
+              <span class="imdb-badge is-accent">{{ result.imdb_id }}</span>
+              {% if result.source == "cache" %}
+              <span class="imdb-badge">DB</span>
+              {% elif result.source == "fetched" or result.source == "external" %}
+              <span class="imdb-badge">외부</span>
+              {% endif %}
+            </div>
+            <h4 class="imdb-result-name">{{ result.title }}</h4>
+            <p class="imdb-result-summary">{{ result.summary|default:"설명 정보가 없습니다." }}</p>
+            <div class="imdb-result-meta">클릭하면 이 시리즈를 선택합니다.</div>
+          </div>
+          <div class="imdb-card-actions">
+            <a class="imdb-card-link" href="{% url 'dramaNlearn:imdb' %}?query={{ result.imdb_id|urlencode }}&saved_sort={{ saved_sort|urlencode }}">선택</a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% elif query and not error_message and not selected %}
+    <section class="imdb-empty-card">
+      저장된 드라마 또는 외부 검색 결과를 찾지 못했습니다.
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  function initEpisodeSelector() {
+    var seasonSelect = document.getElementById('seasonSelect');
+    var episodeSelect = document.getElementById('episodeSelect');
+    var episodeTitle = document.getElementById('episodeTitle');
+    var streamLink = document.getElementById('streamLink');
+    var streamFrame = document.getElementById('streamFrame');
+    var streamUrlText = document.getElementById('streamUrlText');
+    var episodesNode = document.getElementById('imdbEpisodesBySeason');
+
+    if (!seasonSelect || !episodeSelect || !episodeTitle || !streamLink || !streamFrame || !streamUrlText || !episodesNode) {
+      return;
+    }
+
+    var episodesBySeason = {};
+    try {
+      episodesBySeason = JSON.parse(episodesNode.textContent);
+    } catch (error) {
+      episodesBySeason = {};
+    }
+
+    function renderEpisodeOptions(seasonValue, preferredEpisode) {
+      var items = episodesBySeason[String(seasonValue)] || [];
+      episodeSelect.innerHTML = items.map(function(item) {
+        var selected = String(item.episode_number) === String(preferredEpisode) ? ' selected' : '';
+        return '<option value="' + item.episode_number + '"' + selected + '>' + item.label + '</option>';
+      }).join('');
+      if (!episodeSelect.value && items.length) {
+        episodeSelect.value = String(items[0].episode_number);
+      }
+      updateSelectedEpisode();
+    }
+
+    function updateSelectedEpisode() {
+      var items = episodesBySeason[String(seasonSelect.value)] || [];
+      var selected = null;
+      for (var i = 0; i < items.length; i += 1) {
+        if (String(items[i].episode_number) === String(episodeSelect.value)) {
+          selected = items[i];
+          break;
+        }
+      }
+      if (!selected && items.length) {
+        selected = items[0];
+        episodeSelect.value = String(selected.episode_number);
+      }
+      if (!selected) {
+        return;
+      }
+      episodeTitle.textContent = selected.episode_title;
+      streamLink.href = selected.stream_url;
+      streamUrlText.textContent = selected.stream_url;
+      streamFrame.src = selected.stream_url;
+    }
+
+    seasonSelect.addEventListener('change', function() {
+      renderEpisodeOptions(seasonSelect.value, '');
+    });
+    episodeSelect.addEventListener('change', updateSelectedEpisode);
+  }
+
+  function initSavedSeriesReorder() {
+    var savedGrid = document.getElementById('imdbSavedGrid');
+    var feedbackNode = document.getElementById('imdbOrderFeedback');
+    if (!savedGrid) {
+      return;
+    }
+
+    var canReorder = savedGrid.getAttribute('data-can-reorder') === '1';
+    var reorderUrl = savedGrid.getAttribute('data-reorder-url') || '';
+    var csrfToken = savedGrid.getAttribute('data-csrf-token') || '';
+    if (!canReorder || !reorderUrl || !csrfToken) {
+      return;
+    }
+
+    var draggingCard = null;
+    var lastSerializedOrder = serializeOrder();
+    var isSaving = false;
+
+    function setFeedback(message, isError) {
+      if (!feedbackNode) return;
+      feedbackNode.textContent = message;
+      feedbackNode.classList.toggle('is-error', !!isError);
+    }
+
+    function serializeOrder() {
+      return Array.prototype.map.call(
+        savedGrid.querySelectorAll('.imdb-result-card[data-imdb-id]'),
+        function(card) { return card.getAttribute('data-imdb-id') || ''; }
+      ).filter(Boolean).join('|');
+    }
+
+    function getOrderedIds() {
+      return Array.prototype.map.call(
+        savedGrid.querySelectorAll('.imdb-result-card[data-imdb-id]'),
+        function(card) { return card.getAttribute('data-imdb-id') || ''; }
+      ).filter(Boolean);
+    }
+
+    function clearDropTargets() {
+      Array.prototype.forEach.call(
+        savedGrid.querySelectorAll('.imdb-result-card.is-drop-target'),
+        function(card) { card.classList.remove('is-drop-target'); }
+      );
+    }
+
+    function persistOrder() {
+      var currentSerializedOrder = serializeOrder();
+      if (currentSerializedOrder === lastSerializedOrder || isSaving) {
+        return;
+      }
+
+      isSaving = true;
+      setFeedback('카드 순서를 저장하는 중입니다...', false);
+      fetch(reorderUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({imdb_ids: getOrderedIds()})
+      })
+        .then(function(response) {
+          return response.json().catch(function() { return {}; }).then(function(data) {
+            if (!response.ok || !data.ok) {
+              throw new Error(data.error || '카드 순서를 저장하지 못했습니다.');
+            }
+            return data;
+          });
+        })
+        .then(function() {
+          lastSerializedOrder = currentSerializedOrder;
+          setFeedback('카드 순서를 저장했습니다.', false);
+        })
+        .catch(function(error) {
+          setFeedback(error.message || '카드 순서를 저장하지 못했습니다.', true);
+        })
+        .finally(function() {
+          isSaving = false;
+        });
+    }
+
+    function shouldInsertAfter(event, targetCard) {
+      var rect = targetCard.getBoundingClientRect();
+      var offsetX = event.clientX - rect.left;
+      var offsetY = event.clientY - rect.top;
+      var useHorizontal = Math.abs(offsetX - (rect.width / 2)) >= Math.abs(offsetY - (rect.height / 2));
+      return useHorizontal ? offsetX > (rect.width / 2) : offsetY > (rect.height / 2);
+    }
+
+    Array.prototype.forEach.call(
+      savedGrid.querySelectorAll('.imdb-result-card[data-imdb-id]'),
+      function(card) {
+        card.addEventListener('dragstart', function(event) {
+          draggingCard = card;
+          card.classList.add('is-dragging');
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', card.getAttribute('data-imdb-id') || '');
+          }
+          setFeedback('카드를 원하는 위치로 옮긴 뒤 놓아주세요.', false);
+        });
+
+        card.addEventListener('dragover', function(event) {
+          if (!draggingCard || draggingCard === card) return;
+          event.preventDefault();
+          clearDropTargets();
+          card.classList.add('is-drop-target');
+          if (shouldInsertAfter(event, card)) {
+            if (card.nextSibling !== draggingCard) {
+              savedGrid.insertBefore(draggingCard, card.nextSibling);
+            }
+          } else {
+            if (card !== draggingCard.nextSibling) {
+              savedGrid.insertBefore(draggingCard, card);
+            }
+          }
+        });
+
+        card.addEventListener('drop', function(event) {
+          event.preventDefault();
+          clearDropTargets();
+          persistOrder();
+        });
+
+        card.addEventListener('dragend', function() {
+          card.classList.remove('is-dragging');
+          clearDropTargets();
+          draggingCard = null;
+          persistOrder();
+        });
+      }
+    );
+  }
+
+  initEpisodeSelector();
+  initSavedSeriesReorder();
+})();
+</script>
+{% endblock %}

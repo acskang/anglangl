@@ -8,6 +8,6 @@ register = template.Library()
 @register.filter
 def hhmmss(value):
     try:
-        return format_hhmmss(int(value))
+        return format_hhmmss(float(value))
     except (TypeError, ValueError):
         return "-"

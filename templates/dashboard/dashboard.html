@@ -172,25 +172,29 @@
       <p class="dashboard-desc">학습 진행, 클립 작업, 업로드 상태, 최근 영상과 주의 항목을 한 화면에서 보는 개인 작업 허브입니다.</p>
     </div>
     <div class="dashboard-actions">
-      <a class="btn btn-primary" href="{% url 'videos:create-youtube' %}">Register Youtube</a>
-      <a class="btn btn-outline-primary" href="{% url 'videos:create-video' %}">Register Video</a>
+      <a class="btn btn-primary" href="{% url 'videos:create' %}">Add Video</a>
       <a class="btn btn-outline-secondary" href="{% url 'clips:bulk-upload' %}">Upload Clips</a>
-      <a class="btn btn-outline-dark" href="{% url 'clips:list' %}">Open Clips</a>
+      <a class="btn btn-outline-secondary" href="{% url 'clips:album-upload' %}">Upload Album Image</a>
     </div>
   </div>
 
   {% include 'dashboard/includes/kpi_cards.html' %}
 
   <div class="row g-4 mb-4">
-    <div class="col-12 col-xl-8">
+    <div class="col-12 col-xl-6">
       {% include 'dashboard/includes/recent_study_list.html' %}
     </div>
-    <div class="col-12 col-xl-4">
+    <div class="col-12 col-xl-6">
+      {% include 'dashboard/includes/recent_study_materials.html' %}
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-12">
       <div class="card h-100">
         <div class="card-body">
           <div class="d-flex align-items-center justify-content-between mb-3">
             <h2 class="h5 mb-0">Quick Start</h2>
-            <a class="small text-decoration-none" href="{% url 'clips:list' %}">All clips</a>
           </div>
           {% if quick_start_clips %}
             <div class="list-group list-group-flush">

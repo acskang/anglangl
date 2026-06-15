@@ -51,7 +51,9 @@ def clip_detail(request: HttpRequest, clip: Clip) -> dict:
         payload["master_video_summary"] = {
             "id": clip.master_video.id,
             "title": clip.master_video.title,
-            "youtube_video_id": clip.master_video.youtube_video_id,
+            "source_type": clip.master_video.source_type,
+            "source_reference": clip.master_video.source_reference,
+            "source_url": clip.master_video.source_url,
             "thumbnail_url": _abs_uri(request, clip.master_video.thumbnail_url),
         }
 
@@ -70,8 +72,9 @@ def master_video_summary(request: HttpRequest, video: MasterVideo) -> dict:
         "id": video.id,
         "title": video.title,
         "description": video.description,
-        "youtube_video_id": video.youtube_video_id,
-        "youtube_url": video.youtube_url,
+        "source_type": video.source_type,
+        "source_reference": video.source_reference,
+        "source_url": video.source_url,
         "duration_seconds": video.duration_seconds,
         "thumbnail_url": _abs_uri(request, video.thumbnail_url),
         "download_status": video.download_status,

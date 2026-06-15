@@ -9,9 +9,11 @@ from django.conf import settings
 class Video(models.Model):
     STATUS_CHOICES = [
         ('pending',  '대기중'),
+        ('queued',   '대기열'),
         ('fetching', '추출중'),
         ('ready',    '재생가능'),
         ('error',    '오류'),
+        ('canceled', '취소됨'),
         ('expired',  '만료됨'),
     ]
 

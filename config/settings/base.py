@@ -31,7 +31,7 @@ def _env_list(name: str, default: str = "") -> list[str]:
 def _resolve_thepeach_base_url(name: str, default: str) -> str:
     base_url = str(_env(name, default)).rstrip("/")
     origin_base_url = str(os.environ.get("THEPEACH_ORIGIN_BASE_URL", "http://127.0.0.1")).rstrip("/")
-    upstream_host = str(os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "thepeach.thesysm.com")).strip()
+    upstream_host = str(os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "peach.thesysm.com")).strip()
     parsed = urlparse(base_url)
     if (
         not DEBUG
@@ -64,9 +64,9 @@ INSTALLED_APPS = [
     "interactions",
     "workers",
     "dashboard",
-    "youtube_saver",
     "internal_api",
     "dramaNlearn",
+    "movies",
 ]
 
 MIDDLEWARE = [
@@ -75,6 +75,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "platform_auth.middleware.ThePeachSSOMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -90,6 +91,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.csrf",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
@@ -170,7 +172,12 @@ SECURE_REFERRER_POLICY = os.environ.get("SECURE_REFERRER_POLICY", "same-origin")
 
 THEPEACH_AUTH_BASE_URL = _resolve_thepeach_base_url("THEPEACH_AUTH_BASE_URL", "http://127.0.0.1")
 THEPEACH_LOGIN_BASE_URL = _resolve_thepeach_base_url("THEPEACH_LOGIN_BASE_URL", THEPEACH_AUTH_BASE_URL)
-THEPEACH_UPSTREAM_HOST_HEADER = os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "thepeach.thesysm.com").strip()
+THEPEACH_UPSTREAM_HOST_HEADER = os.environ.get("THEPEACH_UPSTREAM_HOST_HEADER", "peach.thesysm.com").strip()
+THEPEACH_SSO_ACCESS_COOKIE_NAME = os.environ.get("THEPEACH_SSO_ACCESS_COOKIE_NAME", "thepeach_sso_access")
+THEPEACH_SSO_REFRESH_COOKIE_NAME = os.environ.get("THEPEACH_SSO_REFRESH_COOKIE_NAME", "thepeach_sso_refresh")
+THEPEACH_SSO_COOKIE_DOMAIN = os.environ.get("THEPEACH_SSO_COOKIE_DOMAIN", ".thesysm.com")
+THEPEACH_SSO_COOKIE_PATH = os.environ.get("THEPEACH_SSO_COOKIE_PATH", "/")
+THEPEACH_SSO_COOKIE_SAMESITE = os.environ.get("THEPEACH_SSO_COOKIE_SAMESITE", "Lax")
 THEPEACH_SIGNUP_PATH = os.environ.get("THEPEACH_SIGNUP_PATH", "/api/v1/auth/signup/")
 THEPEACH_LOGIN_PATH = os.environ.get("THEPEACH_LOGIN_PATH", "/api/v1/auth/login/")
 THEPEACH_REFRESH_PATH = os.environ.get("THEPEACH_REFRESH_PATH", "/api/v1/auth/token/refresh/")
@@ -242,6 +249,11 @@ LOGGING = {
             "filename": str(LOG_DIR / "security.log"),
             "formatter": "verbose",
         },
+        "auth_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": str(LOG_DIR / "auth.log"),
+            "formatter": "verbose",
+        },
     },
     "root": {
         "handlers": ["console", "app_file"],
@@ -256,6 +268,11 @@ LOGGING = {
         "django.security": {
             "handlers": ["console", "security_file"],
             "level": "WARNING",
+            "propagate": False,
+        },
+        "platform_auth": {
+            "handlers": ["console", "auth_file"],
+            "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
     },

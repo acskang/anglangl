@@ -117,7 +117,7 @@ def download_youtube_video(self, master_video_id: int):
     now = timezone.now()
 
     if video.source_type != MasterVideoSourceType.YOUTUBE:
-        _mark_failed(video, job, "Only YouTube videos can be processed by the download worker.")
+        _mark_failed(video, job, "Only linked source videos can be processed by the import worker.")
         return
 
     video.download_status = ProcessingState.PROCESSING
@@ -129,7 +129,7 @@ def download_youtube_video(self, master_video_id: int):
         job.status = BackgroundJobState.PROCESSING
         if not job.started_at:
             job.started_at = now
-        job.message = "Downloading video with yt-dlp"
+        job.message = "Importing linked video with yt-dlp"
         job.error_message = ""
         job.progress_percent = 10
         job.celery_task_id = self.request.id or job.celery_task_id
@@ -204,6 +204,7 @@ def download_youtube_video(self, master_video_id: int):
     video.description = result.description
     video.thumbnail_url = result.thumbnail_url
     video.duration_seconds = result.duration_seconds
+    video.channel_name = result.channel_name
     video.file_size_bytes = result.file_size_bytes or result.output_path.stat().st_size
     video.video_file.name = str(relative_path)
     video.hls_manifest_file.name = str(hls_relative_path)
@@ -216,6 +217,7 @@ def download_youtube_video(self, master_video_id: int):
             "description",
             "thumbnail_url",
             "duration_seconds",
+            "channel_name",
             "file_size_bytes",
             "video_file",
             "hls_manifest_file",
@@ -229,7 +231,7 @@ def download_youtube_video(self, master_video_id: int):
     if job:
         job.status = BackgroundJobState.SUCCESS
         job.progress_percent = 100
-        job.message = "Download completed"
+        job.message = "Source video import completed"
         job.error_message = ""
         job.finished_at = timezone.now()
         job.save(update_fields=["status", "progress_percent", "message", "error_message", "finished_at", "updated_at"])

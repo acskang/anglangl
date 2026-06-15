@@ -565,28 +565,34 @@
 <div class="detail-shell">
   <div class="detail-hero">
     <div>
-      <div class="detail-kicker">{% if video.source_type == 'youtube' %}Youtube{% else %}Video{% endif %}</div>
+      <div class="detail-kicker">Video</div>
       <h1 class="detail-title">{{ video.title|default:"Untitled" }}</h1>
-      <p class="detail-desc">
-        {% if video.source_type == 'youtube' %}
-        등록된 YouTube 영상의 다운로드 상태와 관련 클립을 확인합니다.
-        {% else %}
-        업로드한 로컬 비디오의 메타데이터와 관련 클립을 확인합니다.
-        {% endif %}
-      </p>
+      <p class="detail-desc">소스 비디오의 처리 상태, 메타데이터, 관련 클립 작업을 한 화면에서 확인합니다.</p>
     </div>
     <div class="detail-actions">
       {% if can_manage and video.download_status == 'ready' %}
       <a href="{% url 'clips:create' %}?master_video={{ video.id }}" class="btn-primary-dark">Create Clip</a>
       {% endif %}
       {% if can_manage %}
+      <a href="{% url 'videos:edit' video.id %}" class="btn-secondary-dark">Edit</a>
       <a href="{% url 'workers:master-video-job-history' video.id %}" class="btn-secondary-dark">Job History</a>
       {% endif %}
+      {% if download_url %}
+      <a href="{{ download_url }}" class="btn-secondary-dark">Download File</a>
+      {% endif %}
       <a href="{{ list_url }}" class="btn-secondary-dark">Back to {{ list_label }}</a>
-      {% if can_manage and video.source_type == 'youtube' and video.download_status == 'failed' %}
+      {% if can_reload %}
       <form method="post" action="{% url 'videos:retry' video.id %}">
         {% csrf_token %}
-        <button type="submit" class="btn-warn-dark">Retry Download</button>
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn-warn-dark">Reload</button>
+      </form>
+      {% endif %}
+      {% if can_manage %}
+      <form method="post" action="{% url 'videos:delete' video.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ list_url }}">
+        <button type="submit" class="btn-danger-dark" onclick="return confirm('이 비디오를 삭제하시겠습니까?');">Delete</button>
       </form>
       {% endif %}
     </div>
@@ -758,12 +764,12 @@
       <h2 class="section-title">Video Info</h2>
       <dl class="detail-list">
         <dt>Title</dt><dd>{{ video.title|default:"-" }}</dd>
-        <dt>Source Type</dt><dd>{{ video.get_source_type_display }}</dd>
+        <dt>Source Type</dt><dd>{% if video.source_type == 'youtube' %}Linked Video{% else %}Upload{% endif %}</dd>
         <dt>Source</dt>
         <dd>
-          {% if video.source_type == 'youtube' %}
-            <a class="detail-link" href="{{ video.youtube_url }}" target="_blank" rel="noopener">{{ video.youtube_url }}</a>
-            <div style="margin-top:.28rem;color:var(--muted);font-size:.78rem">{{ video.youtube_video_id }}</div>
+          {% if video.source_url %}
+            <a class="detail-link" href="{{ video.source_url }}" target="_blank" rel="noopener">{{ video.source_url }}</a>
+            <div style="margin-top:.28rem;color:var(--muted);font-size:.78rem">{{ video.source_reference }}</div>
           {% elif video.video_file %}
             <a class="detail-link" href="{{ video.video_file.url }}" target="_blank" rel="noopener">{{ video.video_file.name }}</a>
             {% if video.hls_manifest_file %}
@@ -775,7 +781,7 @@
             -
           {% endif %}
         </dd>
-        <dt>{% if video.source_type == 'youtube' %}Downloaded At{% else %}Uploaded At{% endif %}</dt>
+        <dt>Processed At</dt>
         <dd>{{ video.downloaded_at|date:'Y-m-d H:i:s'|default:'-' }}</dd>
         <dt>Subtitle</dt>
         <dd>

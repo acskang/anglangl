@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 
 class FfmpegError(Exception):
@@ -321,32 +322,52 @@ class FfmpegService:
 
         return HlsResult(manifest_path=manifest_path)
 
+    def _normalize_source_arg(self, source_path: Path | str) -> str:
+        if isinstance(source_path, Path):
+            if not source_path.exists():
+                raise FfmpegPermanentError("Source video file does not exist.")
+            return str(source_path)
+
+        source_text = str(source_path or "").strip()
+        if not source_text:
+            raise FfmpegPermanentError("Source video path is empty.")
+
+        parsed = urlparse(source_text)
+        if parsed.scheme in {"http", "https"}:
+            return source_text
+
+        file_path = Path(source_text)
+        if not file_path.exists():
+            raise FfmpegPermanentError("Source video file does not exist.")
+        return str(file_path)
+
     def extract_clip(
         self,
-        source_path: Path,
+        source_path: Path | str,
         output_path: Path,
         thumbnail_path: Path,
         start_seconds: int,
         end_seconds: int,
         timeout: int = 1200,
         progress_callback: ProgressCallback | None = None,
+        input_options: list[str] | None = None,
     ) -> ClipExtractionResult:
-        if not source_path.exists():
-            raise FfmpegPermanentError("Source video file does not exist.")
-
+        source_arg = self._normalize_source_arg(source_path)
         duration = end_seconds - start_seconds
         if duration <= 0:
             raise FfmpegPermanentError("Invalid clip duration.")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved_input_options = list(input_options or [])
 
         extract_cmd = [
             self.ffmpeg_binary,
             "-y",
             "-ss",
             str(start_seconds),
+            *resolved_input_options,
             "-i",
-            str(source_path),
+            source_arg,
             "-t",
             str(duration),
             "-c:v",

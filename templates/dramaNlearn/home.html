@@ -126,12 +126,23 @@
 .badge-fetching{background:#1e3a5f;color:#93c5fd;animation:pulse 1.5s infinite}
 .badge-error  {background:#7f1d1d;color:#fca5a5}
 .badge-pending{background:var(--s3);color:var(--muted)}
+.badge-imdb   {background:#312e81;color:#c7d2fe}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .card-body{padding:.85rem 1rem;flex:1;display:flex;flex-direction:column}
 .card-title{
   font-size:.9rem;font-weight:500;line-height:1.4;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   margin-bottom:.5rem;flex:1;
+}
+.card-summary{
+  color:var(--muted);
+  font-size:.79rem;
+  line-height:1.6;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  margin:-.1rem 0 .55rem;
 }
 .card-meta{
   font-size:.73rem;color:var(--muted);
@@ -176,8 +187,11 @@
 {% endif %}
 
 <div class="stat-bar">
-  <div class="stat-chip">총 <b>{{ videos.count }}개</b> 영상</div>
+  <div class="stat-chip">총 <b>{{ home_card_count }}개</b> 항목</div>
   <div class="stat-chip">재생가능 <b>{{ ready_count }}개</b></div>
+  {% if imdb_series_count %}
+  <div class="stat-chip">IMDb 저장 <b>{{ imdb_series_count }}개</b></div>
+  {% endif %}
   {% if error_count %}
   <div class="stat-chip" style="border-color:#7f1d1d">오류 <b style="color:#fca5a5">{{ error_count }}개</b></div>
   {% endif %}
@@ -196,78 +210,137 @@
 </div>
 
 <div class="video-grid" id="videoGrid">
-{% for v in videos %}
-<div class="card" data-status="{{ v.status }}" data-id="{{ v.id }}" style="animation-delay:{{ forloop.counter0 }}0ms">
+{% if home_cards %}
+{% for card in home_cards %}
+<div
+  class="card"
+  data-kind="{{ card.kind }}"
+  data-status="{{ card.status }}"
+  data-click-url="{{ card.click_url }}"
+  data-sort-created="{{ card.sort_created }}"
+  data-sort-views="{{ card.sort_views }}"
+  style="animation-delay:{{ forloop.counter0 }}0ms"
+>
   <div class="card-thumb">
-    {% if v.thumbnail %}
-    <img src="{{ v.thumbnail }}" alt="{{ v.title }}" loading="lazy">
+    {% if card.thumbnail_url %}
+    <img src="{{ card.thumbnail_url }}" alt="{{ card.title }}" loading="lazy" onerror="setPlaceholderThumbnail(this)">
     {% else %}
     <div class="card-thumb-placeholder">&#127916;</div>
     {% endif %}
-    {% if v.status == 'ready' %}
+    {% if card.status == 'ready' %}
     <div class="card-play"><div class="card-play-circle">&#9654;</div></div>
     {% endif %}
-    {% if v.duration %}
-    <div class="card-duration">{{ v.duration_str }}</div>
+    {% if card.duration_text %}
+    <div class="card-duration">{{ card.duration_text }}</div>
     {% endif %}
-    <div class="status-badge badge-{{ v.status }}">
-      {% if v.status == 'ready' %}READY
-      {% elif v.status == 'fetching' %}추출중
-      {% elif v.status == 'error' %}ERROR
+    <div class="status-badge {% if card.kind == 'imdb' %}badge-imdb{% else %}badge-{{ card.status }}{% endif %}">
+      {% if card.kind == 'imdb' %}IMDb
+      {% elif card.status == 'ready' %}READY
+      {% elif card.status == 'fetching' %}추출중
+      {% elif card.status == 'error' %}ERROR
       {% else %}PENDING{% endif %}
     </div>
   </div>
   <div class="card-body">
-    <div class="card-title" title="{{ v.title }}">{{ v.title }}</div>
+    <div class="card-title" title="{{ card.title }}">{{ card.title }}</div>
+    {% if card.kind == 'imdb' and card.summary %}
+    <div class="card-summary">{{ card.summary }}</div>
+    {% endif %}
     <div class="card-meta">
-      <span>&#128065; {{ v.view_count }}</span>
-      <span>{{ v.created_at|date:"m/d H:i" }}</span>
-      <span>{% if v.owner %}@{{ v.owner.username }}{% else %}공유 영상{% endif %}</span>
-      {% if v.status == 'error' %}
-      <span style="color:#fca5a5" title="{{ v.error_msg }}">&#9888; 오류</span>
+      {% if card.kind == 'video' %}
+      <span>&#128065; {{ card.view_count }}</span>
+      <span>{{ card.display_date|date:"m/d H:i" }}</span>
+      <span>{{ card.owner_label }}</span>
+      {% if card.status == 'error' %}
+      <span style="color:#fca5a5" title="{{ card.error_message }}">&#9888; 오류</span>
+      {% endif %}
+      {% else %}
+      <span>{{ card.imdb_id }}</span>
+      <span>시즌 {{ card.season_count }}</span>
+      <span>에피소드 {{ card.episode_count }}</span>
+      <span>{{ card.display_date|date:"m/d H:i" }}</span>
       {% endif %}
     </div>
     <div class="card-actions">
-      {% if v.status == 'ready' %}
-      <button class="card-action-btn" onclick="event.stopPropagation();location.href='{% url "dramaNlearn:player" v.id %}'">
+      {% if card.kind == 'video' %}
+        {% if card.status == 'ready' %}
+      <button class="card-action-btn" onclick="event.stopPropagation();location.href='{{ card.play_url }}'">
         &#9654; 재생
       </button>
-      {% endif %}
-      {% if request.user.is_authenticated and v.owner_id == request.user.id %}
-      <button class="card-action-btn" onclick="event.stopPropagation();refreshVideo({{ v.id }},this)">
+        {% endif %}
+        {% if card.can_manage %}
+      <button class="card-action-btn" onclick="event.stopPropagation();refreshVideo({{ card.video_id }},this)">
         &#8635; 갱신
       </button>
-      <button class="card-action-btn danger" onclick="event.stopPropagation();deleteVideo({{ v.id }},this)">
-        &#128465; 삭제
+        {% endif %}
+      <form method="post" action="{{ card.delete_url }}" style="display:inline" onsubmit="event.stopPropagation();return confirm('이 영상을 삭제하시겠습니까?');">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'dramaNlearn:home' %}">
+        {% if card.can_delete %}
+        <button class="card-action-btn danger" type="submit" onclick="event.stopPropagation()">
+          &#128465; 삭제
+        </button>
+        {% elif card.delete_requires_login %}
+        <button class="card-action-btn danger" type="button" data-auth-open="login" data-next="{{ request.get_full_path }}" title="{{ card.delete_disabled_reason }}">
+          &#128465; 삭제
+        </button>
+        {% else %}
+        <button class="card-action-btn danger" type="button" onclick="event.stopPropagation();showToast('{{ card.delete_disabled_reason|escapejs }}', 'info');" title="{{ card.delete_disabled_reason }}">
+          &#128465; 삭제
+        </button>
+        {% endif %}
+      </form>
+      {% endif %}
+      {% if card.kind == 'imdb' %}
+      <button class="card-action-btn" onclick="event.stopPropagation();location.href='{{ card.play_url }}'">
+        &#9654; 재생
       </button>
+      <button class="card-action-btn" onclick="event.stopPropagation();location.href='{{ card.imdb_url }}'">
+        IMDb 상세
+      </button>
+      <form method="post" action="{{ card.delete_url }}" style="display:inline" onsubmit="event.stopPropagation();return confirm('저장된 IMDb 드라마를 삭제할까요?');">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'dramaNlearn:home' %}">
+        {% if card.can_delete %}
+        <button class="card-action-btn danger" type="submit" onclick="event.stopPropagation()">
+          &#128465; 삭제
+        </button>
+        {% else %}
+        <button class="card-action-btn danger" type="button" data-auth-open="login" data-next="{{ request.get_full_path }}" title="로그인 후 삭제할 수 있습니다.">
+          &#128465; 삭제
+        </button>
+        {% endif %}
+      </form>
       {% endif %}
     </div>
   </div>
 </div>
-{% empty %}
+{% endfor %}
+{% else %}
 <div class="empty">
   <div class="empty-icon">&#127916;</div>
-  <h3>아직 저장된 영상이 없습니다</h3>
-  <p>위 입력창에 영상 링크를 붙여넣어 보세요.</p>
+  <h3>아직 홈에 표시할 항목이 없습니다</h3>
+  <p>영상 링크를 등록하거나 IMDb에서 저장한 시리즈를 추가해 보세요.</p>
 </div>
-{% endfor %}
+{% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 var CSRF = '{{ csrf_token }}';
-var PLAYER_URL_TEMPLATE = "{% url 'dramaNlearn:player' 999999 %}";
 var ADD_VIDEO_URL = "{% url 'dramaNlearn:add_video' %}";
 var REFRESH_URL_TEMPLATE = "{% url 'dramaNlearn:refresh_video' 999999 %}";
-var DELETE_URL_TEMPLATE = "{% url 'dramaNlearn:delete_video' 999999 %}";
 
 document.querySelectorAll('.card').forEach(function(card) {
-  card.addEventListener('click', function() {
-    var id = this.dataset.id;
+  card.addEventListener('click', function(event) {
+    if (event.target.closest('.card-actions')) {
+      return;
+    }
     var status = this.dataset.status;
-    if (status === 'ready') {
-      window.location.href = PLAYER_URL_TEMPLATE.replace('999999', id);
+    var clickUrl = this.dataset.clickUrl || '';
+    if (status === 'ready' && clickUrl) {
+      window.location.href = clickUrl;
     } else if (status === 'error') {
       showToast('URL이 오류 상태입니다. 갱신 버튼을 눌러보세요.', 'err');
     } else {
@@ -335,23 +408,6 @@ function refreshVideo(id, btn) {
   });
 }
 
-function deleteVideo(id, btn) {
-  if (!confirm('이 영상을 삭제하시겠습니까?')) return;
-  fetch(DELETE_URL_TEMPLATE.replace('999999', id), {
-    method:'POST', headers:{'X-CSRFToken':CSRF}
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.ok) {
-      showToast('삭제되었습니다.', 'ok');
-      var card = btn.closest('.card');
-      card.style.transition = 'opacity .3s';
-      card.style.opacity = '0';
-      setTimeout(function() { card.remove(); }, 300);
-    }
-  });
-}
-
 document.querySelectorAll('.filter-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -368,13 +424,13 @@ document.getElementById('sortSelect').addEventListener('change', function() {
   var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
   var mode = this.value;
   cards.sort(function(a, b) {
-    if (mode === 'oldest') return parseInt(a.dataset.id, 10) - parseInt(b.dataset.id, 10);
-    if (mode === 'views') {
-      var av = parseInt(a.querySelector('.card-meta span').textContent.replace(/\D/g, ''), 10) || 0;
-      var bv = parseInt(b.querySelector('.card-meta span').textContent.replace(/\D/g, ''), 10) || 0;
-      return bv - av;
-    }
-    return parseInt(b.dataset.id, 10) - parseInt(a.dataset.id, 10);
+    var aCreated = parseInt(a.dataset.sortCreated, 10) || 0;
+    var bCreated = parseInt(b.dataset.sortCreated, 10) || 0;
+    var aViews = parseInt(a.dataset.sortViews, 10) || 0;
+    var bViews = parseInt(b.dataset.sortViews, 10) || 0;
+    if (mode === 'oldest') return aCreated - bCreated;
+    if (mode === 'views') return bViews - aViews;
+    return bCreated - aCreated;
   });
   cards.forEach(function(card) { grid.appendChild(card); });
 });

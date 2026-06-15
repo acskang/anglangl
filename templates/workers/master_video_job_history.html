@@ -155,7 +155,7 @@
     <div>
       <div class="job-kicker">Admin</div>
       <h1 class="job-title">Background Job History</h1>
-      <p class="job-desc">마스터 비디오 다운로드 작업 이력을 시간순으로 확인합니다.</p>
+      <p class="job-desc">마스터 비디오 처리 작업 이력을 시간순으로 확인합니다.</p>
     </div>
     <a href="{% url 'videos:detail' master_video.id %}" class="job-back">Back to Master Video</a>
   </div>
@@ -165,7 +165,7 @@
       <div>
         <div class="job-meta-title">{{ master_video.title }}</div>
         <div class="job-meta-sub">
-          {% if master_video.youtube_video_id %}{{ master_video.youtube_video_id }}{% else %}Local video{% endif %}
+          {{ master_video.source_reference }}
         </div>
       </div>
     </div>

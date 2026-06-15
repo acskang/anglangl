@@ -4,8 +4,10 @@ from pathlib import Path
 from django import forms
 from django.conf import settings
 
+from core.models import ProcessingState
+
 from .services.youtube import InvalidYouTubeInput, normalize_youtube_input
-from .models import MasterVideoSourceType
+from .models import MasterVideo, MasterVideoSourceType
 
 
 class MasterVideoCreateForm(forms.Form):
@@ -122,4 +124,69 @@ class MasterVideoCreateForm(forms.Form):
         else:
             self.add_error("source_type", "Unsupported source type.")
 
+        return cleaned
+
+
+class MasterVideoMetadataForm(forms.ModelForm):
+    thumbnail_file = forms.ImageField(
+        label="Thumbnail",
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": "image/*"}),
+    )
+    remove_thumbnail = forms.BooleanField(
+        label="Remove current thumbnail",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+    subtitle_file = forms.FileField(
+        label="Subtitle file",
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": ".srt,.vtt,.ass,.ssa"}),
+    )
+
+    class Meta:
+        model = MasterVideo
+        fields = ["title", "description", "category"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "category": forms.Select(attrs={"class": "form-select"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].required = False
+
+    def clean_subtitle_file(self):
+        uploaded = self.cleaned_data.get("subtitle_file")
+        if not uploaded:
+            return uploaded
+
+        ext = Path(uploaded.name).suffix.lower()
+        if ext not in {".srt", ".vtt", ".ass", ".ssa"}:
+            raise forms.ValidationError("Unsupported subtitle file extension.")
+        if uploaded.size <= 0:
+            raise forms.ValidationError("Empty subtitle file is not allowed.")
+
+        max_size = getattr(settings, "MASTER_VIDEO_SUBTITLE_MAX_FILE_SIZE_BYTES", 10 * 1024 * 1024)
+        if uploaded.size > max_size:
+            raise forms.ValidationError("Subtitle file exceeds the upload size limit.")
+
+        return uploaded
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("category"):
+            cleaned["category"] = self.instance.category
+        subtitle_file = cleaned.get("subtitle_file")
+        if subtitle_file and self.instance.source_type != MasterVideoSourceType.UPLOAD:
+            self.add_error("subtitle_file", "Only uploaded videos can replace subtitle files.")
+        if self.instance.download_status not in {
+            ProcessingState.READY,
+            ProcessingState.FAILED,
+            ProcessingState.PENDING,
+            ProcessingState.QUEUED,
+            ProcessingState.PROCESSING,
+        }:
+            self.add_error(None, "Unsupported video status.")
         return cleaned

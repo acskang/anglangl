@@ -2,7 +2,7 @@ from django import forms
 
 
 class ThePeachLoginForm(forms.Form):
-    email = forms.EmailField(label="ThePeach 이메일", max_length=254)
+    email = forms.EmailField(label="이메일", max_length=254)
     password = forms.CharField(label="비밀번호", strip=False, widget=forms.PasswordInput)
 
 

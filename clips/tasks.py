@@ -10,14 +10,21 @@ from django.utils import timezone
 from django.utils.text import get_valid_filename, slugify
 
 from core.models import BackgroundJobState, ProcessingState
+from dramaNlearn.services.stream_access import DramaStreamAccessError, prepare_drama_extract_source
+from videos.services.ytdlp import YtDlpPermanentError, YtDlpService, YtDlpTransientError
 from workers.models import BackgroundJob
 
 from .models import Clip, ClipSourceType, ClipUploadBatch, ClipUploadBatchStatus
-from .services.ffmpeg import FfmpegPermanentError, FfmpegService, FfmpegTransientError
+from .services.ffmpeg import ClipExtractionResult, FfmpegPermanentError, FfmpegService, FfmpegTransientError
+from .timecode import quantize_tenths
 
 
 CLIP_RETRY_LIMIT = 2
 CLIP_RETRY_DELAY_SECONDS = 60
+DRAMA_REMOTE_MANIFEST_INPUT_OPTIONS = [
+    "-protocol_whitelist",
+    "file,crypto,data,http,https,tcp,tls",
+]
 
 
 def _clip_task_kwargs(queue: str) -> dict[str, object]:
@@ -29,12 +36,17 @@ def _clip_task_kwargs(queue: str) -> dict[str, object]:
     }
 
 
+def _clip_time_token(value: float) -> str:
+    tenths = int(round(quantize_tenths(value) * 10))
+    return f"{tenths:08d}t"
+
+
 def _build_clip_output_filename(clip: Clip) -> str:
     movie_title = clip.master_video.title if clip.master_video else clip.title
     subtitle_snippet = (clip.subtitle or clip.title or "clip").strip()[:20]
     safe_movie = get_valid_filename(slugify(movie_title) or "movie")
     safe_snippet = get_valid_filename(slugify(subtitle_snippet) or "clip")
-    time_part = f"{clip.start_time_seconds:06d}"
+    time_part = _clip_time_token(clip.start_time_seconds)
     return f"{safe_movie}_{safe_snippet}_{time_part}_{clip.id}.mp4"
 
 
@@ -142,7 +154,12 @@ def extract_clip(self, clip_id: int):
 
     master_video = clip.master_video
     source_file = Path(master_video.video_file.path) if (master_video and master_video.video_file) else None
-    if not source_file or not source_file.exists():
+    remote_stream_url = (master_video.remote_playback_url or "").strip() if master_video else ""
+    can_extract_from_youtube = bool(master_video and master_video.youtube_url)
+    if source_file and not source_file.exists():
+        source_file = None
+    can_extract_from_remote_stream = bool(remote_stream_url)
+    if not source_file and not can_extract_from_remote_stream and not can_extract_from_youtube:
         _mark_clip_failed(clip, job, "Master video source file is missing.")
         _refresh_batch_async(clip)
         return
@@ -157,7 +174,10 @@ def extract_clip(self, clip_id: int):
         job.status = BackgroundJobState.PROCESSING
         if not job.started_at:
             job.started_at = now
-        job.message = "Extracting clip with ffmpeg"
+        if source_file or can_extract_from_remote_stream:
+            job.message = "Extracting clip with ffmpeg"
+        else:
+            job.message = "Downloading clip section from linked source"
         job.error_message = ""
         job.progress_percent = 10
         job.celery_task_id = self.request.id or job.celery_task_id
@@ -176,7 +196,7 @@ def extract_clip(self, clip_id: int):
             job,
             start_percent=10,
             end_percent=70,
-            message="Extracting clip with ffmpeg",
+            message="Extracting clip with ffmpeg" if (source_file or can_extract_from_remote_stream) else "Downloading clip section from linked source",
         )
         hls_progress = _make_stage_progress_callback(
             job,
@@ -190,33 +210,86 @@ def extract_clip(self, clip_id: int):
     thumb_output = Path(settings.MEDIA_ROOT) / "thumbnails" / f"clip-{clip.id}-{uuid4().hex}.jpg"
     hls_output_dir = Path(settings.MEDIA_ROOT) / "clips" / "hls" / f"user_{clip.owner_id}" / str(clip.id)
     service = FfmpegService()
+    ytdlp_service = YtDlpService()
+    prepared_drama_source_dir: Path | None = None
 
     try:
-        result = service.extract_clip(
-            source_path=source_file,
-            output_path=clip_output,
-            thumbnail_path=thumb_output,
-            start_seconds=clip.start_time_seconds,
-            end_seconds=clip.end_time_seconds,
-            timeout=settings.FFMPEG_DEFAULT_TIMEOUT,
-            progress_callback=extract_progress,
-        )
+        if source_file or can_extract_from_remote_stream:
+            source_path: Path | str = source_file if source_file else remote_stream_url
+            input_options: list[str] | None = None
+            if not source_file and master_video and master_video.source_drama_video_id:
+                prepared_stream = prepare_drama_extract_source(
+                    master_video.source_drama_video,
+                    clip_dir / "_drama_source",
+                )
+                prepared_drama_source_dir = prepared_stream.source_path.parent
+                source_path = prepared_stream.source_path
+                input_options = DRAMA_REMOTE_MANIFEST_INPUT_OPTIONS
+                if master_video.remote_playback_url != prepared_stream.resolved_master_url:
+                    master_video.remote_playback_url = prepared_stream.resolved_master_url
+                    master_video.save(update_fields=["remote_playback_url", "updated_at"])
+            result = service.extract_clip(
+                source_path=source_path,
+                output_path=clip_output,
+                thumbnail_path=thumb_output,
+                start_seconds=clip.start_time_seconds,
+                end_seconds=clip.end_time_seconds,
+                timeout=settings.FFMPEG_DEFAULT_TIMEOUT,
+                progress_callback=extract_progress,
+                input_options=input_options,
+            )
+        else:
+            clip_output_path = ytdlp_service.download_clip_section(
+                master_video.youtube_url,
+                clip_dir,
+                start_seconds=clip.start_time_seconds,
+                end_seconds=clip.end_time_seconds,
+            )
+            _set_job_progress(job, progress_percent=70, message="Generating clip thumbnail")
+            thumbnail_output_path = service.generate_thumbnail(
+                source_path=clip_output_path,
+                thumbnail_path=thumb_output,
+                seek_seconds=max(0.1, min(1.0, clip.duration_seconds or 1)),
+                timeout=settings.FFMPEG_DEFAULT_TIMEOUT,
+            )
+            result = ClipExtractionResult(
+                clip_output_path=clip_output_path,
+                thumbnail_output_path=thumbnail_output_path,
+            )
         _set_job_progress(job, progress_percent=70, message="Packaging clip for playback")
         hls_result = service.generate_hls(
-            source_path=clip_output,
+            source_path=result.clip_output_path,
             output_dir=hls_output_dir,
             timeout=settings.FFMPEG_HLS_TIMEOUT,
             progress_callback=hls_progress,
             expected_duration_seconds=clip.duration_seconds or (clip.end_time_seconds - clip.start_time_seconds),
         )
     except SoftTimeLimitExceeded:
+        _cleanup_path(prepared_drama_source_dir)
         _cleanup_path(clip_output)
         _cleanup_path(thumb_output)
         _cleanup_path(hls_output_dir)
         _mark_clip_failed(clip, job, "Clip processing exceeded the soft time limit and was cleaned up.")
         _refresh_batch_async(clip)
         return
+    except DramaStreamAccessError as exc:
+        _cleanup_path(prepared_drama_source_dir)
+        _cleanup_path(clip_output)
+        _cleanup_path(thumb_output)
+        _cleanup_path(hls_output_dir)
+        _mark_clip_failed(clip, job, str(exc))
+        _refresh_batch_async(clip)
+        return
     except FfmpegPermanentError as exc:
+        _cleanup_path(prepared_drama_source_dir)
+        _cleanup_path(clip_output)
+        _cleanup_path(thumb_output)
+        _cleanup_path(hls_output_dir)
+        _mark_clip_failed(clip, job, str(exc))
+        _refresh_batch_async(clip)
+        return
+    except YtDlpPermanentError as exc:
+        _cleanup_path(prepared_drama_source_dir)
         _cleanup_path(clip_output)
         _cleanup_path(thumb_output)
         _cleanup_path(hls_output_dir)
@@ -224,6 +297,7 @@ def extract_clip(self, clip_id: int):
         _refresh_batch_async(clip)
         return
     except FfmpegTransientError as exc:
+        _cleanup_path(prepared_drama_source_dir)
         _cleanup_path(clip_output)
         _cleanup_path(thumb_output)
         _cleanup_path(hls_output_dir)
@@ -242,7 +316,28 @@ def extract_clip(self, clip_id: int):
         _mark_clip_failed(clip, job, str(exc))
         _refresh_batch_async(clip)
         return
+    except YtDlpTransientError as exc:
+        _cleanup_path(prepared_drama_source_dir)
+        _cleanup_path(clip_output)
+        _cleanup_path(thumb_output)
+        _cleanup_path(hls_output_dir)
+        if self.request.retries < CLIP_RETRY_LIMIT:
+            clip.file_status = ProcessingState.QUEUED
+            clip.file_error_message = ""
+            clip.save(update_fields=["file_status", "file_error_message", "updated_at", "extraction_status", "extraction_error_message"])
+            if job:
+                job.status = BackgroundJobState.QUEUED
+                job.message = "Transient yt-dlp error. Retrying extraction."
+                job.error_message = str(exc)
+                job.progress_percent = 0
+                job.save(update_fields=["status", "message", "error_message", "progress_percent", "updated_at"])
+            raise self.retry(exc=exc, countdown=CLIP_RETRY_DELAY_SECONDS)
+
+        _mark_clip_failed(clip, job, str(exc))
+        _refresh_batch_async(clip)
+        return
     except Exception as exc:  # noqa: BLE001
+        _cleanup_path(prepared_drama_source_dir)
         _cleanup_path(clip_output)
         _cleanup_path(thumb_output)
         _cleanup_path(hls_output_dir)
@@ -280,6 +375,7 @@ def extract_clip(self, clip_id: int):
         job.finished_at = timezone.now()
         job.save(update_fields=["status", "progress_percent", "message", "error_message", "finished_at", "updated_at"])
 
+    _cleanup_path(prepared_drama_source_dir)
     _refresh_batch_async(clip)
 
 

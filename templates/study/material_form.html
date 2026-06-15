@@ -1,0 +1,277 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}{% if material %}{{ material.title }} 수정{% else %}학습 자료 만들기{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.study-shell{
+  width:min(1200px, calc(100vw - 2rem));
+  margin:0 auto;
+  padding:1.5rem 0 3rem;
+}
+.study-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 300px) minmax(0, 1fr);
+  gap:1rem;
+}
+.study-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 24px 70px rgba(0,0,0,.24);
+}
+.study-side{
+  padding:1.1rem 1.1rem 1.2rem;
+  position:sticky;
+  top:78px;
+  height:fit-content;
+}
+.study-side h1{
+  font-size:1.1rem;
+  margin:0 0 .35rem;
+}
+.study-side p{
+  font-size:.84rem;
+  color:var(--muted);
+  margin:0 0 1rem;
+}
+.source-meta{
+  display:flex;
+  flex-direction:column;
+  gap:.65rem;
+}
+.source-meta-block{
+  padding:.8rem .9rem;
+  border-radius:12px;
+  background:var(--s2);
+  border:1px solid rgba(255,255,255,.04);
+}
+.source-label{
+  display:block;
+  font-size:.7rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:.3rem;
+}
+.source-value{
+  font-size:.86rem;
+  color:var(--text);
+  word-break:break-word;
+}
+.source-helper{
+  margin-top:.45rem;
+  padding:.7rem .8rem;
+  border-radius:10px;
+  background:rgba(61,220,151,.08);
+  border:1px solid rgba(61,220,151,.2);
+  color:#b9f6d8;
+  font-size:.78rem;
+  line-height:1.55;
+}
+.source-helper.secondary{
+  margin-top:.55rem;
+  background:rgba(107,70,255,.08);
+  border-color:rgba(107,70,255,.2);
+  color:#d9d2ff;
+}
+.study-form{
+  padding:1.2rem;
+}
+.study-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:.9rem;
+}
+.field{
+  margin-bottom:1rem;
+}
+.field label{
+  display:block;
+  font-size:.76rem;
+  color:var(--muted);
+  margin-bottom:.38rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.field input,
+.field select,
+.field textarea{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  font-family:inherit;
+  padding:.72rem .85rem;
+  outline:none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  border-color:#6ee7b7;
+}
+.action-row{
+  display:flex;
+  gap:.65rem;
+  flex-wrap:wrap;
+  margin-top:1.2rem;
+}
+.btn-main,
+.btn-ghost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:140px;
+  padding:.78rem 1rem;
+  border-radius:10px;
+  text-decoration:none;
+  border:1px solid var(--border);
+  font-weight:600;
+}
+.btn-main{
+  background:linear-gradient(135deg, #6b46ff, #3ddc97);
+  color:#fff;
+  border:none;
+}
+.btn-ghost{
+  background:var(--s2);
+  color:var(--text);
+}
+@media (max-width: 900px){
+  .study-layout{
+    grid-template-columns:1fr;
+  }
+  .study-side{
+    position:static;
+  }
+  .study-form-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="study-shell">
+  <div class="study-layout">
+    <aside class="study-card study-side">
+      <h1>학습 자료 만들기</h1>
+      <p>입력 자산을 문서형 학습 자료 초안으로 바꾸고, 수정한 뒤 저장합니다.</p>
+      <div class="source-meta">
+        <div class="source-meta-block">
+          <span class="source-label">소스 유형</span>
+          <div class="source-value">
+            {% if material %}
+              {{ material.get_source_type_display }}
+            {% elif source_payload %}
+              {{ source_payload.source_type }}
+            {% else %}
+              manual
+            {% endif %}
+          </div>
+        </div>
+        <div class="source-meta-block">
+          <span class="source-label">소스 제목</span>
+          <div class="source-value">
+            {% if material %}
+              {{ material.source_title|default:"-" }}
+            {% elif source_payload %}
+              {{ source_payload.title|default:"-" }}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+        </div>
+        <div class="source-meta-block">
+          <span class="source-label">원본 연결</span>
+          <div class="source-value">
+            {% if material %}
+              {{ material.source_reference_label }}
+            {% elif source_payload and source_payload.imdb_code %}
+              IMDb {{ source_payload.imdb_code }}
+            {% elif source_payload and source_payload.source_url %}
+              {{ source_payload.source_url }}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+        </div>
+        <div class="source-meta-block">
+          <span class="source-label">초안 품질</span>
+          <div class="source-value">
+            {% if source_payload and source_payload.source_text %}
+              자막/대사 본문 기반 초안
+            {% elif material and material.generation_history %}
+              저장된 생성 이력 기준 초안
+            {% else %}
+              메타데이터 기반 초안
+            {% endif %}
+          </div>
+          <div class="source-helper">
+            {% if source_payload and source_payload.source_text_kind == "clip_subtitle" %}
+              이 초안은 clip 자막 본문을 직접 반영합니다.
+            {% elif source_payload and source_payload.source_text_kind == "master_video_subtitle" %}
+              이 초안은 master video subtitle file을 읽어서 반영합니다.
+            {% elif source_payload and source_payload.source_text_kind == "drama_subtitle_body" %}
+              이 초안은 dramaNlearn 자막 트랙 URL에서 실제 자막 본문을 가져와 반영합니다.
+            {% elif source_payload and source_payload.source_text_kind == "subtitle_tracks" %}
+              dramaNlearn에서는 현재 자막 트랙 메타데이터를 먼저 반영합니다. 실제 자막 본문 연결은 다음 단계 대상입니다.
+            {% else %}
+              아직 자막 본문이 연결되지 않아 소스 메타데이터 중심으로 초안을 만듭니다.
+            {% endif %}
+          </div>
+          <div class="source-helper secondary">
+            {% if request.GET.material_type == "shadowing_script" or form.material_type.value == "shadowing_script" %}
+              쉐도잉 스크립트는 반복할 문장, 쉼표 단위 연습, 후편집 메모까지 포함한 초안으로 시작합니다.
+            {% elif request.GET.material_type == "expressions" or form.material_type.value == "expressions" %}
+              핵심 표현 정리는 실제 발화 문장을 먼저 후보로 뽑고, 상황과 바꿔 말하기를 채우는 구조로 시작합니다.
+            {% else %}
+              단어/문장 노트는 핵심 문장과 반복할 단어 후보를 먼저 제안하는 구조로 시작합니다.
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="study-card study-form">
+      <form method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label for="{{ form.title.id_for_label }}">제목</label>
+          {{ form.title }}
+        </div>
+        <div class="study-form-grid">
+          <div class="field">
+            <label for="{{ form.material_type.id_for_label }}">자료 유형</label>
+            {{ form.material_type }}
+          </div>
+          <div class="field">
+            <label for="{{ form.purpose.id_for_label }}">학습 목적</label>
+            {{ form.purpose }}
+          </div>
+          <div class="field">
+            <label for="{{ form.difficulty.id_for_label }}">난이도</label>
+            {{ form.difficulty }}
+          </div>
+          <div class="field">
+            <label for="{{ form.visibility.id_for_label }}">공개 범위</label>
+            {{ form.visibility }}
+          </div>
+        </div>
+        <div class="field">
+          <label for="{{ form.generated_content.id_for_label }}">생성 초안</label>
+          {{ form.generated_content }}
+        </div>
+        <div class="field">
+          <label for="{{ form.editable_notes.id_for_label }}">편집 메모</label>
+          {{ form.editable_notes }}
+        </div>
+        <div class="action-row">
+          <button class="btn-main" type="submit">{% if material %}수정 저장{% else %}자료 저장{% endif %}</button>
+          <a class="btn-ghost" href="{% url 'study:list' %}">라이브러리로 이동</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

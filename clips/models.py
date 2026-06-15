@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from core.models import BaseModel, ProcessingState
+from .timecode import quantize_tenths
 
 
 def _uploaded_clip_path(instance: "Clip", filename: str) -> str:
@@ -16,12 +17,27 @@ def _uploaded_clip_path(instance: "Clip", filename: str) -> str:
 
 def _clip_thumbnail_path(instance: "Clip", filename: str) -> str:
     safe_name = Path(filename).name or "thumb.jpg"
-    return f"thumbnails/clip-{instance.id or 'new'}-{uuid4().hex}-{safe_name}"
+    return f"thumbnails/clips/generated/clip-{instance.id or 'new'}-{uuid4().hex}-{safe_name}"
+
+
+def _clip_custom_thumbnail_path(instance: "Clip", filename: str) -> str:
+    safe_name = Path(filename).name or "thumb.jpg"
+    return f"thumbnails/clips/custom/user_{instance.owner_id}/clip-{instance.id or 'new'}-{uuid4().hex}-{safe_name}"
 
 
 def _clip_hls_manifest_path(instance: "Clip", filename: str) -> str:
     safe_name = Path(filename).name or "index.m3u8"
     return f"clips/hls/user_{instance.owner_id}/clip_{instance.id or 'new'}/{safe_name}"
+
+
+def _clip_image_path(instance: "ClipImage", filename: str) -> str:
+    safe_name = Path(filename).name or "capture.png"
+    return f"clip_images/user_{instance.owner_id}/clip_{instance.clip_id or 'new'}/{uuid4().hex}_{safe_name}"
+
+
+def _album_image_path(instance: "AlbumImage", filename: str) -> str:
+    safe_name = Path(filename).name or "album-image.png"
+    return f"album_images/user_{instance.owner_id}/{uuid4().hex}_{safe_name}"
 
 
 class ClipSourceType(models.TextChoices):
@@ -84,12 +100,13 @@ class Clip(BaseModel):
     original_filename = models.CharField(max_length=255, blank=True)
     file_size_bytes = models.BigIntegerField(null=True, blank=True)
     mime_type = models.CharField(max_length=100, blank=True)
-    start_time_seconds = models.PositiveIntegerField(default=0)
-    end_time_seconds = models.PositiveIntegerField(default=0)
-    duration_seconds = models.PositiveIntegerField(default=0)
+    start_time_seconds = models.FloatField(default=0.0)
+    end_time_seconds = models.FloatField(default=0.0)
+    duration_seconds = models.FloatField(default=0.0)
     clip_file = models.FileField(upload_to=_uploaded_clip_path, blank=True)
     hls_manifest_file = models.FileField(upload_to=_clip_hls_manifest_path, blank=True)
     thumbnail_file = models.ImageField(upload_to=_clip_thumbnail_path, blank=True)
+    custom_thumbnail_file = models.ImageField(upload_to=_clip_custom_thumbnail_path, blank=True)
     is_public = models.BooleanField(default=False)
 
     file_status = models.CharField(max_length=20, choices=ProcessingState.choices, default=ProcessingState.PENDING)
@@ -118,6 +135,10 @@ class Clip(BaseModel):
     def clean(self):
         super().clean()
 
+        self.start_time_seconds = quantize_tenths(self.start_time_seconds)
+        self.end_time_seconds = quantize_tenths(self.end_time_seconds)
+        self.duration_seconds = quantize_tenths(self.duration_seconds)
+
         if self.source_type == ClipSourceType.EXTRACTED and self.master_video is None:
             raise ValidationError({"master_video": "Master video is required for extracted clips."})
 
@@ -131,7 +152,7 @@ class Clip(BaseModel):
             if self.end_time_seconds <= self.start_time_seconds:
                 raise ValidationError({"end_time_seconds": "End time must be greater than start time."})
 
-            expected_duration = self.end_time_seconds - self.start_time_seconds
+            expected_duration = quantize_tenths(self.end_time_seconds - self.start_time_seconds)
             if self.duration_seconds != expected_duration:
                 self.duration_seconds = expected_duration
 
@@ -147,7 +168,7 @@ class Clip(BaseModel):
 
     def save(self, *args, **kwargs):
         if self.source_type == ClipSourceType.EXTRACTED:
-            self.duration_seconds = max(0, self.end_time_seconds - self.start_time_seconds)
+            self.duration_seconds = quantize_tenths(self.end_time_seconds - self.start_time_seconds)
 
         # Keep legacy extraction fields mirrored for compatibility.
         self.extraction_status = self.file_status
@@ -155,6 +176,115 @@ class Clip(BaseModel):
 
         self.full_clean()
         return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def video(self):
+        return self.master_video
+
+    @property
+    def start_time(self) -> float:
+        return float(self.start_time_seconds or 0)
+
+    @property
+    def end_time(self) -> float:
+        return float(self.end_time_seconds or 0)
+
+    @property
+    def duration(self) -> float:
+        return float(self.duration_seconds or 0)
+
+    @property
+    def file_exists(self) -> bool:
+        try:
+            return bool(self.clip_file and self.clip_file.name and Path(self.clip_file.path).exists())
+        except (NotImplementedError, ValueError):
+            return False
+
+    @property
+    def transcript(self) -> str:
+        return self.subtitle or ""
+
+    @property
+    def effective_thumbnail_url(self) -> str:
+        if self.custom_thumbnail_file:
+            return self.custom_thumbnail_file.url
+        if self.thumbnail_file:
+            return self.thumbnail_file.url
+        if self.master_video:
+            return self.master_video.thumbnail
+        return ""
+
+    @property
+    def effective_thumbnail(self) -> str:
+        return self.effective_thumbnail_url
+
+
+class ClipImage(BaseModel):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="clip_images")
+    clip = models.ForeignKey("clips.Clip", on_delete=models.CASCADE, related_name="images")
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to=_clip_image_path)
+    seq_no = models.PositiveIntegerField(default=1)
+    capture_time_seconds = models.FloatField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["seq_no", "created_at"]
+        indexes = [
+            models.Index(fields=["owner", "-created_at"], name="clipimage_owner_created_idx"),
+            models.Index(fields=["clip", "seq_no"], name="clipimage_clip_seq_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class AlbumImageSourceType(models.TextChoices):
+    CAPTURE = "capture", "Capture"
+    THUMBNAIL = "thumbnail", "Thumbnail"
+    UPLOAD = "upload", "Upload"
+
+
+class AlbumImage(BaseModel):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="album_images")
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to=_album_image_path)
+    source = models.CharField(max_length=20, choices=AlbumImageSourceType.choices, default=AlbumImageSourceType.UPLOAD)
+    master_video = models.ForeignKey(
+        "videos.MasterVideo",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="album_images",
+    )
+    clip = models.ForeignKey(
+        "clips.Clip",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="album_images",
+    )
+    clip_image = models.ForeignKey(
+        "clips.ClipImage",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="album_refs",
+    )
+    tags = models.CharField(max_length=500, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["owner", "-created_at"], name="albumimage_owner_created_idx"),
+            models.Index(fields=["source", "-created_at"], name="albumimage_source_created_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.title

@@ -7,7 +7,7 @@ from django.conf import settings
 from core.models import ProcessingState
 from videos.models import MasterVideo
 
-from .models import Clip, ClipSourceType, ClipUploadBatch
+from .models import AlbumImage, Clip, ClipImage, ClipSourceType, ClipUploadBatch
 from .timecode import format_hhmmss, parse_hhmmss
 
 
@@ -33,22 +33,22 @@ class ClipExtractBaseForm(forms.ModelForm):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "00:00:00",
+                "placeholder": "00:00:00:0",
                 "inputmode": "numeric",
             }
         ),
-        help_text="Format: hh:mm:ss",
+        help_text="Format: hh:mm:ss:s (0.1-second steps)",
     )
     end_time_seconds = forms.CharField(
         label="End time",
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "00:00:30",
+                "placeholder": "00:00:30:0",
                 "inputmode": "numeric",
             }
         ),
-        help_text="Format: hh:mm:ss",
+        help_text="Format: hh:mm:ss:s (0.1-second steps)",
     )
 
     class Meta:
@@ -143,7 +143,7 @@ class ClipPlanForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "00:00:00",
+                "placeholder": "00:00:00:0",
                 "inputmode": "numeric",
             }
         ),
@@ -153,7 +153,7 @@ class ClipPlanForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "00:05:00",
+                "placeholder": "00:05:00:0",
                 "inputmode": "numeric",
             }
         ),
@@ -237,6 +237,39 @@ class ClipMetadataForm(forms.ModelForm):
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+
+class ClipImageMetadataForm(forms.ModelForm):
+    class Meta:
+        model = ClipImage
+        fields = ["title", "description"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+
+class AlbumImageUploadForm(forms.ModelForm):
+    class Meta:
+        model = AlbumImage
+        fields = ["title", "description", "tags", "image"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "tags": forms.TextInput(attrs={"class": "form-control", "placeholder": "comma,separated,tags"}),
+            "image": forms.ClearableFileInput(attrs={"class": "form-control", "accept": "image/*"}),
+        }
+
+
+class AlbumImageMetadataForm(forms.ModelForm):
+    class Meta:
+        model = AlbumImage
+        fields = ["title", "description", "tags"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "tags": forms.TextInput(attrs={"class": "form-control"}),
         }
 
 

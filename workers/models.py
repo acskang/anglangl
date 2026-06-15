@@ -5,11 +5,12 @@ from core.models import BackgroundJobState, BaseModel
 
 
 class BackgroundJobType(models.TextChoices):
-    YOUTUBE_DOWNLOAD = "youtube_download", "YouTube Download"
+    YOUTUBE_DOWNLOAD = "youtube_download", "Source Video Import"
     MASTER_VIDEO_UPLOAD_PROCESS = "master_video_upload_process", "Master Video Upload Process"
     CLIP_EXTRACTION = "clip_extraction", "Clip Extraction"
     CLIP_BATCH_UPLOAD = "clip_batch_upload", "Clip Batch Upload"
     CLIP_FILE_POSTPROCESS = "clip_file_postprocess", "Clip File Postprocess"
+    DRAMA_VIDEO_EXTRACT = "drama_video_extract", "Drama Video Extract"
 
 
 class BackgroundJob(BaseModel):

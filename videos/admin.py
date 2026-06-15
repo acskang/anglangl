@@ -9,7 +9,6 @@ class MasterVideoAdmin(admin.ModelAdmin):
         "id",
         "owner",
         "source_type",
-        "youtube_video_id",
         "title",
         "download_status",
         "hls_manifest_file",
@@ -19,7 +18,7 @@ class MasterVideoAdmin(admin.ModelAdmin):
         "is_active",
         "created_at",
     )
-    search_fields = ("youtube_video_id", "youtube_url", "title", "owner__username", "video_file")
+    search_fields = ("title", "youtube_video_id", "youtube_url", "owner__username", "video_file")
     list_filter = ("download_status", "is_active", "created_at", "downloaded_at")
     autocomplete_fields = ("owner",)
     readonly_fields = (

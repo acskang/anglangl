@@ -1,0 +1,286 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}{{ material.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.material-shell{
+  width:min(1200px, calc(100vw - 2rem));
+  margin:0 auto;
+  padding:1.5rem 0 3rem;
+}
+.material-hero,
+.material-body,
+.material-side{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 24px 70px rgba(0,0,0,.22);
+}
+.material-hero{
+  padding:1.3rem 1.4rem;
+  margin-bottom:1rem;
+}
+.material-hero-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+}
+.material-title{
+  margin:0;
+  font-size:1.4rem;
+}
+.material-sub{
+  margin-top:.45rem;
+  color:var(--muted);
+  font-size:.84rem;
+}
+.chip-row{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+  margin-top:.9rem;
+}
+.chip{
+  padding:.28rem .65rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-size:.74rem;
+}
+.chip.rich{
+  color:#9ae6b4;
+  border-color:rgba(110,231,183,.28);
+}
+.chip.medium{
+  color:#c4b5fd;
+  border-color:rgba(196,181,253,.28);
+}
+.chip.light{
+  color:#cbd5e1;
+  border-color:rgba(203,213,225,.2);
+}
+.material-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 320px;
+  gap:1rem;
+}
+.material-body{
+  padding:1.3rem;
+}
+.material-body pre,
+.material-notes{
+  white-space:pre-wrap;
+  word-break:break-word;
+  font-family:'Noto Sans KR',sans-serif;
+  line-height:1.75;
+  color:var(--text);
+  margin:0;
+}
+.section-title{
+  margin:0 0 .8rem;
+  font-size:.88rem;
+  color:#9ae6b4;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.material-body-section + .material-body-section{
+  margin-top:1.5rem;
+  padding-top:1.2rem;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.material-side{
+  padding:1.1rem;
+  height:fit-content;
+}
+.kv{
+  display:flex;
+  flex-direction:column;
+  gap:.2rem;
+}
+.kv + .kv{
+  margin-top:.85rem;
+}
+.kv-label{
+  font-size:.7rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.kv-value{
+  font-size:.84rem;
+  color:var(--text);
+  word-break:break-word;
+}
+.action-row{
+  display:flex;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.action-row form{
+  margin:0;
+}
+.btn-main,
+.btn-ghost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:120px;
+  padding:.72rem .95rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:600;
+}
+.btn-main{
+  background:linear-gradient(135deg, #6b46ff, #3ddc97);
+  color:#fff;
+}
+.btn-ghost{
+  background:var(--s2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+.btn-warn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:120px;
+  padding:.72rem .95rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:600;
+  background:#1f2937;
+  border:1px solid rgba(255,255,255,.12);
+  color:#fef3c7;
+  font-family:inherit;
+  cursor:pointer;
+}
+.info-banner{
+  margin-top:.85rem;
+  padding:.72rem .9rem;
+  border-radius:12px;
+  background:rgba(107,70,255,.12);
+  border:1px solid rgba(107,70,255,.26);
+  color:#d8d6ff;
+  font-size:.82rem;
+}
+@media (max-width: 960px){
+  .material-layout{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="material-shell">
+  <div class="material-hero">
+    <div class="material-hero-top">
+      <div>
+        <h1 class="material-title">{{ material.title }}</h1>
+        <div class="material-sub">{{ material.source_title|default:"직접 작성" }}</div>
+        <div class="info-banner">
+          {{ material.ownership_label }}
+          {% if page_mode == "explore" %}
+            · 작성자 @{{ material.owner.username }}
+          {% elif material.copied_from %}
+            · 원본 자료 #{{ material.copied_from_id }}에서 복제됨
+          {% else %}
+            · 이 자료를 공개하면 다른 사용자가 복제해 재활용할 수 있습니다.
+          {% endif %}
+        </div>
+      </div>
+      <div class="action-row">
+        {% if can_edit %}
+          <a class="btn-main" href="{% url 'study:edit' material.id %}">편집</a>
+        {% endif %}
+        {% if can_clone %}
+          <form method="post" action="{% url 'study:clone' material.id %}">
+            {% csrf_token %}
+            <button class="btn-main" type="submit">내 라이브러리로 복제</button>
+          </form>
+        {% endif %}
+        {% if can_toggle_visibility %}
+          <form method="post" action="{% url 'study:visibility-toggle' material.id %}">
+            {% csrf_token %}
+            <button class="btn-warn" type="submit">
+              {% if material.visibility == "public" %}비공개로 전환{% else %}공개로 전환{% endif %}
+            </button>
+          </form>
+        {% endif %}
+        <a class="btn-ghost" href="{{ back_url }}">돌아가기</a>
+      </div>
+    </div>
+    <div class="chip-row">
+      <span class="chip">{{ material.get_material_type_display }}</span>
+      <span class="chip">{{ material.get_purpose_display }}</span>
+      <span class="chip">{{ material.get_difficulty_display }}</span>
+      <span class="chip">{{ material.get_visibility_display }}</span>
+      <span class="chip {{ material.quality_tone }}">{{ material.quality_badge }}</span>
+    </div>
+  </div>
+
+  <div class="material-layout">
+    <article class="material-body">
+      <section class="material-body-section">
+        <h2 class="section-title">Generated Content</h2>
+        <pre>{{ material.generated_content }}</pre>
+      </section>
+      <section class="material-body-section">
+        <h2 class="section-title">Editable Notes</h2>
+        <div class="material-notes">{{ material.editable_notes|default:"메모가 아직 없습니다." }}</div>
+      </section>
+    </article>
+
+    <aside class="material-side">
+      <div class="kv">
+        <div class="kv-label">소스 유형</div>
+        <div class="kv-value">{{ material.get_source_type_display }}</div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">원본 연결</div>
+        <div class="kv-value">{{ material.source_reference_label }}</div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">원본 URL</div>
+        <div class="kv-value">{{ material.source_url|default:"-" }}</div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">보관 유형</div>
+        <div class="kv-value">{{ material.ownership_label }}</div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">공개 상태</div>
+        <div class="kv-value">
+          {{ material.get_visibility_display }} · {{ material.visibility_description }}
+        </div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">초안 품질</div>
+        <div class="kv-value">{{ material.quality_badge }}</div>
+      </div>
+      {% if material.copied_from %}
+      <div class="kv">
+        <div class="kv-label">복제 원본</div>
+        <div class="kv-value">#{{ material.copied_from_id }}</div>
+      </div>
+      {% endif %}
+      {% if page_mode == "explore" %}
+      <div class="kv">
+        <div class="kv-label">재활용 안내</div>
+        <div class="kv-value">복제 후 내 라이브러리에서 제목, 노트, 생성 내용을 다시 편집할 수 있습니다.</div>
+      </div>
+      {% endif %}
+      <div class="kv">
+        <div class="kv-label">생성 이력 수</div>
+        <div class="kv-value">{{ material.generations.count }}</div>
+      </div>
+      <div class="kv">
+        <div class="kv-label">최근 수정</div>
+        <div class="kv-value">{{ material.updated_at|date:"Y-m-d H:i" }}</div>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

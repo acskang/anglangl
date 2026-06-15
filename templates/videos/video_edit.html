@@ -1,0 +1,55 @@
+{% extends 'dramaNlearn/base.html' %}
+
+{% block title %}Edit Video{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:920px;padding:2.5rem 1rem 3rem">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+      <div class="small text-uppercase text-muted" style="letter-spacing:.16em">Video</div>
+      <h1 class="display-6 text-light mb-2">Edit Video</h1>
+      <p class="text-muted mb-0">{{ video.title }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'videos:detail' video.id %}" class="btn btn-outline-light">Back to Detail</a>
+      {% if video.video_file %}
+      <a href="{% url 'videos:download' video.id %}" class="btn btn-outline-light">Download File</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-dark border-secondary">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.title.id_for_label }}">Title</label>
+          {{ form.title }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.description.id_for_label }}">Description</label>
+          {{ form.description }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.thumbnail_file.id_for_label }}">Thumbnail</label>
+          {{ form.thumbnail_file }}
+        </div>
+        {% if video.source_type == 'upload' %}
+        <div class="mb-3">
+          <label class="form-label text-light" for="{{ form.subtitle_file.id_for_label }}">Replace Subtitle</label>
+          {{ form.subtitle_file }}
+        </div>
+        {% endif %}
+        <div class="form-check mb-4">
+          {{ form.remove_thumbnail }}
+          <label class="form-check-label text-light" for="{{ form.remove_thumbnail.id_for_label }}">Remove current thumbnail</label>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <a href="{% url 'videos:detail' video.id %}" class="btn btn-outline-light">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

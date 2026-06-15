@@ -92,7 +92,7 @@ export_defaults() {
   export SECRET_KEY="${SECRET_KEY:-dev-secret-key}"
   export DEBUG="${DEBUG:-True}"
   export ALLOWED_HOSTS="${ALLOWED_HOSTS:-127.0.0.1,localhost}"
-  export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/listen_practice}"
+  export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:ths5rhd@127.0.0.1:5432/listening_clips}"
   export CELERY_BROKER_URL="${CELERY_BROKER_URL:-redis://127.0.0.1:6379/0}"
   export CELERY_RESULT_BACKEND="${CELERY_RESULT_BACKEND:-redis://127.0.0.1:6379/1}"
   export STATIC_URL="${STATIC_URL:-/static/}"

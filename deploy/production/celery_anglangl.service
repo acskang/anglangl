@@ -1,0 +1,22 @@
+[Unit]
+Description=Celery worker for anglangl
+After=network.target
+
+[Service]
+Type=simple
+User=cskang
+Group=www-data
+WorkingDirectory=/home/cskang/ganzskang/anglangl
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=CELERY_QUEUES=default,youtube_download,clip_extract,clip_upload_process
+Environment=CELERY_LOG_LEVEL=INFO
+EnvironmentFile=/etc/anglangl/anglangl.env
+ExecStart=/home/cskang/miniconda3/envs/dj5/bin/celery -A config worker -l ${CELERY_LOG_LEVEL} -Q ${CELERY_QUEUES} --hostname anglangl@%H
+ExecStop=/bin/kill -s TERM $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

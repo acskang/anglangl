@@ -1,0 +1,1350 @@
+{% extends 'dramaNlearn/base.html' %}
+{% load clip_extras %}
+{% block title %}{{ video.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.detail-wrap { max-width: 1220px; margin: 0 auto; padding: 2rem 1.2rem 3rem; }
+.breadcrumb-line { color: var(--muted); font-size: .82rem; margin-bottom: .9rem; }
+.breadcrumb-line a { color: var(--muted); text-decoration: none; }
+.page-head {
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+  margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);
+}
+.page-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:2px; color:var(--text); }
+.detail-layout { display:grid; grid-template-columns:1fr 380px; gap:2rem; }
+.player-section { position:sticky; top:72px; }
+.player-wrap { position:relative; background:#000; border-radius:16px; overflow:hidden; aspect-ratio:16/9; border:1px solid var(--border); }
+#ytPlayer, #localPlayer { width:100%; height:100%; border:none; display:block; }
+.yt-top-chrome-mask {
+  position:absolute; top:0; left:0; right:0; height:46px; z-index:6; pointer-events:auto;
+  background:linear-gradient(180deg, rgba(0,0,0,.98) 0%, rgba(0,0,0,.9) 68%, rgba(0,0,0,0) 100%);
+}
+.yt-top-chrome-mask.is-hidden { display:none; }
+.player-context-menu {
+  position:absolute; z-index:15; min-width:240px; padding:8px; border-radius:16px;
+  border:1px solid rgba(255,255,255,.12); background:rgba(9,11,19,.96); box-shadow:0 20px 60px rgba(0,0,0,.44);
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); display:none;
+}
+.player-context-menu.is-open { display:block; }
+.player-context-time {
+  padding:10px 12px 8px; color:#ffd166; font-size:.8rem; font-weight:700; font-family:'JetBrains Mono', monospace;
+}
+.player-context-button {
+  width:100%; display:flex; align-items:center; gap:8px; padding:11px 12px; border:0; border-radius:12px;
+  background:transparent; color:var(--text); font-size:.86rem; font-weight:700; cursor:pointer; text-align:left;
+  transition:background .16s ease, color .16s ease;
+}
+.player-context-button:hover { background:rgba(124,77,255,.14); color:#fff; }
+.player-fallback {
+  display:none; width:100%; height:100%; background:linear-gradient(180deg, rgba(8,8,14,.96), rgba(15,15,26,.98));
+  color:var(--text); position:relative; overflow:hidden;
+}
+.player-fallback.is-visible { display:grid; grid-template-columns:minmax(0, 1fr) 1.1fr; }
+.player-fallback-media {
+  position:relative; min-height:100%; background:#000;
+}
+.player-fallback-media img {
+  width:100%; height:100%; object-fit:cover; display:block; opacity:.56;
+}
+.player-fallback-media::after {
+  content:""; position:absolute; inset:0; background:linear-gradient(90deg, rgba(0,0,0,.18), rgba(0,0,0,.72));
+}
+.player-fallback-body {
+  position:relative; z-index:1; padding:1.25rem 1.2rem; display:flex; flex-direction:column; justify-content:center; gap:.75rem;
+}
+.player-fallback-kicker {
+  font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700;
+}
+.player-fallback-title {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:1px; font-size:1.5rem; line-height:1.05; color:var(--text);
+}
+.player-fallback-copy {
+  color:#c7c7d7; font-size:.9rem; line-height:1.7;
+}
+.player-fallback-actions {
+  display:flex; gap:8px; flex-wrap:wrap;
+}
+.player-fallback-note {
+  font-size:.78rem; color:var(--muted);
+}
+.timeline-section {
+  background:var(--s1); border:1px solid var(--border); border-radius:16px;
+  padding:1.3rem; margin-top:1rem; box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.current-time-bar { text-align:center; font-family:monospace; font-size:.82rem; color:var(--muted); margin-bottom:.3rem; }
+.progress-track {
+  position:relative; height:12px; background:var(--s2);
+  border-radius:6px; cursor:pointer; margin:.5rem 0 .3rem; user-select:none;
+}
+.progress-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(124,77,255,.35); border-radius:6px; pointer-events:none; }
+.selection-fill { position:absolute; top:0; bottom:0; background:rgba(255,60,95,.45); border-radius:6px; pointer-events:none; }
+.handle {
+  position:absolute; top:50%; width:20px; height:20px; border-radius:50%;
+  transform:translate(-50%,-50%); cursor:grab; border:3px solid #fff; z-index:3;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.handle:active { cursor:grabbing; }
+.handle.start { background:#06d6a0; }
+.handle.end { background:#ff3c5f; }
+.bar-time-labels { display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); font-family:monospace; margin-bottom:.7rem; }
+.time-inputs { display:grid; grid-template-columns:1fr 24px 1fr; align-items:end; gap:6px; }
+.time-field { display:flex; flex-direction:column; gap:5px; }
+.time-field label { font-size:.72rem; color:var(--muted); font-weight:700; letter-spacing:1px; text-transform:uppercase; display:flex; align-items:center; gap:5px; }
+.time-input-shell { position:relative; display:flex; align-items:center; }
+.time-field input {
+  padding:9px 42px; text-align:center; font-size:1rem;
+  font-family:'Courier New',monospace; letter-spacing:1.5px; width:100%;
+  background:var(--s2); border:1px solid var(--border); border-radius:8px;
+  color:var(--text); outline:none; transition:border-color .2s;
+}
+.time-field input:focus { border-color:#7c4dff; }
+.time-field input.start-input:focus { border-color:#06d6a0; }
+.time-field input.end-input:focus { border-color:#ff3c5f; }
+.time-transfer-btn {
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:24px; height:24px; border-radius:7px; border:1px solid transparent; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:#fff; font-size:.92rem; font-weight:900; line-height:1;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 8px 20px rgba(0,0,0,.22); transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease, background .14s ease;
+}
+.time-transfer-btn:hover { transform:translateY(-50%) scale(1.06); box-shadow:0 10px 24px rgba(0,0,0,.3); }
+.time-transfer-btn:focus-visible { outline:2px solid rgba(255,255,255,.48); outline-offset:2px; }
+.time-transfer-btn.left { left:10px; }
+.time-transfer-btn.right { right:10px; }
+.time-transfer-btn.start { border-color:rgba(79,155,255,.28); color:#7fb4ff; }
+.time-transfer-btn.end { border-color:rgba(255,102,125,.28); color:#ff7d90; }
+.time-transfer-btn.start:hover { background:rgba(79,155,255,.16); }
+.time-transfer-btn.end:hover { background:rgba(255,102,125,.16); }
+.time-sep { color:var(--muted); font-size:1.1rem; text-align:center; padding-bottom:10px; }
+.clip-create-btn { width:100%; margin-top:1rem; padding:13px; font-size:1rem; justify-content:center; }
+.btn-line { display:flex; gap:8px; flex-wrap:wrap; }
+.btn-line .btn-inline {
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:8px;
+  font-size:.9rem;font-weight:600;border:1px solid var(--border);text-decoration:none;cursor:pointer;
+}
+.btn-inline.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+.btn-inline.secondary { background:transparent; color:var(--text); }
+.btn-inline.danger { background:transparent; color:#fca5a5; border-color:#7f1d1d; }
+.clips-sidebar {}
+.sidebar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+.sidebar-title { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:1px; color:var(--text); }
+.badge-done,.badge-processing,.badge-pending,.badge-error {
+  display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;
+}
+.badge-done { background:rgba(6,214,160,.15); color:#86efac; }
+.badge-pending,.badge-processing { background:rgba(255,209,102,.15); color:#ffd166; }
+.badge-error { background:rgba(255,60,95,.15); color:#fca5a5; }
+.clip-item { background:var(--s1); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:10px; transition:border-color .2s; }
+.clip-item:hover { border-color:#7c4dff; }
+.clip-item-inner { display:flex; }
+.clip-thumb { width:110px; flex-shrink:0; aspect-ratio:16/9; object-fit:cover; background:var(--s2); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:1.4rem; }
+img.clip-thumb { display:block; }
+.clip-info { padding:10px 12px; flex:1; min-width:0; }
+.clip-name { font-size:.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; color:var(--text); }
+.clip-time { font-size:.72rem; color:var(--muted); font-family:monospace; }
+.clip-actions { display:flex; gap:4px; margin-top:7px; align-items:center; flex-wrap:wrap; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.clip-status-processing { animation:pulse 1.4s infinite; }
+.status-strip { display:flex; gap:8px; flex-wrap:wrap; margin-top:.8rem; }
+.status-chip {
+  display:inline-flex; align-items:center; gap:4px; background:var(--s2); border:1px solid var(--border);
+  border-radius:999px; padding:4px 10px; font-size:.76rem; color:var(--text);
+}
+.info-box { margin-top:1rem; background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:1rem; color:var(--muted); }
+@media (max-width: 980px) {
+  .detail-layout { grid-template-columns:1fr; }
+  .player-section { position:static; }
+  .player-fallback.is-visible { grid-template-columns:1fr; }
+}
+@media (max-width: 680px) {
+  .time-inputs { grid-template-columns:1fr; }
+  .time-sep { display:none; }
+  .clip-item-inner { flex-direction:column; }
+  .clip-thumb { width:100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-wrap">
+  <div class="breadcrumb-line">
+    <a href="{{ list_url }}">{{ list_label }}</a> › <span>{{ video.title|truncatechars:40 }}</span> › <span>클립 추출</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <div class="small text-uppercase" style="letter-spacing:.16em;color:var(--acc)">{{ page_kicker|default:"Youtube" }}</div>
+      <div class="page-title">{{ video.title|truncatechars:60 }}</div>
+      <div class="status-strip">
+        <span class="status-chip">상태: {{ video.get_download_status_display }}</span>
+        {% if video.channel_name %}<span class="status-chip">채널: {{ video.channel_name }}</span>{% endif %}
+        {% if video.duration_seconds %}<span class="status-chip">길이: {{ video.duration_seconds|hhmmss }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="btn-line">
+      {% if video.source_drama_video_id %}
+      <a href="{% url 'dramaNlearn:player' video.source_drama_video_id %}" class="btn-inline secondary">🎬 드라마보기</a>
+      {% else %}
+      <a href="{% url 'videos:edit' video.id %}" class="btn-inline secondary">📝 블로그편집</a>
+      {% endif %}
+      {% if source_link_url %}<a href="{{ source_link_url }}" target="_blank" class="btn-inline secondary">🔗 {{ source_link_label|default:"원본" }}</a>{% endif %}
+      <a href="{{ list_url }}" class="btn-inline secondary">📚 목록으로</a>
+      {% if not video.source_drama_video_id %}
+      <form method="post" action="{% url 'videos:delete' video.id %}" onsubmit="return confirm('이 영상과 모든 클립을 삭제하시겠습니까?')">
+        {% csrf_token %}
+        <button type="submit" class="btn-inline danger">🗑️ 삭제</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-layout">
+    <div>
+      <div class="player-section">
+        <div class="player-wrap" id="playerWrap">
+          {% if show_local_player and playback_url %}
+          <video id="localPlayer" controls preload="metadata"{% if playback_type == 'file' %} src="{{ playback_url }}"{% endif %}></video>
+          {% else %}
+          <div id="playerFallback" class="player-fallback">
+            <div class="player-fallback-media">
+              <img src="{{ thumbnail_proxy_url }}?t={{ video.updated_at|date:'U' }}" alt="{{ video.title }}" onerror="setPlaceholderThumbnail(this)">
+            </div>
+            <div class="player-fallback-body">
+              <div class="player-fallback-kicker">Youtube Preview</div>
+              <div class="player-fallback-title">외부 사이트 재생이 차단된 영상입니다</div>
+              <div class="player-fallback-copy">
+                이 영상은 YouTube iframe 재생을 지원하지 않아 브라우저 안에서 바로 재생할 수 없습니다.
+                아래 버튼으로 YouTube에서 열거나, 구간 시간을 직접 입력해 클립 작업을 계속 진행하세요.
+              </div>
+              <div class="player-fallback-actions">
+                {% if video.url %}<a href="{{ video.url }}" target="_blank" class="btn-inline secondary">🔗 YouTube에서 보기</a>{% endif %}
+                {% if video.source_drama_video_id %}
+                <a href="{% url 'dramaNlearn:player' video.source_drama_video_id %}" class="btn-inline secondary">🎬 드라마보기</a>
+                {% else %}
+                <a href="{% url 'videos:edit' video.id %}" class="btn-inline secondary">📝 블로그편집</a>
+                {% endif %}
+                {% if can_reload %}
+                <form method="post" action="{% url 'videos:retry' video.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-inline primary">⟳ Reload</button>
+                </form>
+                {% endif %}
+              </div>
+              <div class="player-fallback-note">
+                영상 길이 메타데이터와 시간 입력은 그대로 사용할 수 있습니다.
+              </div>
+            </div>
+          </div>
+          <div id="ytPlayer"></div>
+          <div id="ytTopChromeMask" class="yt-top-chrome-mask" aria-hidden="true"></div>
+          {% endif %}
+          <div id="playerContextMenu" class="player-context-menu" role="menu" aria-hidden="true">
+            <div class="player-context-time" id="playerContextTime">현재 시간 00:00:00:0</div>
+            <button type="button" class="player-context-button" data-context-action="start">🟢 현재 시간을 시작 시간으로 저장</button>
+            <button type="button" class="player-context-button" data-context-action="end">🔴 현재 시간을 종료 시간으로 저장</button>
+            <button type="button" class="player-context-button" data-context-action="fullscreen">⛶ 전체화면 전환</button>
+            <button type="button" class="player-context-button" data-context-action="pip">🗔 PiP 전환</button>
+          </div>
+        </div>
+
+        <div class="timeline-section">
+          <div class="current-time-bar" id="currentTimeBar">재생 위치: 00:00:00:0</div>
+
+          <div class="progress-track" id="progressTrack">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            <div class="selection-fill" id="selectionFill" style="left:0%;width:0%"></div>
+            <div class="handle start" id="startHandle" style="left:0%"></div>
+            <div class="handle end" id="endHandle" style="left:5%"></div>
+          </div>
+          <div class="bar-time-labels">
+            <span>00:00:00:0</span>
+            <span id="durationLabel">--:--:--:-</span>
+          </div>
+
+          <div class="time-inputs">
+            <div class="time-field">
+              <label><span style="color:#06d6a0">●</span> 시작 시간</label>
+              <div class="time-input-shell">
+                <button
+                  type="button"
+                  id="captureStartBtn"
+                  class="time-transfer-btn left start"
+                  title="현재 플레이어 시간을 시작 시간으로 가져오기"
+                  aria-label="현재 플레이어 시간을 시작 시간으로 가져오기"
+                >↓</button>
+                <input type="text" id="startInput" class="start-input" placeholder="00:00:00:0" value="00:00:00:0" maxlength="10" spellcheck="false">
+                <button
+                  type="button"
+                  id="seekStartBtn"
+                  class="time-transfer-btn right start"
+                  title="시작 시간으로 플레이어 이동"
+                  aria-label="시작 시간으로 플레이어 이동"
+                >↑</button>
+              </div>
+            </div>
+            <div class="time-sep">→</div>
+            <div class="time-field">
+              <label><span style="color:#ff3c5f">●</span> 종료 시간</label>
+              <div class="time-input-shell">
+                <button
+                  type="button"
+                  id="captureEndBtn"
+                  class="time-transfer-btn left end"
+                  title="현재 플레이어 시간을 종료 시간으로 가져오기"
+                  aria-label="현재 플레이어 시간을 종료 시간으로 가져오기"
+                >↓</button>
+                <input type="text" id="endInput" class="end-input" placeholder="00:00:10:0" value="00:00:10:0" maxlength="10" spellcheck="false">
+                <button
+                  type="button"
+                  id="seekEndBtn"
+                  class="time-transfer-btn right end"
+                  title="종료 시간으로 플레이어 이동"
+                  aria-label="종료 시간으로 플레이어 이동"
+                >↑</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-inline primary clip-create-btn" type="button" onclick="createClip()">✂️ 클립 생성</button>
+        </div>
+
+        {% if video.download_error_message %}
+        <div class="info-box" style="color:#fca5a5;">{{ video.download_error_message }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="clips-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">클립 목록</div>
+        <span class="badge-done" id="clipCountBadge">{{ clips.count }}개</span>
+      </div>
+      <div id="clipsList">
+        {% for clip in clips %}
+        <div class="clip-item" id="clipItem-{{ clip.pk }}" data-id="{{ clip.pk }}">
+          <div class="clip-item-inner">
+            {% if clip.custom_thumbnail_file or clip.thumbnail_file or clip.master_video %}
+            <img class="clip-thumb" src="{% url 'clips:thumb-proxy' clip.pk %}" alt="">
+            {% else %}
+            <div class="clip-thumb">🎬</div>
+            {% endif %}
+            <div class="clip-info">
+              <div class="clip-name">{{ clip.title }}</div>
+              <div class="clip-time">{{ clip.start_time_seconds|hhmmss }} ~ {{ clip.end_time_seconds|hhmmss }} ({{ clip.duration_seconds|hhmmss }})</div>
+              <div class="clip-actions">
+                {% if clip.file_status == 'ready' %}
+                <a href="{% url 'clips:edit' clip.pk %}" class="badge-done" style="text-decoration:none;">✏️ 편집</a>
+                {% elif clip.file_status == 'failed' %}
+                <span class="badge-error" id="badge-{{ clip.pk }}">오류</span>
+                {% else %}
+                <span class="badge-{{ clip.file_status }} {% if clip.file_status == 'processing' or clip.file_status == 'pending' or clip.file_status == 'queued' %}clip-status-processing{% endif %}" id="badge-{{ clip.pk }}">{{ clip.get_file_status_display }}</span>
+                {% endif %}
+                {% if clip.clip_file %}
+                <a href="{% url 'clips:download' clip.pk %}?dl=1" class="btn-inline secondary" style="padding:4px 10px;font-size:.78rem;">⬇</a>
+                {% endif %}
+                <button class="btn-inline danger" style="padding:4px 10px;font-size:.78rem;" type="button" onclick="deleteClip({{ clip.pk }})">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="info-box" id="emptyClips" style="text-align:center;">
+          좌측에서 구간을 선택하여 클립을 생성하세요.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<script>
+const VIDEO_DATA = {
+  master_video_id: {{ video.id }},
+  video_id: '{{ video.video_id }}',
+  url: '{{ video.url|escapejs }}',
+  title: '{{ video.title|escapejs }}',
+  thumbnail_url: '{{ video.thumbnail_url|escapejs }}',
+  duration: {{ video.duration|default:0 }},
+  channel: '{{ video.channel|escapejs }}',
+  full_file_exists: {{ show_local_player|yesno:"true,false" }},
+  playback_url: '{{ playback_url|escapejs }}',
+  playback_type: '{{ playback_type|escapejs }}',
+};
+
+const CREATE_CLIP_URL = "{% url 'clips:api-create' %}";
+const CLIP_STATUS_TEMPLATE = "{% url 'clips:api-status' 999999 %}";
+const CLIP_EDIT_TEMPLATE = "{% url 'clips:edit' 999999 %}";
+const CLIP_DOWNLOAD_TEMPLATE = "{% url 'clips:download' 999999 %}";
+const CLIP_DELETE_TEMPLATE = "{% url 'clips:delete' 999999 %}";
+
+const MIN_CLIP_SECONDS = 0.1;
+
+let totalDuration = quantizeTenths(VIDEO_DATA.duration || 300);
+let startSec = 0;
+let endSec = quantizeTenths(Math.min(30, totalDuration || 30));
+let currentSec = 0;
+let dragging = null;
+let wasDragging = false;
+let pollingMap = {};
+let ytPlayer = null;
+let embedPiPWindow = null;
+let embedPiPPlayer = null;
+let localPiPWindow = null;
+let localPiPPlaceholder = null;
+const localVid = document.getElementById('localPlayer');
+const isLocal = VIDEO_DATA.full_file_exists;
+const playerWrap = document.getElementById('playerWrap');
+const currentTimeBar = document.getElementById('currentTimeBar');
+const captureStartBtn = document.getElementById('captureStartBtn');
+const captureEndBtn = document.getElementById('captureEndBtn');
+const seekStartBtn = document.getElementById('seekStartBtn');
+const seekEndBtn = document.getElementById('seekEndBtn');
+const playerFullscreenBtn = document.getElementById('playerFullscreenBtn');
+const playerPiPBtn = document.getElementById('playerPiPBtn');
+const contextMenu = document.getElementById('playerContextMenu');
+const contextMenuTime = document.getElementById('playerContextTime');
+const documentPiPSupported = !!(window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function');
+const contextFullscreenAction = contextMenu ? contextMenu.querySelector('[data-context-action="fullscreen"]') : null;
+const contextPiPAction = contextMenu ? contextMenu.querySelector('[data-context-action="pip"]') : null;
+
+const track = document.getElementById('progressTrack');
+const progressFill = document.getElementById('progressFill');
+const selFill = document.getElementById('selectionFill');
+const startHandle = document.getElementById('startHandle');
+const endHandle = document.getElementById('endHandle');
+const startInput = document.getElementById('startInput');
+const endInput = document.getElementById('endInput');
+const fallbackPlayer = document.getElementById('playerFallback');
+const ytPlayerElement = document.getElementById('ytPlayer');
+const ytTopChromeMask = document.getElementById('ytTopChromeMask');
+
+function fmt(seconds) {
+  const totalTenths = Math.round(Math.max(0, Number(seconds) || 0) * 10);
+  const wholeSeconds = Math.floor(totalTenths / 10);
+  const tenths = totalTenths % 10;
+  const h = Math.floor(wholeSeconds / 3600);
+  const m = Math.floor((wholeSeconds % 3600) / 60);
+  const sec = wholeSeconds % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${tenths}`;
+}
+
+function parseFmt(str) {
+  const text = String(str || '').trim();
+  if (!text) return 0;
+  const rawParts = text.split(':').map((part) => part.trim());
+  const parts = rawParts.map((part) => Number(part));
+  if (parts.some((part) => !Number.isFinite(part))) return 0;
+  if (parts.length === 4) {
+    const fractionText = rawParts[3];
+    if (fractionText.length === 1) {
+      return quantizeTenths(parts[0] * 3600 + parts[1] * 60 + parts[2] + ((parts[3] || 0) / 10));
+    }
+    if (fractionText.length === 3) {
+      return quantizeTenths(parts[0] * 3600 + parts[1] * 60 + parts[2] + ((parts[3] || 0) / 1000));
+    }
+    return 0;
+  }
+  if (parts.length === 3) return quantizeTenths(parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0));
+  if (parts.length === 2) return quantizeTenths(parts[0] * 60 + (parts[1] || 0));
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? quantizeTenths(numeric) : 0;
+}
+
+function quantizeTenths(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round(Math.max(0, numeric) * 10) / 10;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function pct(sec) {
+  return totalDuration > 0 ? clamp((sec / totalDuration) * 100, 0, 100) : 0;
+}
+
+function syncBar(updatePlayheadOnly = false, forceInputs = false) {
+  const sp = pct(startSec), ep = pct(endSec), cp = pct(currentSec);
+  progressFill.style.width = cp + '%';
+  currentTimeBar.textContent = '재생 위치: ' + fmt(currentSec);
+  if (updatePlayheadOnly) return;
+  selFill.style.left = sp + '%';
+  selFill.style.width = (ep - sp) + '%';
+  startHandle.style.left = sp + '%';
+  endHandle.style.left = ep + '%';
+  if (forceInputs || document.activeElement !== startInput) startInput.value = fmt(startSec);
+  if (forceInputs || document.activeElement !== endInput) endInput.value = fmt(endSec);
+}
+
+function seekPlayer(sec) {
+  if (isLocal && localVid) {
+    localVid.currentTime = sec;
+  } else if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+    try { ytPlayer.seekTo(sec, true); } catch (_e) {}
+  } else if (embedPiPPlayer && typeof embedPiPPlayer.seekTo === 'function') {
+    try { embedPiPPlayer.seekTo(sec, true); } catch (_e) {}
+  }
+}
+
+function getCurrentPlayerTime() {
+  if (isLocal && localVid) {
+    return localVid.currentTime || currentSec || 0;
+  }
+  if (embedPiPPlayer && typeof embedPiPPlayer.getCurrentTime === 'function') {
+    try { return embedPiPPlayer.getCurrentTime() || currentSec || 0; } catch (_e) {}
+  }
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try { return ytPlayer.getCurrentTime() || currentSec || 0; } catch (_e) {}
+  }
+  return currentSec || 0;
+}
+
+function hideContextMenu() {
+  if (!contextMenu) return;
+  contextMenu.classList.remove('is-open');
+  contextMenu.setAttribute('aria-hidden', 'true');
+}
+
+function updateContextMenuActions() {
+  if (contextFullscreenAction) {
+    contextFullscreenAction.style.display = playerWrap && playerWrap.requestFullscreen ? 'flex' : 'none';
+  }
+  if (contextPiPAction) {
+    contextPiPAction.style.display = documentPiPSupported ? 'flex' : 'none';
+  }
+}
+
+function showContextMenuAt(clientX, clientY, seconds) {
+  if (!playerWrap || !contextMenu || (fallbackPlayer && fallbackPlayer.classList.contains('is-visible'))) return;
+  contextMenuTime.textContent = '현재 시간 ' + fmt(seconds);
+  contextMenu.classList.add('is-open');
+  contextMenu.setAttribute('aria-hidden', 'false');
+  const wrapRect = playerWrap.getBoundingClientRect();
+  const menuRect = contextMenu.getBoundingClientRect();
+  const desiredLeft = clientX - wrapRect.left;
+  const desiredTop = clientY - wrapRect.top;
+  const left = clamp(desiredLeft, 12, Math.max(12, wrapRect.width - menuRect.width - 12));
+  const top = clamp(desiredTop, 12, Math.max(12, wrapRect.height - menuRect.height - 12));
+  contextMenu.style.left = left + 'px';
+  contextMenu.style.top = top + 'px';
+}
+
+function setClipBoundary(type, seconds, options = {}) {
+  const doSeek = options.seek !== false;
+  const bounded = quantizeTenths(clamp(seconds || 0, 0, totalDuration));
+  if (type === 'start') {
+    startSec = bounded;
+    if (startSec >= endSec) {
+      endSec = quantizeTenths(Math.min(startSec + MIN_CLIP_SECONDS, totalDuration));
+      if (endSec <= startSec) {
+        startSec = quantizeTenths(Math.max(totalDuration - MIN_CLIP_SECONDS, 0));
+        endSec = quantizeTenths(totalDuration);
+      }
+    }
+  } else {
+    endSec = bounded;
+    if (endSec <= startSec) {
+      startSec = quantizeTenths(Math.max(endSec - MIN_CLIP_SECONDS, 0));
+      if (endSec <= startSec) {
+        endSec = quantizeTenths(Math.min(startSec + MIN_CLIP_SECONDS, totalDuration));
+      }
+    }
+  }
+  syncBar(false, true);
+  if (doSeek) {
+    seekPlayer(type === 'start' ? startSec : endSec);
+  }
+  toast(type === 'start' ? '현재 시간을 시작 시간으로 저장했습니다.' : '현재 시간을 종료 시간으로 저장했습니다.', 'success');
+}
+
+function captureBoundaryFromCurrentTime(type) {
+  if (fallbackPlayer && fallbackPlayer.classList.contains('is-visible')) {
+    toast('재생 가능한 플레이어가 없어서 현재 시간을 읽을 수 없습니다.', 'error');
+    return;
+  }
+  setClipBoundary(type, getCurrentPlayerTime());
+}
+
+function handlePlayerContextMenu(event) {
+  if (!playerWrap || event.target.closest('.player-context-menu')) return;
+  if (fallbackPlayer && fallbackPlayer.classList.contains('is-visible')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  showContextMenuAt(event.clientX, event.clientY, getCurrentPlayerTime());
+}
+
+function updateFullscreenUI() {
+  if (!playerFullscreenBtn) return;
+  const available = !!(playerWrap && playerWrap.requestFullscreen);
+  playerFullscreenBtn.style.display = available ? 'inline-flex' : 'none';
+  if (!available) return;
+  const isActive = document.fullscreenElement === playerWrap;
+  playerFullscreenBtn.textContent = isActive ? '⛶ 전체화면 종료' : '⛶ 전체화면';
+}
+
+async function togglePlayerFullscreen() {
+  if (!playerWrap || !playerWrap.requestFullscreen) return;
+  hideContextMenu();
+  try {
+    if (document.fullscreenElement === playerWrap) {
+      await document.exitFullscreen();
+    } else {
+      await playerWrap.requestFullscreen();
+    }
+  } catch (_error) {
+    toast('전체화면을 시작할 수 없습니다.', 'error');
+  } finally {
+    updateFullscreenUI();
+  }
+}
+
+function updatePiPUI() {
+  if (!playerPiPBtn) return;
+  const active = !!(embedPiPWindow || localPiPWindow);
+  const available = documentPiPSupported;
+  playerPiPBtn.style.display = available ? 'inline-flex' : 'none';
+  if (!available) return;
+  playerPiPBtn.textContent = active ? '🗔 PiP 닫기' : '🗔 PiP';
+}
+
+function closeEmbedPictureInPicture() {
+  if (embedPiPPlayer && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+    try {
+      const sec = embedPiPPlayer.getCurrentTime() || currentSec;
+      ytPlayer.seekTo(sec, true);
+    } catch (_e) {}
+  }
+  if (!embedPiPWindow || embedPiPWindow.closed) {
+    embedPiPWindow = null;
+    embedPiPPlayer = null;
+    updatePiPUI();
+    return Promise.resolve();
+  }
+  const win = embedPiPWindow;
+  embedPiPWindow = null;
+  embedPiPPlayer = null;
+  win.close();
+  updatePiPUI();
+  return Promise.resolve();
+}
+
+function restoreLocalFromPiP() {
+  if (!localPiPPlaceholder || !localPiPPlaceholder.parentNode || !localVid) {
+    localPiPWindow = null;
+    updatePiPUI();
+    return;
+  }
+  localPiPPlaceholder.parentNode.replaceChild(localVid, localPiPPlaceholder);
+  localPiPPlaceholder = null;
+  localVid.controls = true;
+  localVid.style.width = '100%';
+  localVid.style.height = '100%';
+  localVid.style.display = 'block';
+  localPiPWindow = null;
+  updatePiPUI();
+}
+
+function closeLocalPictureInPicture() {
+  if (!localPiPWindow || localPiPWindow.closed) {
+    restoreLocalFromPiP();
+    return Promise.resolve();
+  }
+  const win = localPiPWindow;
+  win.close();
+  restoreLocalFromPiP();
+  return Promise.resolve();
+}
+
+function mountPiPContextMenu(doc, hostRectGetter, options) {
+  const menu = doc.createElement('div');
+  menu.style.position = 'absolute';
+  menu.style.minWidth = '240px';
+  menu.style.padding = '8px';
+  menu.style.borderRadius = '16px';
+  menu.style.border = '1px solid rgba(255,255,255,.12)';
+  menu.style.background = 'rgba(9,11,19,.96)';
+  menu.style.boxShadow = '0 20px 60px rgba(0,0,0,.44)';
+  menu.style.backdropFilter = 'blur(18px)';
+  menu.style.webkitBackdropFilter = 'blur(18px)';
+  menu.style.display = 'none';
+  menu.style.zIndex = '20';
+
+  const timeLabel = doc.createElement('div');
+  timeLabel.style.padding = '10px 12px 8px';
+  timeLabel.style.color = '#ffd166';
+  timeLabel.style.fontSize = '.8rem';
+  timeLabel.style.fontWeight = '700';
+  timeLabel.style.fontFamily = 'JetBrains Mono, monospace';
+  menu.appendChild(timeLabel);
+
+  function buildAction(label, handler) {
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.style.width = '100%';
+    button.style.display = 'flex';
+    button.style.alignItems = 'center';
+    button.style.gap = '8px';
+    button.style.padding = '11px 12px';
+    button.style.border = '0';
+    button.style.borderRadius = '12px';
+    button.style.background = 'transparent';
+    button.style.color = '#e8e8f0';
+    button.style.fontSize = '.86rem';
+    button.style.fontWeight = '700';
+    button.style.cursor = 'pointer';
+    button.style.textAlign = 'left';
+    button.addEventListener('mouseenter', () => { button.style.background = 'rgba(124,77,255,.14)'; });
+    button.addEventListener('mouseleave', () => { button.style.background = 'transparent'; });
+    button.addEventListener('click', () => {
+      menu.style.display = 'none';
+      handler();
+    });
+    menu.appendChild(button);
+  }
+
+  buildAction('🟢 현재 시간을 시작 시간으로 저장', () => options.onCapture('start'));
+  buildAction('🔴 현재 시간을 종료 시간으로 저장', () => options.onCapture('end'));
+  options.container.appendChild(menu);
+
+  function hide() {
+    menu.style.display = 'none';
+  }
+
+  function show(event, seconds) {
+    event.preventDefault();
+    const rect = hostRectGetter();
+    timeLabel.textContent = '현재 시간 ' + fmt(seconds);
+    menu.style.display = 'block';
+    const menuRect = menu.getBoundingClientRect();
+    const left = clamp(event.clientX - rect.left, 12, Math.max(12, rect.width - menuRect.width - 12));
+    const top = clamp(event.clientY - rect.top, 12, Math.max(12, rect.height - menuRect.height - 12));
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+
+  doc.addEventListener('click', (event) => {
+    if (!menu.contains(event.target)) hide();
+  });
+  doc.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hide();
+  });
+  return {show, hide};
+}
+
+async function openEmbedPictureInPicture() {
+  if (!documentPiPSupported || !VIDEO_DATA.video_id) return;
+  const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 520, height: 320 });
+  embedPiPWindow = pipWindow;
+  const doc = pipWindow.document;
+  doc.head.innerHTML = '';
+  doc.body.innerHTML = '';
+  doc.title = VIDEO_DATA.title || 'anglangl PiP';
+  doc.body.style.margin = '0';
+  doc.body.style.background = '#000';
+  doc.body.style.width = '100vw';
+  doc.body.style.height = '100vh';
+  doc.body.style.overflow = 'hidden';
+
+  const style = doc.createElement('style');
+  style.textContent = `
+    html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
+    .pip-shell{position:relative;width:100%;height:100%;background:#000}
+    .pip-player{position:absolute;inset:0}
+    .pip-player iframe{width:100%;height:100%;border:0;display:block}
+    .pip-overlay{position:absolute;inset:0;z-index:5;cursor:pointer;background:linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.02))}
+  `;
+  doc.head.appendChild(style);
+
+  const shell = doc.createElement('div');
+  shell.className = 'pip-shell';
+  const playerBox = doc.createElement('div');
+  playerBox.className = 'pip-player';
+  playerBox.id = 'pipYtPlayer';
+  const overlay = doc.createElement('div');
+  overlay.className = 'pip-overlay';
+  shell.appendChild(playerBox);
+  shell.appendChild(overlay);
+  doc.body.appendChild(shell);
+
+  const pipMenu = mountPiPContextMenu(doc, () => shell.getBoundingClientRect(), {
+    container: shell,
+    onCapture: (type) => {
+      const sec = embedPiPPlayer && typeof embedPiPPlayer.getCurrentTime === 'function'
+        ? embedPiPPlayer.getCurrentTime() || currentSec
+        : currentSec;
+      setClipBoundary(type, sec);
+    },
+  });
+
+  overlay.addEventListener('click', () => {
+    if (!embedPiPPlayer || typeof embedPiPPlayer.getPlayerState !== 'function') return;
+    try {
+      const state = embedPiPPlayer.getPlayerState();
+      if (typeof pipWindow.YT !== 'undefined' && pipWindow.YT.PlayerState && state === pipWindow.YT.PlayerState.PLAYING) embedPiPPlayer.pauseVideo();
+      else embedPiPPlayer.playVideo();
+    } catch (_e) {}
+  });
+  overlay.addEventListener('contextmenu', (event) => {
+    const sec = embedPiPPlayer && typeof embedPiPPlayer.getCurrentTime === 'function'
+      ? embedPiPPlayer.getCurrentTime() || currentSec
+      : currentSec;
+    pipMenu.show(event, sec);
+  });
+  pipWindow.addEventListener('keydown', (event) => {
+    if (event.code !== 'Space' && event.key !== ' ') return;
+    if (event.target && typeof event.target.closest === 'function' && event.target.closest('button')) return;
+    event.preventDefault();
+    if (!embedPiPPlayer || typeof embedPiPPlayer.getPlayerState !== 'function') return;
+    try {
+      const state = embedPiPPlayer.getPlayerState();
+      if (typeof pipWindow.YT !== 'undefined' && pipWindow.YT.PlayerState && state === pipWindow.YT.PlayerState.PLAYING) {
+        embedPiPPlayer.pauseVideo();
+      } else {
+        embedPiPPlayer.playVideo();
+      }
+    } catch (_e) {}
+  });
+
+  await new Promise((resolve, reject) => {
+    const script = doc.createElement('script');
+    pipWindow.onYouTubeIframeAPIReady = function() {
+      embedPiPPlayer = new pipWindow.YT.Player('pipYtPlayer', {
+        videoId: VIDEO_DATA.video_id,
+        playerVars: { enablejsapi: 1, rel: 0, modestbranding: 1, autoplay: 1 },
+        events: {
+          onReady: () => {
+            try {
+              if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+                ytPlayer.pauseVideo();
+              }
+              embedPiPPlayer.seekTo(getCurrentPlayerTime(), true);
+            } catch (_e) {}
+            resolve();
+          },
+          onError: () => reject(new Error('pip-player-error')),
+        },
+      });
+    };
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.onerror = reject;
+    doc.head.appendChild(script);
+  }).catch(() => {
+    toast('이 브라우저에서는 YouTube PiP를 시작할 수 없습니다.', 'error');
+    if (embedPiPWindow && !embedPiPWindow.closed) embedPiPWindow.close();
+    embedPiPWindow = null;
+    embedPiPPlayer = null;
+  });
+
+  if (!embedPiPWindow) return;
+  pipWindow.addEventListener('pagehide', function() {
+    embedPiPWindow = null;
+    embedPiPPlayer = null;
+    updatePiPUI();
+  });
+  updatePiPUI();
+}
+
+async function openLocalPictureInPicture() {
+  if (!documentPiPSupported || !localVid || !localVid.parentNode) return;
+  const placeholder = document.createElement('div');
+  placeholder.style.display = 'none';
+  localVid.parentNode.insertBefore(placeholder, localVid);
+  localPiPPlaceholder = placeholder;
+
+  const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 520, height: 320 });
+  localPiPWindow = pipWindow;
+  const doc = pipWindow.document;
+  doc.head.innerHTML = '';
+  doc.body.innerHTML = '';
+  doc.title = VIDEO_DATA.title || 'anglangl PiP';
+  doc.body.style.margin = '0';
+  doc.body.style.background = '#000';
+  doc.body.style.width = '100vw';
+  doc.body.style.height = '100vh';
+  doc.body.style.overflow = 'hidden';
+
+  const style = doc.createElement('style');
+  style.textContent = `
+    html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
+    .pip-shell{position:relative;width:100%;height:100%;background:#000}
+    .pip-shell video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;background:#000}
+    .pip-overlay{position:absolute;inset:0;z-index:5;cursor:pointer;background:linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.02))}
+  `;
+  doc.head.appendChild(style);
+
+  const shell = doc.createElement('div');
+  shell.className = 'pip-shell';
+  const overlay = doc.createElement('div');
+  overlay.className = 'pip-overlay';
+  shell.appendChild(localVid);
+  shell.appendChild(overlay);
+  doc.body.appendChild(shell);
+  localVid.controls = false;
+  localVid.style.width = '100%';
+  localVid.style.height = '100%';
+
+  const pipMenu = mountPiPContextMenu(doc, () => shell.getBoundingClientRect(), {
+    container: shell,
+    onCapture: (type) => setClipBoundary(type, localVid.currentTime || currentSec),
+  });
+
+  overlay.addEventListener('click', () => {
+    if (localVid.paused) localVid.play().catch(() => {});
+    else localVid.pause();
+  });
+  overlay.addEventListener('contextmenu', (event) => {
+    pipMenu.show(event, localVid.currentTime || currentSec);
+  });
+  pipWindow.addEventListener('keydown', (event) => {
+    if (event.code !== 'Space' && event.key !== ' ') return;
+    if (event.target && typeof event.target.closest === 'function' && event.target.closest('button')) return;
+    event.preventDefault();
+    if (localVid.paused) localVid.play().catch(() => {});
+    else localVid.pause();
+  });
+
+  pipWindow.addEventListener('pagehide', () => {
+    restoreLocalFromPiP();
+  });
+  updatePiPUI();
+}
+
+async function togglePlayerPiP() {
+  if (!documentPiPSupported) return;
+  hideContextMenu();
+  try {
+    if (embedPiPWindow || localPiPWindow) {
+      if (embedPiPWindow) await closeEmbedPictureInPicture();
+      if (localPiPWindow) await closeLocalPictureInPicture();
+      return;
+    }
+    if (isLocal && localVid) {
+      await openLocalPictureInPicture();
+      return;
+    }
+    await openEmbedPictureInPicture();
+  } catch (_error) {
+    toast('PiP를 시작할 수 없습니다.', 'error');
+  } finally {
+    updatePiPUI();
+  }
+}
+
+function showPlayerFallback() {
+  if (!fallbackPlayer) return;
+  fallbackPlayer.classList.add('is-visible');
+  if (ytPlayerElement) {
+    ytPlayerElement.style.display = 'none';
+  }
+  if (ytTopChromeMask) {
+    ytTopChromeMask.classList.add('is-hidden');
+  }
+  if (playerPiPBtn) {
+    playerPiPBtn.disabled = true;
+  }
+  hideContextMenu();
+}
+
+function applyStartInput(doSeek = true) {
+  let s = quantizeTenths(clamp(parseFmt(startInput.value), 0, totalDuration));
+  startSec = s;
+  if (startSec >= endSec) {
+    endSec = quantizeTenths(Math.min(startSec + MIN_CLIP_SECONDS, totalDuration));
+    if (endSec <= startSec) {
+      startSec = quantizeTenths(Math.max(totalDuration - MIN_CLIP_SECONDS, 0));
+      endSec = quantizeTenths(totalDuration);
+    }
+    endInput.value = fmt(endSec);
+  }
+  startInput.value = fmt(startSec);
+  syncBar(false, true);
+  if (doSeek) seekPlayer(startSec);
+}
+
+function applyEndInput(doSeek = false) {
+  let e = quantizeTenths(clamp(parseFmt(endInput.value), 0, totalDuration));
+  endSec = e;
+  if (endSec <= startSec) {
+    startSec = quantizeTenths(Math.max(endSec - MIN_CLIP_SECONDS, 0));
+    if (endSec <= startSec) {
+      endSec = quantizeTenths(Math.min(startSec + MIN_CLIP_SECONDS, totalDuration));
+    }
+    startInput.value = fmt(startSec);
+  }
+  endInput.value = fmt(endSec);
+  syncBar(false, true);
+  if (doSeek) seekPlayer(endSec);
+}
+
+startInput.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    startSec = quantizeTenths(clamp(startSec + 0.1, 0, totalDuration));
+    if (startSec >= endSec) endSec = quantizeTenths(Math.min(startSec + MIN_CLIP_SECONDS, totalDuration));
+    syncBar(false, true);
+    seekPlayer(startSec);
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    startSec = quantizeTenths(clamp(startSec - 0.1, 0, totalDuration));
+    syncBar(false, true);
+    seekPlayer(startSec);
+  } else if (event.key === 'Enter') {
+    applyStartInput(true);
+    startInput.blur();
+  }
+});
+
+endInput.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    endSec = quantizeTenths(clamp(endSec + 0.1, 0, totalDuration));
+    syncBar(false, true);
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    endSec = quantizeTenths(clamp(endSec - 0.1, 0, totalDuration));
+    if (endSec <= startSec) startSec = quantizeTenths(Math.max(endSec - MIN_CLIP_SECONDS, 0));
+    syncBar(false, true);
+  } else if (event.key === 'Enter') {
+    applyEndInput(false);
+    endInput.blur();
+  }
+});
+
+startInput.addEventListener('blur', () => applyStartInput(true));
+endInput.addEventListener('blur', () => applyEndInput(false));
+
+if (captureStartBtn) {
+  captureStartBtn.addEventListener('click', () => captureBoundaryFromCurrentTime('start'));
+}
+if (captureEndBtn) {
+  captureEndBtn.addEventListener('click', () => captureBoundaryFromCurrentTime('end'));
+}
+if (seekStartBtn) {
+  seekStartBtn.addEventListener('click', () => applyStartInput(true));
+}
+if (seekEndBtn) {
+  seekEndBtn.addEventListener('click', () => applyEndInput(true));
+}
+if (playerFullscreenBtn) {
+  playerFullscreenBtn.addEventListener('click', togglePlayerFullscreen);
+}
+if (playerPiPBtn) {
+  playerPiPBtn.addEventListener('click', togglePlayerPiP);
+}
+if (contextMenu) {
+  contextMenu.querySelectorAll('[data-context-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      hideContextMenu();
+      if (button.dataset.contextAction === 'start' || button.dataset.contextAction === 'end') {
+        setClipBoundary(button.dataset.contextAction, getCurrentPlayerTime());
+        return;
+      }
+      if (button.dataset.contextAction === 'fullscreen') {
+        togglePlayerFullscreen();
+        return;
+      }
+      if (button.dataset.contextAction === 'pip') {
+        togglePlayerPiP();
+      }
+    });
+  });
+}
+document.addEventListener('click', (event) => {
+  if (!contextMenu || !contextMenu.classList.contains('is-open')) return;
+  if (contextMenu.contains(event.target)) return;
+  if (event.target === localVid) return;
+  hideContextMenu();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    hideContextMenu();
+  }
+});
+document.addEventListener('fullscreenchange', updateFullscreenUI);
+
+if (localVid) {
+  localVid.addEventListener('contextmenu', handlePlayerContextMenu);
+}
+if (currentTimeBar) {
+  currentTimeBar.addEventListener('contextmenu', handlePlayerContextMenu);
+}
+
+startHandle.addEventListener('mousedown', (event) => { event.preventDefault(); dragging = 'start'; });
+endHandle.addEventListener('mousedown', (event) => { event.preventDefault(); dragging = 'end'; });
+startHandle.addEventListener('touchstart', (event) => { event.preventDefault(); dragging = 'start'; }, {passive:false});
+endHandle.addEventListener('touchstart', (event) => { event.preventDefault(); dragging = 'end'; }, {passive:false});
+
+function onMove(clientX) {
+  if (!dragging) return;
+  const rect = track.getBoundingClientRect();
+  const sec = quantizeTenths(clamp((clientX - rect.left) / rect.width, 0, 1) * totalDuration);
+  if (dragging === 'start') {
+    startSec = quantizeTenths(clamp(sec, 0, Math.max(0, endSec - MIN_CLIP_SECONDS)));
+  } else {
+    endSec = quantizeTenths(clamp(sec, Math.min(totalDuration, startSec + MIN_CLIP_SECONDS), totalDuration));
+  }
+  syncBar();
+}
+
+document.addEventListener('mousemove', (event) => onMove(event.clientX));
+document.addEventListener('touchmove', (event) => onMove(event.touches[0].clientX), {passive:true});
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  wasDragging = true;
+  if (dragging === 'start') seekPlayer(startSec);
+  if (dragging === 'end') seekPlayer(endSec);
+  dragging = null;
+  setTimeout(() => { wasDragging = false; }, 0);
+});
+document.addEventListener('touchend', () => {
+  if (!dragging) return;
+  if (dragging === 'start') seekPlayer(startSec);
+  if (dragging === 'end') seekPlayer(endSec);
+  dragging = null;
+});
+
+track.addEventListener('click', (event) => {
+  if (wasDragging) return;
+  const sec = quantizeTenths(clamp((event.clientX - track.getBoundingClientRect().left) / track.offsetWidth, 0, 1) * totalDuration);
+  const ds = Math.abs(sec - startSec), de = Math.abs(sec - endSec);
+  if (ds <= de) {
+    startSec = quantizeTenths(clamp(sec, 0, Math.max(0, endSec - MIN_CLIP_SECONDS)));
+    seekPlayer(startSec);
+  } else {
+    endSec = quantizeTenths(clamp(sec, Math.min(totalDuration, startSec + MIN_CLIP_SECONDS), totalDuration));
+  }
+  syncBar();
+});
+track.addEventListener('contextmenu', handlePlayerContextMenu);
+
+let clipHlsInstance = null;
+
+function applyInlinePlaybackSource() {
+  if (!localVid || !VIDEO_DATA.playback_url) return;
+  if (clipHlsInstance) {
+    clipHlsInstance.destroy();
+    clipHlsInstance = null;
+  }
+  if (VIDEO_DATA.playback_type === 'hls' && window.Hls && Hls.isSupported()) {
+    clipHlsInstance = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: true });
+    clipHlsInstance.loadSource(VIDEO_DATA.playback_url);
+    clipHlsInstance.attachMedia(localVid);
+    return;
+  }
+  if (VIDEO_DATA.playback_type === 'hls' && localVid.canPlayType('application/vnd.apple.mpegurl')) {
+    localVid.src = VIDEO_DATA.playback_url;
+    return;
+  }
+  if (VIDEO_DATA.playback_type === 'file') {
+    localVid.src = VIDEO_DATA.playback_url;
+  }
+}
+
+if (isLocal && localVid) {
+  applyInlinePlaybackSource();
+  if (VIDEO_DATA.duration > 0) {
+    totalDuration = quantizeTenths(VIDEO_DATA.duration);
+    endSec = quantizeTenths(Math.min(30, totalDuration));
+    document.getElementById('durationLabel').textContent = fmt(totalDuration);
+  }
+  localVid.addEventListener('loadedmetadata', () => {
+    totalDuration = quantizeTenths(localVid.duration || totalDuration);
+    endSec = quantizeTenths(Math.min(30, totalDuration));
+    document.getElementById('durationLabel').textContent = fmt(totalDuration);
+    syncBar();
+  });
+  localVid.addEventListener('timeupdate', () => {
+    currentSec = localVid.currentTime || 0;
+    syncBar(true);
+  });
+  localVid.addEventListener('dblclick', togglePlayerFullscreen);
+  syncBar();
+} else {
+  if (VIDEO_DATA.duration > 0) {
+    totalDuration = quantizeTenths(VIDEO_DATA.duration);
+    endSec = quantizeTenths(Math.min(30, totalDuration));
+    document.getElementById('durationLabel').textContent = fmt(totalDuration);
+    syncBar();
+  }
+  if (!VIDEO_DATA.video_id) {
+    showPlayerFallback();
+  }
+  window.onYouTubeIframeAPIReady = function() {
+    ytPlayer = new YT.Player('ytPlayer', {
+      videoId: VIDEO_DATA.video_id,
+      playerVars: { enablejsapi: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: () => {
+          const dur = ytPlayer.getDuration();
+          if (dur > 0) {
+            totalDuration = quantizeTenths(dur);
+            document.getElementById('durationLabel').textContent = fmt(dur);
+            endSec = quantizeTenths(Math.min(30, dur));
+            syncBar();
+          }
+        },
+        onError: () => {
+          showPlayerFallback();
+        },
+      }
+    });
+  };
+  if (VIDEO_DATA.video_id) {
+    (function () {
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    })();
+  }
+}
+
+setInterval(() => {
+  currentSec = getCurrentPlayerTime();
+  syncBar(true);
+}, 100);
+
+updateContextMenuActions();
+updateFullscreenUI();
+updatePiPUI();
+
+async function createClip() {
+  const s = quantizeTenths(startSec), e = quantizeTenths(endSec);
+  if (e <= s) {
+    toast('종료 시간이 시작 시간보다 커야 합니다.', 'error');
+    return;
+  }
+
+  const button = document.querySelector('.clip-create-btn');
+  button.disabled = true;
+  button.textContent = '⏳ 요청 중...';
+  try {
+    const response = await fetch(CREATE_CLIP_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({...VIDEO_DATA, start_time: s, end_time: e})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      toast(data.error || '오류 발생', 'error');
+      return;
+    }
+    toast(`클립 생성 시작: ${data.title}`, 'success');
+    addClipCard(data.clip_id, data.title, s, e);
+    startPolling(data.clip_id);
+  } catch (error) {
+    toast('네트워크 오류: ' + error.message, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = '✂️ 클립 생성';
+  }
+}
+
+function addClipCard(id, title, s, e) {
+  document.getElementById('emptyClips')?.remove();
+  const div = document.createElement('div');
+  div.className = 'clip-item';
+  div.id = 'clipItem-' + id;
+  div.dataset.id = id;
+  div.innerHTML = `
+    <div class="clip-item-inner">
+      <div class="clip-thumb">⏳</div>
+      <div class="clip-info">
+        <div class="clip-name">${title}</div>
+        <div class="clip-time">${fmt(s)} ~ ${fmt(e)} (${fmt(e - s)})</div>
+        <div class="clip-actions">
+          <span class="badge-processing clip-status-processing" id="badge-${id}">처리중</span>
+          <button class="btn-inline danger" style="padding:4px 10px;font-size:.78rem;" type="button" onclick="deleteClip(${id})">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('clipsList').prepend(div);
+  updateCount();
+}
+
+function startPolling(clipId) {
+  if (pollingMap[clipId]) return;
+  pollingMap[clipId] = setInterval(async () => {
+    try {
+      const response = await fetch(CLIP_STATUS_TEMPLATE.replace('999999', String(clipId)));
+      const data = await response.json();
+      if (data.status === 'done') {
+        clearInterval(pollingMap[clipId]);
+        delete pollingMap[clipId];
+        updateClipCard(clipId, data);
+        toast('✅ 클립 생성 완료!', 'success');
+      } else if (data.status === 'error') {
+        clearInterval(pollingMap[clipId]);
+        delete pollingMap[clipId];
+        const badge = document.getElementById('badge-' + clipId);
+        if (badge) {
+          badge.className = 'badge-error';
+          badge.textContent = '오류';
+        }
+        toast('클립 생성 실패: ' + (data.error_msg || 'unknown error'), 'error');
+      }
+    } catch (_error) {}
+  }, 2500);
+}
+
+function updateClipCard(clipId, data) {
+  const card = document.getElementById('clipItem-' + clipId);
+  if (!card) return;
+  const thumbEl = card.querySelector('.clip-thumb');
+  if (data.thumbnail && thumbEl) {
+    const img = document.createElement('img');
+    img.className = 'clip-thumb';
+    img.src = data.thumbnail + '?t=' + Date.now();
+    thumbEl.replaceWith(img);
+  }
+  const badge = document.getElementById('badge-' + clipId);
+  if (badge) {
+    const link = document.createElement('a');
+    link.href = CLIP_EDIT_TEMPLATE.replace('999999', String(clipId));
+    link.className = 'badge-done';
+    link.style.cssText = 'cursor:pointer;text-decoration:none;';
+    link.textContent = '✏️ 편집';
+    badge.replaceWith(link);
+  }
+  if (data.file_exists) {
+    const actions = card.querySelector('.clip-actions');
+    const downloadLink = document.createElement('a');
+    downloadLink.href = CLIP_DOWNLOAD_TEMPLATE.replace('999999', String(clipId)) + '?dl=1';
+    downloadLink.className = 'btn-inline secondary';
+    downloadLink.style.cssText = 'padding:4px 10px;font-size:.78rem;';
+    downloadLink.textContent = '⬇';
+    actions.insertBefore(downloadLink, actions.lastElementChild);
+  }
+}
+
+async function deleteClip(id) {
+  if (!confirm('이 클립을 삭제하시겠습니까?')) return;
+  const response = await fetch(CLIP_DELETE_TEMPLATE.replace('999999', String(id)), {
+    method: 'POST',
+    headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}
+  });
+  if (response.ok) {
+    document.getElementById('clipItem-' + id)?.remove();
+    updateCount();
+    toast('클립이 삭제되었습니다.', 'success');
+  }
+}
+
+function updateCount() {
+  document.getElementById('clipCountBadge').textContent = document.querySelectorAll('#clipsList .clip-item').length + '개';
+}
+
+document.querySelectorAll('.clip-item').forEach((item) => {
+  const badge = item.querySelector('.badge-pending,.badge-processing,.badge-queued');
+  if (badge) startPolling(item.dataset.id);
+});
+
+syncBar();
+</script>
+{% endblock %}

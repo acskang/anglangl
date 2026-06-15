@@ -1,0 +1,918 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}블로그편집{% endblock %}
+
+{% block extra_css %}
+<style>
+.edit-wrap { --sidebar-width:340px; --edit-gap:2rem; max-width: 1160px; margin: 0 auto; padding: 2rem 1.2rem 3rem; display:grid; grid-template-columns:var(--sidebar-width) 1fr; gap:var(--edit-gap); }
+.thumb-panel { position:sticky; top:72px; }
+.thumb-card,.section-card,.meta-card {
+  background:var(--s1); border:1px solid var(--border); border-radius:16px; overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.24);
+}
+.thumb-preview-wrap { position:relative; aspect-ratio:16/9; background:#000; overflow:hidden; cursor:pointer; }
+.thumb-preview-wrap img { width:100%; height:100%; object-fit:cover; transition:filter .25s; }
+.thumb-preview-wrap:hover img { filter:brightness(.55); }
+.thumb-overlay {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; opacity:0; transition:opacity .25s; color:#fff; font-size:.85rem; font-weight:600;
+}
+.thumb-preview-wrap:hover .thumb-overlay { opacity:1; }
+.thumb-card-body { padding:1rem; }
+.thumb-actions { display:flex; flex-direction:column; gap:8px; }
+.thumb-row { display:flex; gap:6px; }
+.reset-btn { color:var(--muted); font-size:.82rem; cursor:pointer; background:none; border:none; text-align:left; padding:0; }
+.reset-btn:hover { color:#fca5a5; }
+.btn-inline {
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:8px;
+  font-size:.9rem;font-weight:600;border:1px solid var(--border);text-decoration:none;cursor:pointer;
+}
+.btn-inline.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+.btn-inline.secondary { background:transparent; color:var(--text); }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:.78rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.field input[type=text], .field textarea, .field select {
+  background:var(--s2); border:1px solid var(--border); border-radius:8px; color:var(--text);
+  padding:10px 14px; font-family:inherit; font-size:.95rem; outline:none; transition:border-color .2s;
+}
+.field input[type=text]:focus, .field textarea:focus, .field select:focus { border-color:#7c4dff; }
+.field input[readonly] {
+  color:var(--muted);
+  cursor:text;
+}
+.field textarea { resize:vertical; min-height:140px; }
+.section-head {
+  display:flex; align-items:center; justify-content:space-between; padding:.85rem 1.2rem;
+  border-bottom:1px solid var(--border); background:rgba(255,255,255,.02);
+}
+.section-head-title { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1.5px; color:var(--text); }
+.section-body { padding:1.2rem; display:flex; flex-direction:column; gap:1rem; }
+.meta-card { padding:1rem; margin-top:1rem; color:var(--muted); font-size:.83rem; }
+.page-header {
+  max-width:1160px; margin:0 auto; padding:1.6rem 1.2rem .4rem;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;
+}
+.page-title { font-family:'Bebas Neue',sans-serif; font-size:1.9rem; letter-spacing:2px; color:var(--text); }
+.page-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+}
+.thumb-panel-actions{
+  margin-top:1rem;
+  min-height:140px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+}
+#thumbFileInput { display:none; }
+.extract-player-wrap{
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  background:#000;
+  border:1px solid var(--border);
+}
+.extract-player{
+  display:block;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#000;
+}
+.extract-player-host{
+  display:block;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#000;
+}
+.extract-capture-backend{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+  inset:auto auto -9999px -9999px;
+}
+.extract-empty{
+  border-radius:14px;
+  border:1px dashed var(--border);
+  background:rgba(255,255,255,.02);
+  color:var(--muted);
+  padding:1rem;
+  font-size:.88rem;
+}
+.extract-controls{
+  display:flex;
+  flex-direction:column;
+  gap:.9rem;
+}
+.extract-row{
+  display:flex;
+  gap:.7rem;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+.extract-action-row{
+  justify-content:center;
+}
+.extract-note{
+  color:var(--muted);
+  font-size:.82rem;
+}
+.capture-save-modal-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:2100;
+  background:rgba(5,7,18,.84);
+  backdrop-filter:blur(10px);
+  align-items:center;
+  justify-content:center;
+  padding:1.2rem;
+}
+.capture-save-modal{
+  width:min(980px, 94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:0 32px 120px rgba(0,0,0,.45);
+}
+.capture-save-grid{
+  display:grid;
+  grid-template-columns:minmax(300px, 380px) 1fr;
+  gap:1.2rem;
+  align-items:start;
+}
+.capture-preview-shell{
+  overflow:hidden;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background:#000;
+  aspect-ratio:16/9;
+}
+.capture-preview-shell img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+.capture-meta-list{
+  display:grid;
+  gap:.75rem;
+  margin-top:.9rem;
+}
+.capture-meta-item{
+  padding:.85rem .95rem;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.025);
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
+  align-items:flex-start;
+}
+.capture-meta-item span{
+  color:var(--muted);
+  font-size:.8rem;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.capture-meta-item strong{
+  color:var(--text);
+  font-size:.92rem;
+  text-align:right;
+  word-break:break-word;
+}
+.capture-form-column{
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+}
+.capture-form-column textarea{
+  min-height:168px;
+}
+.capture-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:.75rem;
+  flex-wrap:wrap;
+}
+.thumb-extract-section{
+  position:relative;
+  left:calc((var(--sidebar-width) + var(--edit-gap)) * -1);
+  width:calc(100% + var(--sidebar-width) + var(--edit-gap));
+}
+@media (max-width: 900px) {
+  .edit-wrap { grid-template-columns:1fr; }
+  .thumb-panel { position:static; }
+  .thumb-panel-actions{
+    margin-top:1rem;
+    min-height:auto;
+  }
+  .capture-save-grid{
+    grid-template-columns:1fr;
+  }
+  .thumb-extract-section{
+    left:0;
+    width:100%;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'videos:detail' video.id %}" style="color:var(--muted);font-size:.85rem;text-decoration:none;">← 클립 추출로 돌아가기</a>
+    <div class="page-title">📝 블로그편집</div>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'videos:detail' video.id %}" class="btn-inline secondary">✂️ 클립 추출</a>
+    {% if video.url %}<a href="{{ video.url }}" target="_blank" class="btn-inline secondary">🔗 YouTube</a>{% endif %}
+  </div>
+</div>
+
+<div class="edit-wrap">
+  <div class="thumb-panel">
+    <div class="thumb-card">
+      <div class="thumb-preview-wrap" onclick="document.getElementById('thumbFileInput').click()">
+        <img id="thumbPreviewImg" src="{% url 'videos:thumbnail-proxy' video.id %}?t={{ video.updated_at|date:'U' }}" alt="{{ video.title }}"
+             onerror="setPlaceholderThumbnail(this)">
+        <div class="thumb-overlay">
+          <div style="font-size:2rem;">📷</div>
+          <div>클릭하여 썸네일 변경</div>
+        </div>
+      </div>
+      <div class="thumb-card-body">
+        <div class="thumb-actions">
+          <div class="thumb-row">
+            <button class="btn-inline secondary" style="flex:1;" type="button" onclick="showThumbLarge()">🔍 크게 보기</button>
+            <button class="btn-inline secondary" style="flex:1;" type="button" id="copyThumbBtn" onclick="copyThumbToClipboard(this)">📋 복사</button>
+          </div>
+          <button class="btn-inline secondary" style="width:100%;" type="button" onclick="document.getElementById('thumbFileInput').click()">📁 이미지 파일 선택</button>
+          <button class="reset-btn" id="resetThumbBtn" type="button" onclick="resetThumbnail()" {% if not video.custom_thumbnail_file %}style="display:none;"{% endif %}>↩ 원본 썸네일로 초기화</button>
+          <input type="file" id="thumbFileInput" accept="image/*" onchange="onThumbSelected(event)">
+          <div id="thumbFileName" style="font-size:.78rem;color:var(--muted);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meta-card">
+      <div style="font-weight:700;color:var(--text);margin-bottom:.5rem;">VIDEO INFO</div>
+      <div>채널: {{ video.channel_name|default:"—" }}</div>
+      <div>길이: {% if video.duration_seconds %}{{ video.duration_seconds }}초{% else %}—{% endif %}</div>
+      <div>등록일: {{ video.created_at|date:"Y.m.d" }}</div>
+    </div>
+
+    <div class="thumb-panel-actions">
+      <a href="{% url 'videos:detail' video.id %}" class="btn-inline secondary">취소</a>
+      <button class="btn-inline primary" type="button" id="saveBtn" onclick="saveVideo()">💾 저장</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-head-title">📝 기본 정보</div>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>제목</label>
+          <input type="text" id="titleInput" value="{{ video.title }}" maxlength="255">
+        </div>
+        <div class="field">
+          <label>URL</label>
+          <input type="text" id="videoUrlInput" value="{{ video.url|default:'—' }}" readonly>
+        </div>
+        <div class="field">
+          <label>설명</label>
+          <textarea id="descInput">{{ video.description }}</textarea>
+        </div>
+        <div class="field">
+          <label>카테고리</label>
+          <select id="categoryInput">
+            {% for value, label in category_choices %}
+            <option value="{{ value }}"{% if video.category == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card thumb-extract-section" style="margin-top:1rem;">
+      <div class="section-head">
+        <div class="section-head-title">🖼 썸네일 이미지 추출</div>
+      </div>
+      <div class="section-body">
+        {% if playback_url or video.youtube_video_id %}
+        <div class="extract-player-wrap">
+          {% if video.source_type == 'youtube' and video.youtube_video_id %}
+          <div id="thumbExtractYoutubePlayer" class="extract-player-host"></div>
+          {% endif %}
+          <video id="thumbExtractPlayer" class="extract-player{% if video.source_type == 'youtube' and video.youtube_video_id %} extract-capture-backend{% endif %}" controls preload="metadata" {% if video.thumbnail %}poster="{{ thumbnail_proxy_url }}?t={{ video.updated_at|date:'U' }}"{% endif %}>
+            {% if playback_type == 'file' %}
+            <source src="{{ playback_url }}">
+            {% endif %}
+          </video>
+        </div>
+        <div class="extract-controls">
+          <div class="extract-row extract-action-row">
+            <button class="btn-inline primary" type="button" id="thumbCaptureSaveBtn">🖼 현재 장면을 썸네일로 저장</button>
+          </div>
+          <div class="extract-note" id="thumbExtractHint">영상의 특정 장면을 선택해 바로 썸네일로 저장할 수 있습니다.</div>
+        </div>
+        {% else %}
+        <div class="extract-empty">재생 가능한 원본이 준비되면 여기서 특정 장면을 썸네일로 추출하고 저장할 수 있습니다.</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="thumbModal" onclick="if(event.target===this)closeThumbModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center;">
+  <div style="position:relative;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <img id="thumbLargeImg" src="" alt="" style="max-width:88vw;max-height:80vh;border-radius:12px;box-shadow:0 8px 48px rgba(0,0,0,.9);display:block;object-fit:contain;">
+    <div style="display:flex;gap:8px;">
+      <button class="btn-inline secondary" type="button" onclick="copyThumbToClipboard(this)">📋 이미지 복사</button>
+      <button class="btn-inline secondary" type="button" onclick="closeThumbModal()">✕ 닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="capture-save-modal-backdrop" id="thumbCaptureModal" onclick="if(event.target===this)closeThumbCaptureModal()">
+  <div class="capture-save-modal">
+    <div class="section-head">
+      <div class="section-head-title">🖼 썸네일 저장 확인</div>
+      <button class="btn-inline secondary" type="button" onclick="closeThumbCaptureModal()">취소</button>
+    </div>
+    <div class="section-body">
+      <div class="capture-save-grid">
+        <div>
+          <div class="capture-preview-shell">
+            <img id="thumbCapturePreviewImg" src="" alt="캡처한 썸네일 미리보기">
+          </div>
+          <div class="capture-meta-list">
+            <div class="capture-meta-item">
+              <span>영상 제목</span>
+              <strong id="thumbCaptureVideoTitle">{{ video.title }}</strong>
+            </div>
+            <div class="capture-meta-item">
+              <span>캔버스 크기</span>
+              <strong id="thumbCaptureCanvasInfo">-</strong>
+            </div>
+            <div class="capture-meta-item">
+              <span>이미지 형식</span>
+              <strong id="thumbCaptureFormatInfo">PNG</strong>
+            </div>
+            <div class="capture-meta-item">
+              <span>파일 크기</span>
+              <strong id="thumbCaptureFileSizeInfo">-</strong>
+            </div>
+            <div class="capture-meta-item">
+              <span>캡처 시각</span>
+              <strong id="thumbCaptureTimeInfo">-</strong>
+            </div>
+          </div>
+        </div>
+        <div class="capture-form-column">
+          <div class="field">
+            <label>파일명</label>
+            <input type="text" id="thumbCaptureFilename" value="" maxlength="180" placeholder="thumbnail.png">
+          </div>
+          <div class="field">
+            <label>썸네일 설명</label>
+            <textarea id="thumbCaptureDescription" placeholder="이 썸네일 장면에 대한 설명을 입력하세요.">{{ video.custom_thumbnail_description }}</textarea>
+          </div>
+          <div class="extract-note">저장 전에 파일명과 설명을 확인하고, 필요한 경우 수정한 뒤 저장할 수 있습니다.</div>
+        </div>
+      </div>
+      <div class="capture-actions">
+        <button class="btn-inline secondary" type="button" onclick="closeThumbCaptureModal()">취소</button>
+        <button class="btn-inline primary" type="button" id="thumbCaptureConfirmBtn">💾 썸네일 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if video.source_type == 'youtube' and video.youtube_video_id %}
+<script src="https://www.youtube.com/iframe_api"></script>
+{% endif %}
+{% if playback_url and playback_type == 'hls' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+{% endif %}
+<script>
+const VIDEO_UPDATE_URL = "{% url 'videos:api-update' video.id %}";
+const VIDEO_THUMB_PROXY_URL = "{% url 'videos:thumbnail-proxy' video.id %}";
+const VIDEO_THUMB_UPDATE_URL = "{% url 'videos:thumbnail-update' video.id %}";
+const VIDEO_PLAYBACK_URL = "{{ playback_url|escapejs }}";
+const VIDEO_PLAYBACK_TYPE = "{{ playback_type|escapejs }}";
+const VIDEO_YOUTUBE_ID = "{{ video.youtube_video_id|escapejs }}";
+const VIDEO_TITLE = "{{ video.title|escapejs }}";
+let pendingThumbFile = null;
+let resetThumbPending = false;
+let thumbExtractHls = null;
+let thumbExtractYoutubePlayer = null;
+let pendingCapturedThumbnail = null;
+let currentThumbDescription = "{{ video.custom_thumbnail_description|default_if_none:''|escapejs }}";
+
+const thumbExtractPlayer = document.getElementById('thumbExtractPlayer');
+const thumbExtractYoutubeHost = document.getElementById('thumbExtractYoutubePlayer');
+const thumbCaptureSaveBtn = document.getElementById('thumbCaptureSaveBtn');
+const thumbCaptureModal = document.getElementById('thumbCaptureModal');
+const thumbCapturePreviewImg = document.getElementById('thumbCapturePreviewImg');
+const thumbCaptureVideoTitle = document.getElementById('thumbCaptureVideoTitle');
+const thumbCaptureCanvasInfo = document.getElementById('thumbCaptureCanvasInfo');
+const thumbCaptureFormatInfo = document.getElementById('thumbCaptureFormatInfo');
+const thumbCaptureFileSizeInfo = document.getElementById('thumbCaptureFileSizeInfo');
+const thumbCaptureTimeInfo = document.getElementById('thumbCaptureTimeInfo');
+const thumbCaptureFilename = document.getElementById('thumbCaptureFilename');
+const thumbCaptureDescription = document.getElementById('thumbCaptureDescription');
+const thumbCaptureConfirmBtn = document.getElementById('thumbCaptureConfirmBtn');
+
+function quantizeTenths(value) {
+  return Math.max(0, Math.round((Number(value) || 0) * 10) / 10);
+}
+
+function formatTenths(totalSeconds) {
+  const bounded = quantizeTenths(totalSeconds);
+  const wholeSeconds = Math.floor(bounded);
+  const tenths = Math.round((bounded - wholeSeconds) * 10);
+  const hours = Math.floor(wholeSeconds / 3600);
+  const minutes = Math.floor((wholeSeconds % 3600) / 60);
+  const seconds = wholeSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}:${tenths}`;
+}
+
+function parseTenths(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    return quantizeTenths(parseFloat(raw));
+  }
+  const parts = raw.split(':').map((part) => part.trim());
+  if (!parts.every(Boolean)) return null;
+  if (parts.length === 4) {
+    const [hh, mm, ss, t] = parts;
+    if (![hh, mm, ss, t].every((part) => /^\d+$/.test(part))) return null;
+    return quantizeTenths((parseInt(hh, 10) * 3600) + (parseInt(mm, 10) * 60) + parseInt(ss, 10) + (parseInt(t, 10) / 10));
+  }
+  if (parts.length === 3) {
+    const [hh, mm, ss] = parts;
+    if (![hh, mm].every((part) => /^\d+$/.test(part)) || !/^\d+(\.\d+)?$/.test(ss)) return null;
+    return quantizeTenths((parseInt(hh, 10) * 3600) + (parseInt(mm, 10) * 60) + parseFloat(ss));
+  }
+  if (parts.length === 2) {
+    const [mm, ss] = parts;
+    if (!/^\d+$/.test(mm) || !/^\d+(\.\d+)?$/.test(ss)) return null;
+    return quantizeTenths((parseInt(mm, 10) * 60) + parseFloat(ss));
+  }
+  return null;
+}
+
+function formatBytes(totalBytes) {
+  const bytes = Number(totalBytes) || 0;
+  if (bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function sanitizeCaptureFilename(name) {
+  const cleaned = String(name || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  return cleaned || 'thumbnail.png';
+}
+
+function getCurrentVideoTitle() {
+  const titleInput = document.getElementById('titleInput');
+  return (titleInput?.value || VIDEO_TITLE || '').trim() || VIDEO_TITLE || 'thumbnail';
+}
+
+function buildCaptureFilename(captureTime) {
+  const timeStamp = formatTenths(captureTime).replace(/:/g, '-');
+  const titleStem = sanitizeCaptureFilename(getCurrentVideoTitle())
+    .replace(/\.[a-z0-9]+$/i, '')
+    .slice(0, 80)
+    .trim();
+  return `${titleStem || 'thumbnail'}-${timeStamp}.png`;
+}
+
+function getThumbCurrentTime() {
+  if (thumbExtractYoutubePlayer && typeof thumbExtractYoutubePlayer.getCurrentTime === 'function') {
+    try {
+      return quantizeTenths(thumbExtractYoutubePlayer.getCurrentTime() || 0);
+    } catch (_error) {}
+  }
+  if (!thumbExtractPlayer) return 0;
+  return quantizeTenths(thumbExtractPlayer.currentTime || 0);
+}
+
+function initThumbExtractPlayer() {
+  if (!thumbExtractPlayer || !VIDEO_PLAYBACK_URL) return;
+  thumbExtractPlayer.muted = true;
+  thumbExtractPlayer.playsInline = true;
+  thumbExtractPlayer.preload = 'auto';
+  if (VIDEO_PLAYBACK_TYPE === 'hls') {
+    if (thumbExtractPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+      thumbExtractPlayer.src = VIDEO_PLAYBACK_URL;
+    } else if (window.Hls && Hls.isSupported()) {
+      thumbExtractHls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: true });
+      thumbExtractHls.loadSource(VIDEO_PLAYBACK_URL);
+      thumbExtractHls.attachMedia(thumbExtractPlayer);
+      if (typeof thumbExtractHls.startLoad === 'function') {
+        thumbExtractHls.startLoad(0);
+      }
+    } else {
+      toast('이 브라우저는 HLS 재생을 지원하지 않습니다.', 'error');
+    }
+  } else if (VIDEO_PLAYBACK_TYPE === 'file') {
+    thumbExtractPlayer.load();
+  }
+}
+
+function initThumbExtractYouTubePlayer() {
+  if (!thumbExtractYoutubeHost || !VIDEO_YOUTUBE_ID || !window.YT || !YT.Player) return;
+  thumbExtractYoutubePlayer = new YT.Player('thumbExtractYoutubePlayer', {
+    videoId: VIDEO_YOUTUBE_ID,
+    playerVars: {
+      rel: 0,
+      modestbranding: 1,
+      playsinline: 1,
+    },
+    events: {
+      onReady: () => {},
+      onStateChange: () => {},
+    },
+  });
+}
+
+window.onYouTubeIframeAPIReady = function() {
+  initThumbExtractYouTubePlayer();
+};
+
+function waitForCaptureFrame(targetSeconds) {
+  if (!thumbExtractPlayer) {
+    return Promise.reject(new Error('캡처용 비디오가 준비되지 않았습니다.'));
+  }
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('캡처 프레임 준비 시간이 초과되었습니다.'));
+    }, 5000);
+
+    function cleanup() {
+      window.clearTimeout(timeoutId);
+      thumbExtractPlayer.removeEventListener('seeked', handleReady);
+      thumbExtractPlayer.removeEventListener('loadeddata', handleReady);
+      thumbExtractPlayer.removeEventListener('canplay', handleReady);
+    }
+
+    function handleReady() {
+      cleanup();
+      resolve();
+    }
+
+    thumbExtractPlayer.addEventListener('seeked', handleReady, { once: true });
+    thumbExtractPlayer.addEventListener('loadeddata', handleReady, { once: true });
+    thumbExtractPlayer.addEventListener('canplay', handleReady, { once: true });
+
+    try {
+      thumbExtractPlayer.currentTime = targetSeconds;
+    } catch (error) {
+      cleanup();
+      reject(error);
+      return;
+    }
+
+    if (thumbExtractPlayer.readyState >= 2 && Math.abs((thumbExtractPlayer.currentTime || 0) - targetSeconds) < 0.15) {
+      cleanup();
+      resolve();
+    }
+  });
+}
+
+function ensureThumbExtractPlayerReady() {
+  if (!thumbExtractPlayer) {
+    return Promise.reject(new Error('캡처용 비디오가 준비되지 않았습니다.'));
+  }
+
+  if (
+    thumbExtractPlayer.readyState >= 2 &&
+    thumbExtractPlayer.videoWidth > 0 &&
+    thumbExtractPlayer.videoHeight > 0
+  ) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('캡처용 원본 영상 준비가 지연되고 있습니다.'));
+    }, 8000);
+
+    function cleanup() {
+      window.clearTimeout(timeoutId);
+      thumbExtractPlayer.removeEventListener('loadedmetadata', handleReady);
+      thumbExtractPlayer.removeEventListener('loadeddata', handleReady);
+      thumbExtractPlayer.removeEventListener('canplay', handleReady);
+      thumbExtractPlayer.removeEventListener('error', handleError);
+    }
+
+    function handleReady() {
+      if (thumbExtractPlayer.videoWidth > 0 && thumbExtractPlayer.videoHeight > 0) {
+        cleanup();
+        resolve();
+      }
+    }
+
+    function handleError() {
+      cleanup();
+      reject(new Error('캡처용 원본 영상을 불러오지 못했습니다.'));
+    }
+
+    thumbExtractPlayer.addEventListener('loadedmetadata', handleReady);
+    thumbExtractPlayer.addEventListener('loadeddata', handleReady);
+    thumbExtractPlayer.addEventListener('canplay', handleReady);
+    thumbExtractPlayer.addEventListener('error', handleError, { once: true });
+
+    try {
+      thumbExtractPlayer.load();
+    } catch (_error) {}
+
+    handleReady();
+  });
+}
+
+async function primeThumbExtractFrame(targetSeconds) {
+  if (!thumbExtractPlayer) return;
+  if (
+    thumbExtractPlayer.readyState >= 2 &&
+    thumbExtractPlayer.videoWidth > 0 &&
+    thumbExtractPlayer.videoHeight > 0
+  ) {
+    return;
+  }
+
+  try {
+    thumbExtractPlayer.currentTime = targetSeconds;
+  } catch (_error) {}
+
+  try {
+    const playPromise = thumbExtractPlayer.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      await playPromise;
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+      thumbExtractPlayer.pause();
+    }
+  } catch (_error) {}
+}
+
+function openThumbCaptureModal(capturePayload) {
+  pendingCapturedThumbnail = capturePayload;
+  if (thumbCapturePreviewImg) {
+    thumbCapturePreviewImg.src = capturePayload.dataUrl;
+  }
+  if (thumbCaptureVideoTitle) {
+    thumbCaptureVideoTitle.textContent = getCurrentVideoTitle() || '-';
+  }
+  if (thumbCaptureCanvasInfo) {
+    thumbCaptureCanvasInfo.textContent = `${capturePayload.width} × ${capturePayload.height}`;
+  }
+  if (thumbCaptureFormatInfo) {
+    thumbCaptureFormatInfo.textContent = capturePayload.type.toUpperCase();
+  }
+  if (thumbCaptureFileSizeInfo) {
+    thumbCaptureFileSizeInfo.textContent = formatBytes(capturePayload.size);
+  }
+  if (thumbCaptureTimeInfo) {
+    thumbCaptureTimeInfo.textContent = formatTenths(capturePayload.captureTime);
+  }
+  if (thumbCaptureFilename) {
+    thumbCaptureFilename.value = buildCaptureFilename(capturePayload.captureTime);
+  }
+  if (thumbCaptureDescription) {
+    thumbCaptureDescription.value = currentThumbDescription || '';
+  }
+  if (thumbCaptureModal) {
+    thumbCaptureModal.style.display = 'flex';
+  }
+}
+
+function closeThumbCaptureModal() {
+  if (thumbCaptureModal) {
+    thumbCaptureModal.style.display = 'none';
+  }
+}
+
+async function saveCapturedThumbnail() {
+  if (!pendingCapturedThumbnail || !thumbCaptureConfirmBtn) return;
+
+  const originalText = thumbCaptureConfirmBtn.textContent;
+  thumbCaptureConfirmBtn.disabled = true;
+  thumbCaptureConfirmBtn.textContent = '⏳ 저장 중...';
+
+  try {
+    const requestedFileName = sanitizeCaptureFilename(thumbCaptureFilename?.value || buildCaptureFilename(pendingCapturedThumbnail.captureTime));
+    const description = (thumbCaptureDescription?.value || '').trim();
+    const uploadFile = new File([pendingCapturedThumbnail.blob], requestedFileName, { type: pendingCapturedThumbnail.blob.type || 'image/png' });
+    const formData = new FormData();
+    formData.append('thumbnail_file', uploadFile);
+    formData.append('thumbnail_filename', requestedFileName);
+    formData.append('thumbnail_description', description);
+
+    const response = await fetch(VIDEO_THUMB_UPDATE_URL, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || '썸네일 저장에 실패했습니다.');
+    }
+
+    currentThumbDescription = data.thumbnail_description || '';
+    pendingThumbFile = null;
+    resetThumbPending = false;
+    document.getElementById('thumbFileInput').value = '';
+    document.getElementById('thumbFileName').textContent = `저장: ${data.thumbnail_file_name || requestedFileName}`;
+    document.getElementById('thumbPreviewImg').src = VIDEO_THUMB_PROXY_URL + '?t=' + Date.now();
+    document.getElementById('resetThumbBtn').style.display = '';
+    closeThumbCaptureModal();
+    pendingCapturedThumbnail = null;
+    toast('현재 장면 썸네일을 저장했습니다.', 'success');
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    thumbCaptureConfirmBtn.disabled = false;
+    thumbCaptureConfirmBtn.textContent = originalText || '💾 썸네일 저장';
+  }
+}
+
+async function captureFrameToThumbnail() {
+  if (!thumbExtractPlayer) return;
+  const button = thumbCaptureSaveBtn;
+  const originalText = button ? button.textContent : '';
+  if (button) {
+    button.disabled = true;
+    button.textContent = '⏳ 장면 추출 중...';
+  }
+
+  try {
+    if (!VIDEO_PLAYBACK_URL) {
+      throw new Error('캡처용 원본 영상이 아직 준비되지 않았습니다.');
+    }
+    const captureTime = getThumbCurrentTime();
+    await ensureThumbExtractPlayerReady();
+    await primeThumbExtractFrame(captureTime);
+    await waitForCaptureFrame(captureTime);
+    if (thumbExtractPlayer.readyState < 2 || !thumbExtractPlayer.videoWidth || !thumbExtractPlayer.videoHeight) {
+      throw new Error('영상 프레임이 아직 준비되지 않았습니다.');
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = thumbExtractPlayer.videoWidth;
+    canvas.height = thumbExtractPlayer.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(thumbExtractPlayer, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('이미지 추출에 실패했습니다.');
+    openThumbCaptureModal({
+      blob,
+      dataUrl: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height,
+      size: blob.size,
+      type: 'png',
+      captureTime,
+    });
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText || '🖼 현재 장면을 썸네일로 저장';
+    }
+  }
+}
+
+function onThumbSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  pendingThumbFile = file;
+  resetThumbPending = false;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('thumbPreviewImg').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('thumbFileName').textContent = '선택: ' + file.name;
+  document.getElementById('resetThumbBtn').style.display = '';
+}
+
+function resetThumbnail() {
+  pendingThumbFile = null;
+  resetThumbPending = true;
+  document.getElementById('thumbPreviewImg').src = VIDEO_THUMB_PROXY_URL + '?t=' + Date.now();
+  document.getElementById('thumbFileInput').value = '';
+  document.getElementById('thumbFileName').textContent = '(원본 썸네일 사용)';
+  document.getElementById('resetThumbBtn').style.display = 'none';
+}
+
+function showThumbLarge() {
+  const src = document.getElementById('thumbPreviewImg').src;
+  document.getElementById('thumbLargeImg').src = src;
+  document.getElementById('thumbModal').style.display = 'flex';
+}
+
+function closeThumbModal() {
+  document.getElementById('thumbModal').style.display = 'none';
+}
+
+async function copyThumbToClipboard(btn) {
+  const originalText = btn?.textContent;
+  if (btn) { btn.textContent = '⏳...'; btn.disabled = true; }
+  try {
+    const response = await fetch(VIDEO_THUMB_PROXY_URL);
+    if (!response.ok) throw new Error('이미지 로드 실패');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    await new Promise((resolve) => {
+      canvas.toBlob(async (pngBlob) => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({'image/png': pngBlob})]);
+          toast('📋 클립보드에 복사되었습니다!', 'success');
+        } catch (_error) {
+          toast('클립보드 복사를 지원하지 않아 이미지를 표시된 상태로 유지합니다.', 'info');
+        }
+        resolve();
+      }, 'image/png');
+    });
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = originalText || '📋 복사'; btn.disabled = false; }
+  }
+}
+
+async function saveVideo() {
+  const button = document.getElementById('saveBtn');
+  button.disabled = true;
+  button.textContent = '⏳ 저장 중...';
+  const formData = new FormData();
+  formData.append('title', document.getElementById('titleInput').value.trim());
+  formData.append('description', document.getElementById('descInput').value.trim());
+  formData.append('category', document.getElementById('categoryInput').value);
+  if (pendingThumbFile) formData.append('custom_thumbnail', pendingThumbFile);
+  if (resetThumbPending) formData.append('reset_thumbnail', '1');
+
+  try {
+    const response = await fetch(VIDEO_UPDATE_URL, {
+      method: 'POST',
+      headers: {'X-CSRFToken': getCookie('csrftoken')},
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      toast(data.error || '저장 실패', 'error');
+      return;
+    }
+    document.getElementById('thumbPreviewImg').src = VIDEO_THUMB_PROXY_URL + '?t=' + Date.now();
+    pendingThumbFile = null;
+    resetThumbPending = false;
+    document.getElementById('thumbFileName').textContent = '';
+    toast('✅ 저장되었습니다!', 'success');
+  } catch (error) {
+    toast('오류: ' + error.message, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = '💾 저장';
+  }
+}
+
+if (thumbCaptureSaveBtn) {
+  thumbCaptureSaveBtn.addEventListener('click', captureFrameToThumbnail);
+}
+if (thumbCaptureConfirmBtn) {
+  thumbCaptureConfirmBtn.addEventListener('click', saveCapturedThumbnail);
+}
+initThumbExtractPlayer();
+if (thumbExtractYoutubeHost && window.YT && YT.Player) {
+  initThumbExtractYouTubePlayer();
+}
+</script>
+{% endblock %}

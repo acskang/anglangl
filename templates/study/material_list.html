@@ -1,0 +1,287 @@
+{% extends 'dramaNlearn/base.html' %}
+{% block title %}학습 자료 라이브러리{% endblock %}
+
+{% block extra_css %}
+<style>
+.library-shell{
+  width:min(1280px, calc(100vw - 2rem));
+  margin:0 auto;
+  padding:1.5rem 0 3rem;
+}
+.library-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.library-head h1{
+  margin:0;
+  font-size:1.45rem;
+}
+.library-head p{
+  margin:.35rem 0 0;
+  color:var(--muted);
+  font-size:.85rem;
+}
+.btn-main{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.78rem 1rem;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:600;
+  background:linear-gradient(135deg, #6b46ff, #3ddc97);
+  color:#fff;
+}
+.filter-bar{
+  display:grid;
+  grid-template-columns:repeat(5, minmax(0, 1fr));
+  gap:.8rem;
+  padding:1rem;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:16px;
+  margin-bottom:1rem;
+}
+.filter-bar label{
+  display:block;
+  margin-bottom:.35rem;
+  color:var(--muted);
+  font-size:.74rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.filter-bar select{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  padding:.7rem .8rem;
+}
+.library-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:1rem;
+}
+.material-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:1rem;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.card-meta{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+  margin-bottom:.8rem;
+}
+.chip{
+  padding:.2rem .55rem;
+  border-radius:999px;
+  background:var(--s2);
+  border:1px solid var(--border);
+  font-size:.72rem;
+}
+.chip.rich{
+  color:#9ae6b4;
+  border-color:rgba(110,231,183,.28);
+}
+.chip.medium{
+  color:#c4b5fd;
+  border-color:rgba(196,181,253,.28);
+}
+.chip.light{
+  color:#cbd5e1;
+  border-color:rgba(203,213,225,.2);
+}
+.material-card h2{
+  margin:0 0 .45rem;
+  font-size:1rem;
+}
+.card-subline{
+  margin-top:.45rem;
+  display:flex;
+  gap:.4rem;
+  flex-wrap:wrap;
+}
+.meta-note{
+  margin-top:.6rem !important;
+  color:#cbd5e1 !important;
+}
+.material-card p{
+  margin:0;
+  color:var(--muted);
+  font-size:.82rem;
+}
+.card-actions{
+  display:flex;
+  gap:.55rem;
+  flex-wrap:wrap;
+  margin-top:1rem;
+}
+.card-actions form{
+  margin:0;
+}
+.btn-ghost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.62rem .85rem;
+  border-radius:10px;
+  text-decoration:none;
+  background:var(--s2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:.82rem;
+  font-family:inherit;
+  cursor:pointer;
+}
+.ownership-chip{
+  color:#9ae6b4;
+  border-color:rgba(110,231,183,.24);
+}
+.empty-state{
+  padding:2rem;
+  text-align:center;
+  color:var(--muted);
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:18px;
+}
+@media (max-width: 900px){
+  .filter-bar{
+    grid-template-columns:1fr;
+  }
+  .library-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="library-shell">
+  <div class="library-head">
+    <div>
+      <h1>{{ page_title }}</h1>
+      <p>{{ page_description }}</p>
+    </div>
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap;">
+      {% if page_mode == "library" %}
+        <a class="btn-main" href="{% url 'study:create' %}">새 자료 만들기</a>
+        <a class="btn-ghost" href="{% url 'study:explore' %}">공개 자료 탐색</a>
+      {% else %}
+        <a class="btn-main" href="{% url 'study:list' %}">내 라이브러리</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form class="filter-bar" method="get">
+    <div>
+      <label for="id_material_type">자료 유형</label>
+      <select id="id_material_type" name="material_type">
+        <option value="">전체</option>
+        {% for value, label in material_type_choices %}
+          <option value="{{ value }}" {% if request.GET.material_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="id_purpose">학습 목적</label>
+      <select id="id_purpose" name="purpose">
+        <option value="">전체</option>
+        {% for value, label in purpose_choices %}
+          <option value="{{ value }}" {% if request.GET.purpose == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="id_source_type">소스 유형</label>
+      <select id="id_source_type" name="source_type">
+        <option value="">전체</option>
+        {% for value, label in source_type_choices %}
+          <option value="{{ value }}" {% if request.GET.source_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if page_mode == "library" %}
+      <div>
+        <label for="id_ownership">보관 유형</label>
+        <select id="id_ownership" name="ownership">
+          <option value="">전체</option>
+          <option value="created" {% if request.GET.ownership == "created" %}selected{% endif %}>내가 만든 자료</option>
+          <option value="imported" {% if request.GET.ownership == "imported" %}selected{% endif %}>가져온 자료</option>
+        </select>
+      </div>
+    {% endif %}
+    <div>
+      <label for="id_sort">정렬</label>
+      <select id="id_sort" name="sort">
+        {% for value, label in sort_choices %}
+          <option value="{{ value }}" {% if request.GET.sort|default:"recent" == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {% if materials %}
+    <div class="library-grid">
+      {% for material in materials %}
+        <article class="material-card">
+          <div class="card-meta">
+            <span class="chip">{{ material.get_material_type_display }}</span>
+            <span class="chip">{{ material.get_purpose_display }}</span>
+            <span class="chip">{{ material.get_visibility_display }}</span>
+            <span class="chip ownership-chip">{{ material.ownership_label }}</span>
+            <span class="chip {{ material.quality_tone }}">{{ material.quality_badge }}</span>
+          </div>
+          <h2>{{ material.title }}</h2>
+          <p>{{ material.source_title|default:"직접 작성" }}</p>
+          <div class="card-subline">
+            <span class="chip">{{ material.get_source_type_display }}</span>
+            <span class="chip">{{ material.visibility_description }}</span>
+          </div>
+          {% if page_mode == "explore" %}
+            <p class="meta-note">작성자 @{{ material.owner.username }}</p>
+          {% elif material.copied_from %}
+            <p class="meta-note">원본 자료 #{{ material.copied_from_id }} 기반 · 내 용도에 맞게 다시 편집 가능</p>
+          {% else %}
+            <p class="meta-note">내가 만든 원본 자료 · 공개 후 다른 사용자가 복제 가능</p>
+          {% endif %}
+          <p style="margin-top:.55rem;">{{ material.updated_at|date:"Y-m-d H:i" }} 수정</p>
+          <div class="card-actions">
+            {% if page_mode == "explore" %}
+              <a class="btn-ghost" href="{% url 'study:public-detail' material.id %}">상세 보기</a>
+              {% if request.user.is_authenticated %}
+                <form method="post" action="{% url 'study:clone' material.id %}">
+                  {% csrf_token %}
+                  <button class="btn-ghost" type="submit">복제하기</button>
+                </form>
+              {% endif %}
+            {% else %}
+              <a class="btn-ghost" href="{% url 'study:detail' material.id %}">상세 보기</a>
+              <a class="btn-ghost" href="{% url 'study:edit' material.id %}">편집</a>
+              {% if material.visibility == "public" %}
+                <a class="btn-ghost" href="{% url 'study:explore' %}?source_type={{ material.source_type }}">비슷한 공개 자료 보기</a>
+              {% endif %}
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      {% if page_mode == "explore" %}
+        아직 탐색 가능한 공개 자료가 없습니다.
+      {% else %}
+        아직 저장된 학습 자료가 없습니다. 플레이어나 dramaNlearn에서 바로 초안을 만들어 보세요.
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
