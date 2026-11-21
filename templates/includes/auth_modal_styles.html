@@ -10,6 +10,9 @@
   align-items:center;
   justify-content:center;
   padding:1.5rem;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
   background:rgba(5,7,13,.74);
   backdrop-filter:blur(18px);
   -webkit-backdrop-filter:blur(18px);
@@ -445,13 +448,24 @@
 @media (max-width: 560px){
   .auth-modal-backdrop{
     padding:0;
+    align-items:flex-start;
   }
 
   .auth-modal-shell,
   .logout-modal-shell{
     width:100%;
     min-height:100vh;
+    min-height:100dvh;
     border-radius:0;
+  }
+
+  .auth-modal-brand{
+    padding:1.25rem 1.2rem 1rem;
+  }
+
+  .auth-brand-points,
+  .auth-brand-copy{
+    display:none;
   }
 
   .auth-modal-actions{
